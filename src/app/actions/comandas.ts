@@ -6,9 +6,10 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { calculateCommission } from "@/lib/commissions";
 import { nextStock } from "@/lib/stock";
-import { comandaTotal } from "@/lib/comandas";
+import { allocatePayments, comandaTotal } from "@/lib/comandas";
 import { parseBRLToCents } from "@/lib/money";
 import { zonedDateTime } from "@/lib/dates";
+import { PAYMENT_METHODS } from "@/lib/constants";
 
 async function nextNumber(tenantId: string) {
   const last = await prisma.comanda.findFirst({
@@ -80,7 +81,6 @@ export async function upsertComanda(formData: FormData) {
   const dateRaw = String(formData.get("occurredAt") ?? "");
   const occurredAt = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? zonedDateTime(dateRaw, "12:00") : new Date();
   const numberRaw = Number(formData.get("number") ?? "");
-  const intent = String(formData.get("intent") ?? "save");
 
   if (!clientId) return { error: "Selecione um cliente." };
 
@@ -200,9 +200,6 @@ export async function upsertComanda(formData: FormData) {
     }
     revalidateComandas();
     revalidatePath(`/comandas/${comandaId}`);
-    if (intent === "invoice") {
-      redirect(`/comandas/${comandaId}`);
-    }
     return { ok: true, id: comandaId };
   } catch (err) {
     if (
@@ -306,14 +303,41 @@ export async function removeComandaItemForm(formData: FormData) {
   return removeComandaItem(String(formData.get("itemId") ?? ""));
 }
 
-export async function closeComanda(formData: FormData) {
-  const { session } = await requireTenant();
-  const comandaId = String(formData.get("comandaId") ?? "");
-  const method = String(formData.get("method") ?? "PIX");
-  const discountCents = parseBRLToCents(String(formData.get("discount") ?? "0"));
+type ParsedPayment = {
+  method: string;
+  amountCents: number;
+  installments: number;
+  occurredAt: Date;
+};
 
+function parsePayments(formData: FormData): ParsedPayment[] {
+  const methods = formData.getAll("payMethod").map(String);
+  const amounts = formData.getAll("payAmount").map(String);
+  const installments = formData.getAll("payInstallments").map(String);
+  const dates = formData.getAll("payDate").map(String);
+  const allowed = new Set<string>(PAYMENT_METHODS);
+  const payments: ParsedPayment[] = [];
+  for (let i = 0; i < methods.length; i++) {
+    const method = methods[i];
+    if (!allowed.has(method)) continue;
+    const amountCents = parseBRLToCents(amounts[i] ?? "0");
+    if (amountCents <= 0) continue;
+    const qty = Math.max(1, Math.min(12, Math.round(Number(installments[i] ?? "1") || 1)));
+    const dateRaw = dates[i] ?? "";
+    const occurredAt = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? zonedDateTime(dateRaw, "12:00") : new Date();
+    payments.push({ method, amountCents, installments: qty, occurredAt });
+  }
+  return payments;
+}
+
+async function finalizeOpenComanda(
+  tenantId: string,
+  comandaId: string,
+  payments: ParsedPayment[],
+  discountOverride?: number,
+) {
   const comanda = await prisma.comanda.findFirst({
-    where: { id: comandaId, tenantId: session.tenantId },
+    where: { id: comandaId, tenantId },
     include: {
       items: { include: { service: { include: { products: true } } } },
       appointment: { include: { commissions: true } },
@@ -322,21 +346,33 @@ export async function closeComanda(formData: FormData) {
   if (!comanda) return { error: "Comanda não encontrada." };
   if (comanda.status !== "OPEN") return { error: "Esta comanda já foi encerrada." };
   if (comanda.items.length === 0) return { error: "Inclua itens antes de fechar." };
+  if (!payments.length) return { error: "Adicione um pagamento." };
 
+  const discountCents = discountOverride ?? comanda.discountCents;
   const total = comandaTotal({
     items: comanda.items,
     discountCents,
     creditCents: comanda.creditCents,
     cashbackCents: comanda.cashbackCents,
   });
+  const paidCents = payments.reduce((sum, p) => sum + p.amountCents, 0);
+  if (paidCents < total) return { error: "O total pago é menor que o valor da comanda." };
+
+  const allocated = allocatePayments(total, payments);
+  const primary = allocated.find((p) => p.appliedCents > 0) ?? allocated[0];
 
   await prisma.comanda.update({
     where: { id: comanda.id },
-    data: { status: "CLOSED", closedAt: new Date(), paymentMethod: method, discountCents },
+    data: {
+      status: "CLOSED",
+      closedAt: new Date(),
+      paymentMethod: primary.method,
+      discountCents,
+    },
   });
 
   if (comanda.creditCents > 0 || comanda.cashbackCents > 0) {
-    const client = await prisma.client.findFirst({ where: { id: comanda.clientId, tenantId: session.tenantId } });
+    const client = await prisma.client.findFirst({ where: { id: comanda.clientId, tenantId } });
     if (client) {
       await prisma.client.update({
         where: { id: client.id },
@@ -348,25 +384,30 @@ export async function closeComanda(formData: FormData) {
     }
   }
 
-  await prisma.transaction.create({
-    data: {
-      tenantId: session.tenantId,
-      type: "INCOME",
-      category: "comanda",
-      amountCents: total,
-      method,
-      account: "caixa",
-      description: `Comanda #${comanda.number}`,
-      appointmentId: comanda.appointmentId,
-      comandaId: comanda.id,
-    },
-  });
+  for (const payment of allocated) {
+    if (payment.appliedCents <= 0) continue;
+    await prisma.transaction.create({
+      data: {
+        tenantId,
+        type: "INCOME",
+        category: "comanda",
+        amountCents: payment.appliedCents,
+        method: payment.method,
+        account: "caixa",
+        description:
+          payment.installments > 1 ? `Comanda #${comanda.number} · ${payment.installments}x` : `Comanda #${comanda.number}`,
+        appointmentId: comanda.appointmentId,
+        comandaId: comanda.id,
+        occurredAt: payment.occurredAt,
+      },
+    });
+  }
 
   for (const item of comanda.items.filter((i) => i.type === "SERVICE")) {
     const professionalId = item.professionalId ?? comanda.professionalId;
     if (!professionalId) continue;
     const professional = await prisma.professional.findFirst({
-      where: { id: professionalId, tenantId: session.tenantId },
+      where: { id: professionalId, tenantId },
     });
     if (!professional) continue;
     const { percent, amountCents } = calculateCommission({
@@ -376,7 +417,7 @@ export async function closeComanda(formData: FormData) {
     });
     await prisma.commission.create({
       data: {
-        tenantId: session.tenantId,
+        tenantId,
         professionalId,
         appointmentId: comanda.appointmentId,
         comandaId: comanda.id,
@@ -389,14 +430,14 @@ export async function closeComanda(formData: FormData) {
   for (const item of comanda.items) {
     if (item.type === "PRODUCT" && item.productId) {
       const product = await prisma.product.findFirst({
-        where: { id: item.productId, tenantId: session.tenantId },
+        where: { id: item.productId, tenantId },
       });
       if (!product) continue;
       const stock = nextStock(product.stock, "OUT", item.quantity);
       await prisma.product.update({ where: { id: product.id }, data: { stock } });
       await prisma.stockMovement.create({
         data: {
-          tenantId: session.tenantId,
+          tenantId,
           productId: product.id,
           type: "OUT",
           quantity: item.quantity,
@@ -409,7 +450,7 @@ export async function closeComanda(formData: FormData) {
     if (item.type === "SERVICE" && item.service) {
       for (const usage of item.service.products) {
         const product = await prisma.product.findFirst({
-          where: { id: usage.productId, tenantId: session.tenantId },
+          where: { id: usage.productId, tenantId },
         });
         if (!product) continue;
         const qty = usage.quantity * item.quantity;
@@ -417,7 +458,7 @@ export async function closeComanda(formData: FormData) {
         await prisma.product.update({ where: { id: product.id }, data: { stock } });
         await prisma.stockMovement.create({
           data: {
-            tenantId: session.tenantId,
+            tenantId,
             productId: product.id,
             type: "OUT",
             quantity: qty,
@@ -439,5 +480,41 @@ export async function closeComanda(formData: FormData) {
 
   revalidateComandas();
   revalidatePath(`/comandas/${comanda.id}`);
-  return { ok: true };
+  return { ok: true as const, id: comanda.id };
+}
+
+export async function invoiceComanda(formData: FormData) {
+  const saved = await upsertComanda(formData);
+  if (saved && "error" in saved && saved.error) return saved;
+  if (!saved || !("id" in saved) || !saved.id) return { error: "Não foi possível salvar a comanda." };
+  const { session } = await requireTenant();
+  return finalizeOpenComanda(session.tenantId, saved.id, parsePayments(formData));
+}
+
+export async function closeComanda(formData: FormData) {
+  const { session } = await requireTenant();
+  const comandaId = String(formData.get("comandaId") ?? "");
+  const method = String(formData.get("method") ?? "PIX");
+  const discountCents = parseBRLToCents(String(formData.get("discount") ?? "0"));
+  const allowed = new Set<string>(PAYMENT_METHODS);
+  if (!allowed.has(method)) return { error: "Forma de pagamento inválida." };
+
+  const comanda = await prisma.comanda.findFirst({
+    where: { id: comandaId, tenantId: session.tenantId },
+    include: { items: true },
+  });
+  if (!comanda) return { error: "Comanda não encontrada." };
+  const total = comandaTotal({
+    items: comanda.items,
+    discountCents,
+    creditCents: comanda.creditCents,
+    cashbackCents: comanda.cashbackCents,
+  });
+
+  return finalizeOpenComanda(
+    session.tenantId,
+    comandaId,
+    [{ method, amountCents: total, installments: 1, occurredAt: new Date() }],
+    discountCents,
+  );
 }

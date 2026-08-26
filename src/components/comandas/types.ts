@@ -9,6 +9,14 @@ export type ComandaItemDraft = {
   discountType: "money" | "percent";
 };
 
+export type PaymentDraft = {
+  key: string;
+  method: string;
+  amountCents: number;
+  installments: number;
+  date: string;
+};
+
 export type ComandaFormValue = {
   id: string;
   number: number;

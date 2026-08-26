@@ -19,3 +19,16 @@ export function comandaTotal(params: {
   const cashback = Math.max(0, params.cashbackCents ?? 0);
   return Math.max(0, subtotal - discount - credit - cashback);
 }
+
+export function paymentChange(totalCents: number, paidCents: number) {
+  return Math.max(0, paidCents - totalCents);
+}
+
+export function allocatePayments<T extends { amountCents: number }>(totalCents: number, payments: T[]) {
+  let remaining = Math.max(0, totalCents);
+  return payments.map((payment) => {
+    const appliedCents = Math.min(Math.max(0, payment.amountCents), remaining);
+    remaining -= appliedCents;
+    return { ...payment, appliedCents };
+  });
+}

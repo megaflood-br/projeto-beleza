@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { HelpCircle, MoreVertical, Plus, Scissors, ShoppingBag, X } from "lucide-react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
-import { upsertComanda } from "@/app/actions/comandas";
+import { invoiceComanda, upsertComanda } from "@/app/actions/comandas";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { comandaTotal, itemLineTotal } from "@/lib/comandas";
 import { calendarDate } from "@/lib/dates";
-import type { ComandaFormValue, ComandaItemDraft } from "@/components/comandas/types";
+import { PaymentDrawer } from "@/components/comandas/payment-drawer";
+import type { ComandaFormValue, ComandaItemDraft, PaymentDraft } from "@/components/comandas/types";
 
 function centsToInput(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",");
@@ -65,11 +66,12 @@ export function ComandaDrawer({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const intentRef = useRef("save");
+  const formRef = useRef<HTMLFormElement>(null);
   const defaultPro = comanda?.professionalId ?? professionals[0]?.id ?? "";
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [intent, setIntent] = useState("save");
+  const [payOpen, setPayOpen] = useState(false);
+  const [clientId, setClientId] = useState(comanda?.clientId ?? "");
   const [menuKey, setMenuKey] = useState<string | null>(null);
   const [items, setItems] = useState<ComandaItemDraft[]>(
     comanda?.items.length ? comanda.items : [emptyItem(defaultPro)],
@@ -103,6 +105,9 @@ export function ComandaDrawer({
     priceCents: item.priceCents,
     discountCents: itemDiscountCents(item),
   }));
+  const itemDiscounts = lineItems.reduce((sum, item) => sum + item.discountCents, 0);
+  const headerDiscount =
+    parseBRLToCents(discount) + parseBRLToCents(credit) + parseBRLToCents(cashback);
   const total = comandaTotal({
     items: lineItems,
     discountCents: parseBRLToCents(discount),
@@ -112,10 +117,7 @@ export function ComandaDrawer({
 
   if (!open) return null;
 
-  async function handleAction(formData: FormData) {
-    setError(null);
-    setPending(true);
-    formData.set("intent", intentRef.current);
+  function fillItems(formData: FormData) {
     formData.set("professionalId", items.find((i) => i.professionalId)?.professionalId ?? defaultPro);
     formData.delete("itemKey");
     formData.delete("itemQty");
@@ -132,6 +134,12 @@ export function ComandaDrawer({
       formData.append("itemDiscountType", item.discountType);
       formData.append("itemProfessionalId", item.professionalId);
     }
+  }
+
+  async function handleAction(formData: FormData) {
+    setError(null);
+    setPending(true);
+    fillItems(formData);
     try {
       const result = await upsertComanda(formData);
       if (result && "error" in result && result.error) {
@@ -143,6 +151,49 @@ export function ComandaDrawer({
     } catch (err) {
       if (isNextRedirect(err)) throw err;
       setError(err instanceof Error ? err.message : "Não foi possível salvar.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function openPayments() {
+    if (!clientId) {
+      setError("Selecione um cliente.");
+      return;
+    }
+    if (!items.some((item) => item.catalogId)) {
+      setError("Inclua itens antes de faturar.");
+      return;
+    }
+    setError(null);
+    setPayOpen(true);
+  }
+
+  async function confirmInvoice(payments: PaymentDraft[]) {
+    const form = formRef.current;
+    if (!form) return;
+    setError(null);
+    setPending(true);
+    const formData = new FormData(form);
+    fillItems(formData);
+    for (const payment of payments) {
+      formData.append("payMethod", payment.method);
+      formData.append("payAmount", centsToInput(payment.amountCents));
+      formData.append("payInstallments", String(payment.installments));
+      formData.append("payDate", payment.date);
+    }
+    try {
+      const result = await invoiceComanda(formData);
+      if (result && "error" in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      setPayOpen(false);
+      onClose();
+      router.refresh();
+    } catch (err) {
+      if (isNextRedirect(err)) throw err;
+      setError(err instanceof Error ? err.message : "Não foi possível faturar.");
     } finally {
       setPending(false);
     }
@@ -167,7 +218,7 @@ export function ComandaDrawer({
             <X size={18} />
           </button>
         </div>
-        <form action={handleAction} className="flex min-h-0 flex-1 flex-col">
+        <form ref={formRef} action={handleAction} className="flex min-h-0 flex-1 flex-col">
           {comanda ? <input type="hidden" name="id" value={comanda.id} /> : null}
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <div className="grid gap-3 md:grid-cols-[1.4fr_0.8fr_0.7fr]">
@@ -176,7 +227,8 @@ export function ComandaDrawer({
                   name="clientId"
                   required
                   placeholder="Busque por um cliente"
-                  defaultValue={comanda?.clientId ?? ""}
+                  value={clientId}
+                  onChange={setClientId}
                   options={clients.map((c) => ({ value: c.id, label: c.name, hint: c.phone }))}
                 />
               </Field>
@@ -318,7 +370,7 @@ export function ComandaDrawer({
                 <Textarea name="notes" placeholder="Escreva aqui" defaultValue={comanda?.notes ?? ""} className="min-h-28" />
               </Field>
             </div>
-            {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+            {error && !payOpen ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-4">
             <button
@@ -332,30 +384,24 @@ export function ComandaDrawer({
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={pending}
-              onClick={() => {
-                intentRef.current = "save";
-                setIntent("save");
-              }}
-            >
-              {pending && intent === "save" ? "Salvando..." : "Salvar"}
+            <Button type="submit" disabled={pending}>
+              {pending && !payOpen ? "Salvando..." : "Salvar"}
             </Button>
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={!comanda || pending}
-              onClick={() => {
-                intentRef.current = "invoice";
-                setIntent("invoice");
-              }}
-            >
+            <Button type="button" variant="outline" disabled={pending} onClick={openPayments}>
               Faturar
             </Button>
           </div>
         </form>
       </aside>
+      <PaymentDrawer
+        open={payOpen}
+        totalCents={total}
+        discountCents={headerDiscount + itemDiscounts}
+        pending={pending}
+        error={payOpen ? error : null}
+        onClose={() => setPayOpen(false)}
+        onInvoice={confirmInvoice}
+      />
     </div>
   );
 }

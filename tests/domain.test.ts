@@ -4,7 +4,7 @@ import { hasConflict } from "@/lib/appointments";
 import { formatStockQty, isLowStock, nextStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify, formatPhoneBR } from "@/lib/utils";
-import { comandaTotal } from "@/lib/comandas";
+import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { calendarDate, daysBetween, formatTime, minutesInTz, minutesToLabel, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
@@ -107,6 +107,13 @@ describe("comandas", () => {
         cashbackCents: 300,
       }),
     ).toBe(8000);
+  });
+
+  it("calcula troco e rateia pagamentos no total", () => {
+    expect(paymentChange(10000, 15000)).toBe(5000);
+    expect(paymentChange(10000, 8000)).toBe(0);
+    const allocated = allocatePayments(10000, [{ amountCents: 4000 }, { amountCents: 9000 }]);
+    expect(allocated.map((p) => p.appliedCents)).toEqual([4000, 6000]);
   });
 });
 
