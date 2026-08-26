@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Avatar, Button, Card, Field, Input, Select } from "@/components/ui";
+import { Avatar, Card, Field, Input, Select } from "@/components/ui";
+import { CreateModal } from "@/components/create-modal";
 import { inviteTeamUser, upsertProfessional } from "@/app/actions/team";
 import { ROLE_LABEL, type Role } from "@/lib/constants";
-import { formAction } from "@/lib/utils";
 
 export default async function EquipePage() {
   const { session } = await requireTenant();
@@ -14,24 +14,13 @@ export default async function EquipePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl">Equipe</h1>
-      <div className="grid gap-4 md:grid-cols-2">
-        {professionals.map((p) => (
-          <Card key={p.id} className="flex items-center gap-4">
-            <Avatar name={p.name} color={p.color} />
-            <div className="flex-1">
-              <div className="font-medium">{p.name}</div>
-              <div className="text-sm text-ink-soft">
-                {p.specialty} · comissão {p.commissionPct}% · {p.workStart}–{p.workEnd}
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <h2 className="font-display text-2xl">Novo profissional</h2>
-          <form action={formAction(upsertProfessional)} className="mt-4 grid gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl">Equipe</h1>
+          <p className="text-ink-soft">Profissionais da agenda e acessos ao sistema.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <CreateModal trigger="Novo profissional" title="Novo profissional" submitLabel="Salvar profissional" action={upsertProfessional}>
             <Field label="Nome">
               <Input name="name" required />
             </Field>
@@ -52,20 +41,8 @@ export default async function EquipePage() {
                 <Input name="workEnd" type="time" defaultValue="19:00" />
               </Field>
             </div>
-            <Button>Salvar profissional</Button>
-          </form>
-        </Card>
-        <Card>
-          <h2 className="font-display text-2xl">Acesso ao sistema</h2>
-          <div className="mt-3 space-y-2 text-sm">
-            {users.map((u) => (
-              <div key={u.id} className="flex justify-between">
-                <span>{u.name}</span>
-                <span className="text-ink-soft">{ROLE_LABEL[u.role as Role] ?? u.role}</span>
-              </div>
-            ))}
-          </div>
-          <form action={formAction(inviteTeamUser)} className="mt-4 grid gap-3">
+          </CreateModal>
+          <CreateModal trigger="Novo acesso" title="Novo acesso ao sistema" submitLabel="Criar usuário" action={inviteTeamUser}>
             <Field label="Nome">
               <Input name="name" required />
             </Field>
@@ -92,10 +69,33 @@ export default async function EquipePage() {
             <Field label="Senha inicial">
               <Input name="password" defaultValue="demo1234" />
             </Field>
-            <Button>Criar usuário</Button>
-          </form>
-        </Card>
+          </CreateModal>
+        </div>
       </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {professionals.map((p) => (
+          <Card key={p.id} className="flex items-center gap-4">
+            <Avatar name={p.name} color={p.color} />
+            <div className="flex-1">
+              <div className="font-medium">{p.name}</div>
+              <div className="text-sm text-ink-soft">
+                {p.specialty} · comissão {p.commissionPct}% · {p.workStart}–{p.workEnd}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <h2 className="mb-3 font-medium">Acessos</h2>
+        <div className="space-y-2 text-sm">
+          {users.map((u) => (
+            <div key={u.id} className="flex justify-between border-t border-line pt-2 first:border-0 first:pt-0">
+              <span>{u.name}</span>
+              <span className="text-ink-soft">{ROLE_LABEL[u.role as Role] ?? u.role}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Button, Card, Field, Input, Select } from "@/components/ui";
+import { Card, Field, Input, Select } from "@/components/ui";
+import { CreateModal } from "@/components/create-modal";
 import { upsertService } from "@/app/actions/services";
 import { formatBRL } from "@/lib/money";
-import { formAction } from "@/lib/utils";
 
 export default async function ServicosPage() {
   const { session } = await requireTenant();
@@ -17,29 +17,13 @@ export default async function ServicosPage() {
   ]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-      <div>
-        <h1 className="font-display text-3xl">Serviços e pacotes</h1>
-        <div className="mt-4 grid gap-3">
-          {services.map((s) => (
-            <Card key={s.id} className="flex items-center justify-between">
-              <div>
-                <div className="font-medium">{s.name}</div>
-                <div className="text-sm text-ink-soft">
-                  {s.category?.name} · {s.durationMin} min
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-display text-xl">{formatBRL(s.priceCents)}</div>
-                <div className="text-xs text-ink-soft">{s.active ? "Ativo" : "Inativo"}</div>
-              </div>
-            </Card>
-          ))}
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl">Serviços e pacotes</h1>
+          <p className="text-ink-soft">Tabela de preços, duração e comissão.</p>
         </div>
-      </div>
-      <Card>
-        <h2 className="font-display text-2xl">Novo serviço</h2>
-        <form action={formAction(upsertService)} className="mt-4 grid gap-3">
+        <CreateModal trigger="Novo serviço" title="Novo serviço" submitLabel="Cadastrar" action={upsertService}>
           <Field label="Nome">
             <Input name="name" required />
           </Field>
@@ -62,9 +46,24 @@ export default async function ServicosPage() {
           <Field label="Comissão % (opcional)">
             <Input name="commissionPct" type="number" />
           </Field>
-          <Button>Cadastrar</Button>
-        </form>
-      </Card>
+        </CreateModal>
+      </div>
+      <div className="grid gap-3">
+        {services.map((s) => (
+          <Card key={s.id} className="flex items-center justify-between">
+            <div>
+              <div className="font-medium">{s.name}</div>
+              <div className="text-sm text-ink-soft">
+                {s.category?.name} · {s.durationMin} min
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="font-display text-xl">{formatBRL(s.priceCents)}</div>
+              <div className="text-xs text-ink-soft">{s.active ? "Ativo" : "Inativo"}</div>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

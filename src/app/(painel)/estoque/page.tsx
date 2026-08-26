@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Button, Card, Field, Input, Select } from "@/components/ui";
+import { Card, Field, Input, Select } from "@/components/ui";
+import { CreateModal } from "@/components/create-modal";
 import { moveStock, upsertProduct } from "@/app/actions/inventory";
 import { formatBRL } from "@/lib/money";
 import { isLowStock } from "@/lib/stock";
-import { formAction } from "@/lib/utils";
 
 export default async function EstoquePage() {
   const { session } = await requireTenant();
@@ -15,35 +15,14 @@ export default async function EstoquePage() {
   });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-      <div>
-        <h1 className="font-display text-3xl">Estoque</h1>
-        <p className="mb-4 text-ink-soft">Baixa automática ao concluir um atendimento que consome produto.</p>
-        <div className="grid gap-3">
-          {products.map((p) => (
-            <Card key={p.id} className="flex items-center justify-between">
-              <div>
-                <div className="font-medium">{p.name}</div>
-                <div className="text-sm text-ink-soft">
-                  SKU {p.sku ?? "—"} · custo {formatBRL(p.costCents)}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-display text-2xl">{p.stock}</div>
-                {isLowStock(p.stock, p.minStock) ? (
-                  <div className="text-xs text-warn">Abaixo do mínimo ({p.minStock})</div>
-                ) : (
-                  <div className="text-xs text-ink-soft">mín. {p.minStock}</div>
-                )}
-              </div>
-            </Card>
-          ))}
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl">Estoque</h1>
+          <p className="text-ink-soft">Baixa automática ao concluir um atendimento que consome produto.</p>
         </div>
-      </div>
-      <div className="space-y-4">
-        <Card>
-          <h2 className="font-display text-2xl">Produto</h2>
-          <form action={formAction(upsertProduct)} className="mt-4 grid gap-3">
+        <div className="flex flex-wrap gap-2">
+          <CreateModal trigger="Novo produto" title="Novo produto" submitLabel="Salvar produto" action={upsertProduct}>
             <Field label="Nome">
               <Input name="name" required />
             </Field>
@@ -62,12 +41,8 @@ export default async function EstoquePage() {
             <Field label="Preço de venda">
               <Input name="sale" placeholder="89,00" />
             </Field>
-            <Button>Salvar produto</Button>
-          </form>
-        </Card>
-        <Card>
-          <h2 className="font-display text-2xl">Movimentar</h2>
-          <form action={formAction(moveStock)} className="mt-4 grid gap-3">
+          </CreateModal>
+          <CreateModal trigger="Movimentar" title="Movimentar estoque" submitLabel="Registrar" action={moveStock}>
             <Field label="Produto">
               <Select name="productId">
                 {products.map((p) => (
@@ -90,9 +65,28 @@ export default async function EstoquePage() {
             <Field label="Motivo">
               <Input name="reason" placeholder="Compra, perda, uso..." />
             </Field>
-            <Button>Registrar</Button>
-          </form>
-        </Card>
+          </CreateModal>
+        </div>
+      </div>
+      <div className="grid gap-3">
+        {products.map((p) => (
+          <Card key={p.id} className="flex items-center justify-between">
+            <div>
+              <div className="font-medium">{p.name}</div>
+              <div className="text-sm text-ink-soft">
+                SKU {p.sku ?? "—"} · custo {formatBRL(p.costCents)}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="font-display text-2xl">{p.stock}</div>
+              {isLowStock(p.stock, p.minStock) ? (
+                <div className="text-xs text-warn">Abaixo do mínimo ({p.minStock})</div>
+              ) : (
+                <div className="text-xs text-ink-soft">mín. {p.minStock}</div>
+              )}
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );

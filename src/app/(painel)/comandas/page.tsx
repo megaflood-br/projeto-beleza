@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Badge, Button, Card, Field, Select } from "@/components/ui";
+import { Badge, Card, Field, Select } from "@/components/ui";
+import { CreateModal } from "@/components/create-modal";
 import { createWalkInComanda } from "@/app/actions/comandas";
-import { formAction } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
 import { comandaTotal } from "@/lib/comandas";
@@ -22,49 +22,20 @@ export default async function ComandasPage() {
   ]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr_0.7fr]">
-      <div>
-        <h1 className="font-display text-3xl">Comandas</h1>
-        <p className="mb-4 text-ink-soft">Controle do atendimento, consumo e fechamento do caixa.</p>
-        <Card className="overflow-hidden p-0">
-          <table className="w-full text-sm">
-            <thead className="bg-sand text-left text-ink-soft">
-              <tr>
-                <th className="px-4 py-3">Nº</th>
-                <th>Cliente</th>
-                <th>Profissional</th>
-                <th>Status</th>
-                <th>Total</th>
-                <th>Quando</th>
-              </tr>
-            </thead>
-            <tbody>
-              {comandas.map((c) => (
-                <tr key={c.id} className="border-t border-line">
-                  <td className="px-4 py-3">
-                    <Link href={`/comandas/${c.id}`} className="font-medium text-wine">
-                      #{c.number}
-                    </Link>
-                  </td>
-                  <td>{c.client.name}</td>
-                  <td>{c.professional?.name ?? "—"}</td>
-                  <td>
-                    <Badge color={COMANDA_STATUS_COLOR[c.status as ComandaStatus]}>
-                      {COMANDA_STATUS_LABEL[c.status as ComandaStatus]}
-                    </Badge>
-                  </td>
-                  <td>{formatBRL(comandaTotal({ items: c.items, discountCents: c.discountCents }))}</td>
-                  <td>{formatShortDate(c.createdAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      </div>
-      <Card>
-        <h2 className="font-display text-2xl">Nova comanda</h2>
-        <p className="mt-1 text-sm text-ink-soft">Avulsa, sem agendamento. Pelo horário, use Criar comanda no modal.</p>
-        <form action={formAction(createWalkInComanda)} className="mt-4 grid gap-3">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl">Comandas</h1>
+          <p className="text-ink-soft">Controle do atendimento, consumo e fechamento do caixa.</p>
+        </div>
+        <CreateModal
+          trigger="Nova comanda"
+          title="Nova comanda"
+          description="Avulsa, sem agendamento. Pelo horário, use Criar comanda no modal da agenda."
+          submitLabel="Abrir comanda"
+          variant="success"
+          action={createWalkInComanda}
+        >
           <Field label="Cliente">
             <Select name="clientId" required>
               {clients.map((c) => (
@@ -84,8 +55,41 @@ export default async function ComandasPage() {
               ))}
             </Select>
           </Field>
-          <Button>Abrir comanda</Button>
-        </form>
+        </CreateModal>
+      </div>
+      <Card className="overflow-hidden p-0">
+        <table className="w-full text-sm">
+          <thead className="bg-sand text-left text-ink-soft">
+            <tr>
+              <th className="px-4 py-3">Nº</th>
+              <th>Cliente</th>
+              <th>Profissional</th>
+              <th>Status</th>
+              <th>Total</th>
+              <th>Quando</th>
+            </tr>
+          </thead>
+          <tbody>
+            {comandas.map((c) => (
+              <tr key={c.id} className="border-t border-line">
+                <td className="px-4 py-3">
+                  <Link href={`/comandas/${c.id}`} className="font-medium text-wine">
+                    #{c.number}
+                  </Link>
+                </td>
+                <td>{c.client.name}</td>
+                <td>{c.professional?.name ?? "—"}</td>
+                <td>
+                  <Badge color={COMANDA_STATUS_COLOR[c.status as ComandaStatus]}>
+                    {COMANDA_STATUS_LABEL[c.status as ComandaStatus]}
+                  </Badge>
+                </td>
+                <td>{formatBRL(comandaTotal({ items: c.items, discountCents: c.discountCents }))}</td>
+                <td>{formatShortDate(c.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </Card>
     </div>
   );
