@@ -180,17 +180,39 @@ model ServiceProduct {
 }
 
 model Client {
-  id          String    @id @default(cuid())
-  tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name        String
-  phone       String
-  email       String?
-  birthDate   DateTime?
-  notes       String?
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name          String
+  nickname      String?
+  phone         String
+  landline      String?
+  email         String?
+  birthDate     DateTime?
+  notes         String?
   tags          String    @default("")
   instagram     String?
+  facebook      String?
   source        String    @default("balcao")
+  cnpj          String?
+  cpf           String?
+  rg            String?
+  imageUrl      String?
+  referredById  String?
+  referredBy    Client?   @relation("ClientReferral", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals     Client[]  @relation("ClientReferral")
+  zip           String?
+  address       String?
+  addressNumber String?
+  complement    String?
+  district      String?
+  city          String?
+  state         String?
+  defaultDiscountPct Int  @default(0)
+  discountTarget     String @default("comanda")
+  active        Boolean   @default(true)
+  notifications Boolean   @default(true)
+  blockAccess   Boolean   @default(false)
   creditCents   Int       @default(0)
   cashbackCents Int       @default(0)
   createdAt     DateTime  @default(now())

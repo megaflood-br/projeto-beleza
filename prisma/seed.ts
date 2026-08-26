@@ -359,7 +359,7 @@ async function main() {
     { name: "Beatriz Gomes", phone: "11991110006", tags: "unhas,vip" },
     { name: "Amanda Dias", phone: "11991110007", tags: "cabelo" },
     { name: "Lucas Oliveira", phone: "11991110008", tags: "barba" },
-    { name: "Patrícia Souza", phone: "11991110009", tags: "inativa" },
+    { name: "Patrícia Souza", phone: "11991110009", tags: "inativa", active: false },
     { name: "Renata Alves", phone: "11991110010", tags: "pacote" },
   ];
 
