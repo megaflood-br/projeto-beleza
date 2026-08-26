@@ -3,7 +3,7 @@ import { calculateCommission, sumCommissions } from "@/lib/commissions";
 import { hasConflict } from "@/lib/appointments";
 import { formatStockQty, isLowStock, nextStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
-import { slugify } from "@/lib/utils";
+import { slugify, formatPhoneBR } from "@/lib/utils";
 import { comandaTotal } from "@/lib/comandas";
 import { calendarDate, daysBetween, formatTime, minutesInTz, minutesToLabel, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
@@ -77,6 +77,11 @@ describe("helpers", () => {
 
   it("gera slug de tenant", () => {
     expect(slugify("Studio Aurora Belém")).toBe("studio-aurora-belem");
+  });
+
+  it("formata celular brasileiro", () => {
+    expect(formatPhoneBR("11970001111")).toBe("+55 (11) 97000-1111");
+    expect(formatPhoneBR("+55 11 97000-1111")).toBe("+55 (11) 97000-1111");
   });
 });
 

@@ -17,7 +17,7 @@ export default async function AgendaPage({
 
   const [professionals, appointments, clients, services] = await Promise.all([
     prisma.professional.findMany({
-      where: { tenantId: session.tenantId, active: true },
+      where: { tenantId: session.tenantId, active: true, generateAgenda: true },
       orderBy: { name: "asc" },
     }),
     prisma.appointment.findMany({

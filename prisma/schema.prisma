@@ -83,6 +83,24 @@ model Professional {
   active        Boolean  @default(true)
   workStart     String   @default("09:00")
   workEnd       String   @default("19:00")
+  imageUrl      String?
+  birthDate     DateTime?
+  document      String?
+  rg            String?
+  notes         String?
+  zip           String?
+  address       String?
+  addressNumber String?
+  complement    String?
+  district      String?
+  city          String?
+  state         String?
+  onlineBooking Boolean  @default(true)
+  generateAgenda Boolean @default(true)
+  receivesCommission Boolean @default(true)
+  isStockist    Boolean  @default(false)
+  salonPartner  Boolean  @default(false)
+  sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
