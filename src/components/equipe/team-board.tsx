@@ -78,7 +78,7 @@ export function TeamBoard({
                     className="grid w-full grid-cols-[1fr_180px] items-center gap-2 px-4 py-3 text-left hover:bg-slate-50"
                   >
                     <span className="flex min-w-0 items-center gap-3">
-                      <GripVertical size={16} className="shrink-0 text-slate-300" />
+                      <GripVertical size={16} className="shrink-0 text-slate-400" />
                       <span
                         className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold text-white"
                         style={{ background: p.color }}
