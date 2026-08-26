@@ -5,7 +5,7 @@ import { nextStock, isLowStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify } from "@/lib/utils";
 import { comandaTotal } from "@/lib/comandas";
-import { calendarDate, daysBetween, formatTime, minutesInTz, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
+import { calendarDate, daysBetween, formatTime, minutesInTz, minutesToLabel, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
 
@@ -98,6 +98,11 @@ describe("fuso da agenda", () => {
     expect(formatTime(start)).toBe("09:00");
     expect(minutesInTz(start)).toBe(9 * 60);
     expect(parseHHmm("08:00")).toBe(8 * 60);
+  });
+
+  it("formata duração em minutos", () => {
+    expect(minutesToLabel(15)).toBe("15 min");
+    expect(minutesToLabel(90)).toBe("1h 30 min");
   });
 
   it("navega o dia civil sem virar a data no UTC", () => {

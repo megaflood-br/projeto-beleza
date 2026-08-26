@@ -98,9 +98,9 @@ export function parseDateParam(value?: string | null) {
 export function minutesToLabel(total: number) {
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
-  if (hours && minutes) return `${hours}h ${minutes}min`;
+  if (hours && minutes) return `${hours}h ${minutes} min`;
   if (hours) return `${hours}h`;
-  return `${minutes}min`;
+  return `${minutes} min`;
 }
 
 export function buildSlots(openTime: string, closeTime: string, slotMinutes: number) {

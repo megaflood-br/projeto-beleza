@@ -85,53 +85,58 @@ export function ServiceBoard({
           {visible.length === 0 ? (
             <p className="px-4 py-12 text-center text-sm text-ink-soft">Nenhum serviço neste filtro.</p>
           ) : (
-            <ul>
-              {visible.map((s) => (
-                <li key={s.id} className="flex items-center gap-2 border-b border-line last:border-0">
-                  <button
-                    type="button"
-                    onClick={() => setEditing(s)}
-                    className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-50"
-                  >
-                    <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg text-xs font-semibold text-white"
-                      style={{ background: s.color }}
+            <>
+              <div className="flex items-center border-b border-line px-4 py-2.5 text-sm font-medium text-ink-soft">
+                <span className="pl-12">Nome</span>
+              </div>
+              <ul>
+                {visible.map((s) => (
+                  <li key={s.id} className="flex items-center gap-2 border-b border-line last:border-0">
+                    <button
+                      type="button"
+                      onClick={() => setEditing(s)}
+                      className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-slate-50"
                     >
-                      {s.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.imageUrl} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        initials(s.name)
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-medium text-blue-700">{s.name}</span>
-                        <Tag size={14} className="shrink-0 text-slate-400" />
+                      <div
+                        className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg text-xs font-semibold text-white"
+                        style={{ background: s.color }}
+                      >
+                        {s.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={s.imageUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          initials(s.name)
+                        )}
                       </div>
-                      <div className="text-xs text-ink-soft">
-                        {s.categoryName ?? "Sem categoria"} · {minutesToLabel(s.durationMin)}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-medium text-blue-700">{s.name}</span>
+                          <Tag size={14} className="shrink-0 text-slate-400" />
+                        </div>
+                        <div className="text-xs text-ink-soft">
+                          {s.categoryName ?? "Sem categoria"} · {minutesToLabel(s.durationMin)}
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-sm font-medium whitespace-nowrap">
-                      {s.priceType === "from" ? "a partir de " : ""}
-                      {formatBRL(s.priceCents)}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="mr-3 rounded-lg p-2 text-slate-400 hover:bg-sand"
-                    aria-label={s.favorite ? "Remover favorito" : "Favoritar"}
-                    onClick={async () => {
-                      await toggleServiceFavorite(s.id);
-                      router.refresh();
-                    }}
-                  >
-                    <Star size={16} className={cn(s.favorite ? "fill-amber-400 text-amber-400" : "")} />
-                  </button>
-                </li>
-              ))}
-            </ul>
+                      <div className="text-sm font-medium whitespace-nowrap">
+                        {s.priceType === "from" ? "a partir de " : ""}
+                        {formatBRL(s.priceCents)}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      className="mr-3 rounded-lg p-2 text-slate-400 hover:bg-sand"
+                      aria-label={s.favorite ? "Remover favorito" : "Favoritar"}
+                      onClick={async () => {
+                        await toggleServiceFavorite(s.id);
+                        router.refresh();
+                      }}
+                    >
+                      <Star size={16} className={cn(s.favorite ? "fill-amber-400 text-amber-400" : "")} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       </div>

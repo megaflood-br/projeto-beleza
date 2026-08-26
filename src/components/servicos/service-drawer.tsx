@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type InputHTMLAttributes } from "react";
 import { useRouter } from "next/navigation";
-import { Info, X } from "lucide-react";
-import { Button, Field, Input, Textarea } from "@/components/ui";
+import { ImageIcon, Info, X } from "lucide-react";
+import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
 import { upsertService } from "@/app/actions/services";
 import { DURATION_OPTIONS } from "@/lib/constants";
@@ -120,14 +120,16 @@ export function ServiceDrawer({
               <div className={tab === "cadastro" ? "grid gap-4" : "hidden"}>
                 <div className="flex flex-col items-center gap-2">
                   <div
-                    className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-line text-lg font-semibold text-white"
-                    style={{ background: color }}
+                    className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-line text-lg font-semibold"
+                    style={{ background: imageUrl ? undefined : name ? color : "#f1f5f9" }}
                   >
                     {imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : name ? (
+                      <span className="text-white">{initials(name)}</span>
                     ) : (
-                      initials(name || "Serviço")
+                      <ImageIcon size={28} className="text-slate-400" />
                     )}
                   </div>
                   <input
@@ -139,11 +141,19 @@ export function ServiceDrawer({
                       const file = e.target.files?.[0];
                       if (!file) return;
                       const reader = new FileReader();
-                      reader.onload = () => setImageUrl(String(reader.result ?? ""));
+                      reader.onload = () => {
+                        const url = String(reader.result ?? "");
+                        if (url.length > 400_000) {
+                          setError("Imagem muito grande. Use uma foto menor.");
+                          return;
+                        }
+                        setError(null);
+                        setImageUrl(url);
+                      };
                       reader.readAsDataURL(file);
                     }}
                   />
-                  <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
+                  <Button type="button" className="h-8 px-4 text-xs" onClick={() => fileRef.current?.click()}>
                     Alterar
                   </Button>
                 </div>
@@ -152,7 +162,7 @@ export function ServiceDrawer({
                   <Input name="name" required placeholder="Informe o nome" value={name} onChange={(e) => setName(e.target.value)} />
                 </Field>
 
-                <div className="grid gap-3 md:grid-cols-[1.1fr_0.9fr_1fr]">
+                <div className="grid gap-3 md:grid-cols-2">
                   <Field label="Categoria" required>
                     <SearchSelect
                       name="categoryId"
@@ -162,40 +172,50 @@ export function ServiceDrawer({
                       options={categories.map((c) => ({ value: c.id, label: c.name }))}
                     />
                   </Field>
-                  <Field label="Tipo de preço">
-                    <SearchSelect
-                      name="priceType"
-                      defaultValue={service?.priceType ?? "fixed"}
-                      options={[
-                        { value: "fixed", label: "Preço fixo" },
-                        { value: "from", label: "A partir de" },
-                      ]}
-                    />
-                  </Field>
-                  <Field label="Preço de venda">
-                    <Input name="price" placeholder="R$ 0,00" defaultValue={service ? centsToInput(service.priceCents) : ""} />
-                  </Field>
+                  <div className="grid gap-1.5 text-sm">
+                    <span className="font-medium text-ink-soft">Preço de venda</span>
+                    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
+                      <Select name="priceType" defaultValue={service?.priceType ?? "fixed"}>
+                        <option value="fixed">Preço fixo</option>
+                        <option value="from">A partir de</option>
+                      </Select>
+                      <PrefixedInput
+                        name="price"
+                        prefix="R$"
+                        placeholder="0,00"
+                        defaultValue={service ? centsToInput(service.priceCents) : "0,00"}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-3">
                   <Field label="Custo adicional">
-                    <div className="relative">
-                      <Input name="extraCost" placeholder="R$ 0,00" defaultValue={service?.extraCostCents ? centsToInput(service.extraCostCents) : ""} />
-                      <Info size={14} className="absolute top-3.5 right-3 text-ink-soft" />
-                    </div>
+                    <PrefixedInput
+                      name="extraCost"
+                      prefix="R$"
+                      placeholder="0,00"
+                      defaultValue={service?.extraCostCents ? centsToInput(service.extraCostCents) : "0,00"}
+                      info="Custo extra além do preço, usado no cálculo de margem."
+                    />
                   </Field>
                   <Field label="Comissão">
-                    <div className="relative">
-                      <Input name="commissionPct" placeholder="% 0,00" defaultValue={service?.commissionPct ?? ""} />
-                      <Info size={14} className="absolute top-3.5 right-3 text-ink-soft" />
-                    </div>
+                    <PrefixedInput
+                      name="commissionPct"
+                      prefix="%"
+                      placeholder="0,00"
+                      defaultValue={service?.commissionPct ?? "0,00"}
+                      info="Percentual de comissão do profissional neste serviço."
+                    />
                   </Field>
                   <Field label="Duração">
-                    <SearchSelect
-                      name="durationMin"
-                      defaultValue={String(service?.durationMin ?? 60)}
-                      options={durationOptions.map((min) => ({ value: String(min), label: minutesToLabel(min) }))}
-                    />
+                    <Select name="durationMin" defaultValue={String(service?.durationMin ?? 15)}>
+                      {durationOptions.map((min) => (
+                        <option key={min} value={min}>
+                          {minutesToLabel(min)}
+                        </option>
+                      ))}
+                    </Select>
                   </Field>
                 </div>
 
@@ -297,6 +317,28 @@ export function ServiceDrawer({
           </div>
         </form>
       </aside>
+    </div>
+  );
+}
+
+function PrefixedInput({
+  prefix,
+  info,
+  className,
+  ...props
+}: {
+  prefix: string;
+  info?: string;
+} & InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-ink-soft">{prefix}</span>
+      <Input className={cn("pl-10", info ? "pr-9" : undefined, className)} {...props} />
+      {info ? (
+        <span title={info} className="absolute top-1/2 right-3 -translate-y-1/2 text-ink-soft">
+          <Info size={14} aria-label={info} />
+        </span>
+      ) : null}
     </div>
   );
 }
