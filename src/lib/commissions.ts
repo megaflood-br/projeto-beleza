@@ -19,3 +19,23 @@ export function sumCommissions(items: { amountCents: number; status: string }[])
     { total: 0, paid: 0, pending: 0 },
   );
 }
+
+export function consumedProductCents(usages: { quantity: number; costCents: number }[]) {
+  return Math.round(usages.reduce((sum, item) => sum + item.quantity * item.costCents, 0));
+}
+
+export function availableCommission(params: {
+  amountCents: number;
+  extraCostCents?: number;
+  consumedCents?: number;
+  assistantDiscountCents?: number;
+  feeCents?: number;
+}) {
+  return (
+    params.amountCents -
+    Math.max(0, params.extraCostCents ?? 0) -
+    Math.max(0, params.consumedCents ?? 0) -
+    Math.max(0, params.assistantDiscountCents ?? 0) -
+    Math.max(0, params.feeCents ?? 0)
+  );
+}

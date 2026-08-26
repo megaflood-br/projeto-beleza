@@ -149,6 +149,24 @@ export async function upsertProfessional(formData: FormData) {
 
   revalidatePath("/equipe");
   revalidatePath("/agenda");
+  revalidatePath("/comissoes");
+  return { ok: true };
+}
+
+export async function updateCommissionRule(formData: FormData) {
+  const { session } = await requireTenant();
+  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const id = String(formData.get("id") ?? "");
+  const commissionPct = Math.min(100, Math.max(0, toInt(formData.get("commissionPct"), 40)));
+  const receivesCommission = String(formData.get("receivesCommission") ?? "") === "1";
+  const existing = await prisma.professional.findFirst({ where: { id, tenantId: session.tenantId } });
+  if (!existing) return { error: "Profissional não encontrado." };
+  await prisma.professional.update({
+    where: { id },
+    data: { commissionPct, receivesCommission },
+  });
+  revalidatePath("/equipe");
+  revalidatePath("/comissoes");
   return { ok: true };
 }
 

@@ -1,57 +1,88 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Button, Card } from "@/components/ui";
-import { payCommissions } from "@/app/actions/finance";
-import { formatBRL } from "@/lib/money";
-import { sumCommissions } from "@/lib/commissions";
-import { formAction } from "@/lib/utils";
+import { calendarDate, shiftCalendarDate } from "@/lib/dates";
+import { availableCommission, consumedProductCents } from "@/lib/commissions";
+import { CommissionBoard } from "@/components/comissoes/commission-board";
+import type { CommissionRow } from "@/components/comissoes/types";
+
+type ProductUsage = { quantity: number; product: { costCents: number } };
+
+function usagesCost(usages: ProductUsage[]) {
+  return consumedProductCents(usages.map((u) => ({ quantity: u.quantity, costCents: u.product.costCents })));
+}
 
 export default async function ComissoesPage() {
   const { session } = await requireTenant();
-  const professionals = await prisma.professional.findMany({
-    where: { tenantId: session.tenantId },
-    include: { commissions: { include: { appointment: { include: { client: true } }, comanda: { include: { client: true } } } } },
+  const today = calendarDate();
+  const defaultFrom = shiftCalendarDate(today, -30);
+  const [commissions, professionals] = await Promise.all([
+    prisma.commission.findMany({
+      where: { tenantId: session.tenantId },
+      include: {
+        professional: true,
+        appointment: {
+          include: {
+            client: true,
+            items: { include: { service: { include: { products: { include: { product: true } } } } } },
+          },
+        },
+        comanda: {
+          include: {
+            client: true,
+            items: { include: { service: { include: { products: { include: { product: true } } } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.professional.findMany({
+      where: { tenantId: session.tenantId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, commissionPct: true, receivesCommission: true },
+    }),
+  ]);
+
+  const rows: CommissionRow[] = commissions.map((c) => {
+    const client = c.appointment?.client ?? c.comanda?.client;
+    const serviceItem =
+      c.appointment?.items[0] ??
+      c.comanda?.items.find((item) => item.type === "SERVICE" && (item.professionalId === c.professionalId || !item.professionalId)) ??
+      c.comanda?.items.find((item) => item.type === "SERVICE");
+    const service = serviceItem && "service" in serviceItem ? serviceItem.service : null;
+    const extraCostCents = service?.extraCostCents ?? 0;
+    const consumedCents = service?.products ? usagesCost(service.products) : 0;
+    const occurred = c.appointment?.startAt ?? c.comanda?.occurredAt ?? c.createdAt;
+    const typeLabel = service?.commissionPct != null ? "Serviço" : "Normal";
+    return {
+      id: c.id,
+      date: calendarDate(occurred),
+      professionalId: c.professionalId,
+      professionalName: c.professional.name,
+      clientName: client?.name ?? "Avulsa",
+      clientId: client?.id ?? null,
+      refLabel: c.comanda ? `#${c.comanda.number}` : null,
+      refHref: c.comanda ? `/comandas/${c.comanda.id}` : null,
+      serviceName: service?.name ?? (c.comanda?.items[0]?.description ?? "Serviço"),
+      quantity: serviceItem && "quantity" in serviceItem ? Number(serviceItem.quantity) || 1 : 1,
+      extraCostCents,
+      feeCents: 0,
+      feePct: null,
+      percent: c.percent,
+      typeLabel,
+      assistantDiscountCents: 0,
+      consumedCents,
+      amountCents: c.amountCents,
+      availableCents: availableCommission({ amountCents: c.amountCents, extraCostCents, consumedCents }),
+      status: c.status === "PAID" ? "PAID" : "PENDING",
+    };
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl">Comissões</h1>
-        <form action={formAction(payCommissions)}>
-          <Button>Marcar todas como pagas</Button>
-        </form>
-      </div>
-      <div className="grid gap-4">
-        {professionals.map((p) => {
-          const totals = sumCommissions(p.commissions);
-          return (
-            <Card key={p.id}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="font-display text-2xl">{p.name}</div>
-                  <div className="text-sm text-ink-soft">Regra padrão: {p.commissionPct}%</div>
-                </div>
-                <div className="text-right text-sm">
-                  <div>Pendente {formatBRL(totals.pending)}</div>
-                  <div className="text-ink-soft">Pago {formatBRL(totals.paid)}</div>
-                </div>
-              </div>
-              <div className="mt-4 space-y-2 text-sm">
-                {p.commissions.slice(0, 8).map((c) => (
-                  <div key={c.id} className="flex justify-between border-t border-line pt-2">
-                    <span>
-                      {c.appointment?.client.name ?? c.comanda?.client.name ?? "Avulsa"} · {c.percent}%
-                    </span>
-                    <span>
-                      {formatBRL(c.amountCents)} · {c.status === "PAID" ? "pago" : "a pagar"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
+    <CommissionBoard
+      rows={rows}
+      professionals={professionals}
+      defaultFrom={defaultFrom}
+      defaultTo={today}
+    />
   );
 }

@@ -61,16 +61,22 @@ export async function createTransaction(formData: FormData) {
 export async function payCommissions(formData?: FormData) {
   const { session } = await requireTenant();
   if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
-  const professionalId = formData instanceof FormData ? String(formData.get("professionalId") ?? "") : "";
+  const data = formData instanceof FormData ? formData : new FormData();
+  const professionalId = String(data.get("professionalId") ?? "");
+  const ids = data.getAll("commissionId").map(String).filter(Boolean);
+
+  if (!ids.length && !professionalId) return { error: "Selecione as comissões para pagar." };
 
   const pending = await prisma.commission.findMany({
     where: {
       tenantId: session.tenantId,
       status: "PENDING",
+      ...(ids.length ? { id: { in: ids } } : {}),
       ...(professionalId ? { professionalId } : {}),
     },
     include: { professional: true },
   });
+  if (!pending.length) return { error: "Nenhuma comissão pendente para pagar." };
 
   const byProfessional = new Map<string, { name: string; total: number }>();
   for (const row of pending) {
@@ -80,11 +86,7 @@ export async function payCommissions(formData?: FormData) {
   }
 
   await prisma.commission.updateMany({
-    where: {
-      tenantId: session.tenantId,
-      status: "PENDING",
-      ...(professionalId ? { professionalId } : {}),
-    },
+    where: { tenantId: session.tenantId, id: { in: pending.map((row) => row.id) } },
     data: { status: "PAID", paidAt: new Date() },
   });
 

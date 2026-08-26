@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateCommission, sumCommissions } from "@/lib/commissions";
+import { calculateCommission, consumedProductCents, availableCommission, sumCommissions } from "@/lib/commissions";
 import { hasConflict } from "@/lib/appointments";
 import { formatStockQty, isLowStock, nextStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
@@ -32,6 +32,18 @@ describe("comissões", () => {
         { amountCents: 2500, status: "PAID" },
       ]),
     ).toEqual({ total: 3500, paid: 2500, pending: 1000 });
+  });
+
+  it("abate produtos e custo extra do disponível", () => {
+    expect(consumedProductCents([{ quantity: 0.2, costCents: 9150 }])).toBe(1830);
+    expect(
+      availableCommission({
+        amountCents: 7350,
+        extraCostCents: 200,
+        consumedCents: 183,
+      }),
+    ).toBe(6967);
+    expect(availableCommission({ amountCents: 60, extraCostCents: 200 })).toBe(-140);
   });
 });
 
