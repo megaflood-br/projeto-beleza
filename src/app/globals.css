@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #1c1210;
+  --ink-soft: #5c4a45;
+  --wine: #9b1d3a;
+  --wine-deep: #6f1028;
+  --rose: #c45b6b;
+  --gold: #c4a574;
+  --gold-soft: #e8d7bd;
+  --cream: #f7f1ea;
+  --sand: #efe6db;
+  --paper: #fffdf9;
+  --line: #e6d9cc;
+  --success: #2a9d8f;
+  --warn: #e07a5f;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-wine: var(--wine);
+  --color-wine-deep: var(--wine-deep);
+  --color-rose: var(--rose);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-cream: var(--cream);
+  --color-sand: var(--sand);
+  --color-paper: var(--paper);
+  --color-line: var(--line);
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --font-sans: var(--font-outfit);
+  --font-display: var(--font-fraunces);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: #f3d5c0;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+
+.agenda-scroll::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+.agenda-scroll::-webkit-scrollbar-thumb {
+  background: #d9c7b6;
+  border-radius: 999px;
+}
