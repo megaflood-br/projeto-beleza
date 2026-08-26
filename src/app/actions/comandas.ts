@@ -8,6 +8,7 @@ import { calculateCommission } from "@/lib/commissions";
 import { nextStock } from "@/lib/stock";
 import { comandaTotal } from "@/lib/comandas";
 import { parseBRLToCents } from "@/lib/money";
+import { zonedDateTime } from "@/lib/dates";
 
 async function nextNumber(tenantId: string) {
   const last = await prisma.comanda.findFirst({
@@ -65,6 +66,156 @@ export async function createComandaFromAppointment(appointmentId: string) {
 
   revalidateComandas();
   return { ok: true as const, id: comanda.id, existing: false };
+}
+
+export async function upsertComanda(formData: FormData) {
+  const { session } = await requireTenant();
+  const id = String(formData.get("id") ?? "");
+  const clientId = String(formData.get("clientId") ?? "");
+  const professionalId = String(formData.get("professionalId") ?? "") || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const discountCents = parseBRLToCents(String(formData.get("discount") ?? "0"));
+  const creditCents = parseBRLToCents(String(formData.get("credit") ?? "0"));
+  const cashbackCents = parseBRLToCents(String(formData.get("cashback") ?? "0"));
+  const dateRaw = String(formData.get("occurredAt") ?? "");
+  const occurredAt = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? zonedDateTime(dateRaw, "12:00") : new Date();
+  const numberRaw = Number(formData.get("number") ?? "");
+  const intent = String(formData.get("intent") ?? "save");
+
+  if (!clientId) return { error: "Selecione um cliente." };
+
+  const keys = formData.getAll("itemKey").map(String);
+  const qtys = formData.getAll("itemQty").map(String);
+  const prices = formData.getAll("itemPrice").map(String);
+  const discounts = formData.getAll("itemDiscount").map(String);
+  const discountTypes = formData.getAll("itemDiscountType").map(String);
+  const itemProfessionals = formData.getAll("itemProfessionalId").map(String);
+
+  const parsedItems: {
+    type: string;
+    serviceId: string | null;
+    productId: string | null;
+    professionalId: string | null;
+    description: string;
+    quantity: number;
+    priceCents: number;
+    discountCents: number;
+    durationMin: number;
+  }[] = [];
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    if (!key) continue;
+    const [kind, entityId] = key.split(":");
+    const quantity = Number(String(qtys[i] ?? "1").replace(",", ".")) || 1;
+    const priceCents = parseBRLToCents(prices[i] ?? "0");
+    const discountInput = discounts[i] ?? "0";
+    const discountType = discountTypes[i] === "percent" ? "percent" : "money";
+    const gross = Math.round(quantity * priceCents);
+    const discountCentsItem =
+      discountType === "percent"
+        ? Math.round(gross * ((Number(String(discountInput).replace(",", ".")) || 0) / 100))
+        : parseBRLToCents(discountInput);
+    if (kind === "SERVICE") {
+      const service = await prisma.service.findFirst({ where: { id: entityId, tenantId: session.tenantId } });
+      if (!service) continue;
+      parsedItems.push({
+        type: "SERVICE",
+        serviceId: service.id,
+        productId: null,
+        professionalId: itemProfessionals[i] || professionalId,
+        description: service.name,
+        quantity,
+        priceCents: priceCents || service.priceCents,
+        discountCents: Math.min(gross, Math.max(0, discountCentsItem)),
+        durationMin: service.durationMin,
+      });
+    } else if (kind === "PRODUCT") {
+      const product = await prisma.product.findFirst({ where: { id: entityId, tenantId: session.tenantId } });
+      if (!product) continue;
+      parsedItems.push({
+        type: "PRODUCT",
+        serviceId: null,
+        productId: product.id,
+        professionalId: itemProfessionals[i] || professionalId,
+        description: product.name,
+        quantity,
+        priceCents: priceCents || product.saleCents,
+        discountCents: Math.min(gross, Math.max(0, discountCentsItem)),
+        durationMin: 0,
+      });
+    }
+  }
+
+  try {
+    let comandaId = id;
+    let number = Number.isFinite(numberRaw) && numberRaw > 0 ? Math.round(numberRaw) : await nextNumber(session.tenantId);
+
+    if (id) {
+      const existing = await prisma.comanda.findFirst({ where: { id, tenantId: session.tenantId } });
+      if (!existing) return { error: "Comanda não encontrada." };
+      if (existing.status !== "OPEN") return { error: "Esta comanda já foi encerrada." };
+      if (number !== existing.number) {
+        const taken = await prisma.comanda.findFirst({ where: { tenantId: session.tenantId, number } });
+        if (taken) return { error: "Já existe uma comanda com este número." };
+      }
+      await prisma.comanda.update({
+        where: { id },
+        data: {
+          clientId,
+          professionalId,
+          notes,
+          discountCents,
+          creditCents,
+          cashbackCents,
+          occurredAt,
+          number,
+        },
+      });
+      await prisma.comandaItem.deleteMany({ where: { comandaId: id } });
+    } else {
+      const taken = await prisma.comanda.findFirst({ where: { tenantId: session.tenantId, number } });
+      if (taken) number = await nextNumber(session.tenantId);
+      const created = await prisma.comanda.create({
+        data: {
+          tenantId: session.tenantId,
+          number,
+          clientId,
+          professionalId,
+          notes,
+          discountCents,
+          creditCents,
+          cashbackCents,
+          occurredAt,
+          status: "OPEN",
+        },
+      });
+      comandaId = created.id;
+    }
+
+    if (parsedItems.length) {
+      await prisma.comandaItem.createMany({
+        data: parsedItems.map((item) => ({ comandaId, ...item })),
+      });
+    }
+    revalidateComandas();
+    revalidatePath(`/comandas/${comandaId}`);
+    if (intent === "invoice") {
+      redirect(`/comandas/${comandaId}`);
+    }
+    return { ok: true, id: comandaId };
+  } catch (err) {
+    if (
+      typeof err === "object" &&
+      err &&
+      "digest" in err &&
+      String((err as { digest?: string }).digest).startsWith("NEXT_REDIRECT")
+    ) {
+      throw err;
+    }
+    console.error("upsertComanda", err);
+    return { error: "Não foi possível salvar a comanda. Confira os campos e tente de novo." };
+  }
 }
 
 export async function createWalkInComanda(formData: FormData) {
@@ -172,12 +323,30 @@ export async function closeComanda(formData: FormData) {
   if (comanda.status !== "OPEN") return { error: "Esta comanda já foi encerrada." };
   if (comanda.items.length === 0) return { error: "Inclua itens antes de fechar." };
 
-  const total = comandaTotal({ items: comanda.items, discountCents });
+  const total = comandaTotal({
+    items: comanda.items,
+    discountCents,
+    creditCents: comanda.creditCents,
+    cashbackCents: comanda.cashbackCents,
+  });
 
   await prisma.comanda.update({
     where: { id: comanda.id },
     data: { status: "CLOSED", closedAt: new Date(), paymentMethod: method, discountCents },
   });
+
+  if (comanda.creditCents > 0 || comanda.cashbackCents > 0) {
+    const client = await prisma.client.findFirst({ where: { id: comanda.clientId, tenantId: session.tenantId } });
+    if (client) {
+      await prisma.client.update({
+        where: { id: client.id },
+        data: {
+          creditCents: Math.max(0, client.creditCents - comanda.creditCents),
+          cashbackCents: Math.max(0, client.cashbackCents - comanda.cashbackCents),
+        },
+      });
+    }
+  }
 
   await prisma.transaction.create({
     data: {

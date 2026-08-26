@@ -7,7 +7,7 @@ import { SearchSelect } from "@/components/search-select";
 import { addComandaItem, closeComanda, removeComandaItemForm } from "@/app/actions/comandas";
 import { formAction } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
-import { comandaSubtotal, comandaTotal } from "@/lib/comandas";
+import { comandaSubtotal, comandaTotal, itemLineTotal } from "@/lib/comandas";
 import { COMANDA_STATUS_COLOR, COMANDA_STATUS_LABEL, PAYMENT_LABEL, type ComandaStatus, type PaymentMethod } from "@/lib/constants";
 import { Trash2 } from "lucide-react";
 
@@ -27,7 +27,12 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
 
   const open = comanda.status === "OPEN";
   const subtotal = comandaSubtotal(comanda.items);
-  const total = comandaTotal({ items: comanda.items, discountCents: comanda.discountCents });
+  const total = comandaTotal({
+    items: comanda.items,
+    discountCents: comanda.discountCents,
+    creditCents: comanda.creditCents,
+    cashbackCents: comanda.cashbackCents,
+  });
 
   return (
     <div className="space-y-6">
@@ -68,7 +73,7 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
                 <td>{item.type === "SERVICE" ? "Serviço" : "Produto"}</td>
                 <td>{item.professional?.name ?? "—"}</td>
                 <td>{item.quantity}</td>
-                <td>{formatBRL(Math.round(item.priceCents * item.quantity))}</td>
+                <td>{formatBRL(itemLineTotal(item))}</td>
                 <td>
                   {open ? (
                     <form action={formAction(removeComandaItemForm)}>
@@ -145,13 +150,16 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="text-sm">
             <div>Subtotal {formatBRL(subtotal)}</div>
+            {comanda.discountCents ? <div>Desconto {formatBRL(comanda.discountCents)}</div> : null}
+            {comanda.creditCents ? <div>Crédito {formatBRL(comanda.creditCents)}</div> : null}
+            {comanda.cashbackCents ? <div>Cashback {formatBRL(comanda.cashbackCents)}</div> : null}
             <div className="font-display text-3xl">{formatBRL(total)}</div>
           </div>
           {open ? (
             <form action={formAction(closeComanda)} className="flex flex-wrap items-end gap-3">
               <input type="hidden" name="comandaId" value={comanda.id} />
               <Field label="Desconto">
-                <Input name="discount" placeholder="0,00" />
+                <Input name="discount" defaultValue={(comanda.discountCents / 100).toFixed(2).replace(".", ",")} />
               </Field>
               <Field label="Pagamento">
                 <Select name="method" defaultValue="PIX">

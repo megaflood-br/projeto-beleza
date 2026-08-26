@@ -280,7 +280,10 @@ model Comanda {
   status         String   @default("OPEN")
   notes          String?
   discountCents  Int      @default(0)
+  creditCents    Int      @default(0)
+  cashbackCents  Int      @default(0)
   paymentMethod  String?
+  occurredAt     DateTime @default(now())
   closedAt       DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -308,6 +311,7 @@ model ComandaItem {
   description    String
   quantity       Float        @default(1)
   priceCents     Int
+  discountCents  Int          @default(0)
   durationMin    Int          @default(0)
 }
 

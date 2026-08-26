@@ -97,6 +97,17 @@ describe("comandas", () => {
       }),
     ).toBe(25000);
   });
+
+  it("abate desconto do item, crédito e cashback", () => {
+    expect(
+      comandaTotal({
+        items: [{ quantity: 1, priceCents: 10000, discountCents: 1000 }],
+        discountCents: 500,
+        creditCents: 200,
+        cashbackCents: 300,
+      }),
+    ).toBe(8000);
+  });
 });
 
 describe("fuso da agenda", () => {
