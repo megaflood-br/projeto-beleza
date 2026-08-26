@@ -49,3 +49,20 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
 };
 
 export const SESSION_COOKIE = "mb_session";
+
+export const COMANDA_STATUSES = ["OPEN", "CLOSED", "CANCELLED"] as const;
+export type ComandaStatus = (typeof COMANDA_STATUSES)[number];
+
+export const COMANDA_STATUS_LABEL: Record<ComandaStatus, string> = {
+  OPEN: "Em aberto",
+  CLOSED: "Fechada",
+  CANCELLED: "Cancelada",
+};
+
+export const COMANDA_STATUS_COLOR: Record<ComandaStatus, string> = {
+  OPEN: "#0D9488",
+  CLOSED: "#2563EB",
+  CANCELLED: "#94A3B8",
+};
+
+export const DURATION_OPTIONS = [15, 30, 45, 60, 75, 90, 120, 150, 180];

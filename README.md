@@ -9,6 +9,7 @@ CRM e agenda para salões de beleza, barbearias e clínicas de estética — ins
 - CRM de clientes com histórico e tags
 - Serviços, equipe, papéis (proprietário, gerente, recepção, profissional)
 - Estoque com baixa automática ao concluir atendimento
+- Comandas (criar a partir do agendamento, itens, fechamento e pagamento)
 - Comissões por profissional/serviço
 - Financeiro (entradas, saídas, Pix/cartão/dinheiro)
 - Inbox WhatsApp + Evolution API (envio real ou modo demo)

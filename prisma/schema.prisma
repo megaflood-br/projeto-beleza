@@ -45,6 +45,7 @@ model Tenant {
   clientPackages ClientPackage[]
   conversations  Conversation[]
   automations    Automation[]
+  comandas       Comanda[]
 
   @@index([slug])
 }
@@ -84,8 +85,11 @@ model Professional {
 
   user           User?
   appointments   Appointment[]
+  appointmentItems AppointmentItem[]
   commissions    Commission[]
   serviceLinks   ProfessionalService[]
+  comandas       Comanda[]
+  comandaItems   ComandaItem[]
 
   @@index([tenantId])
 }
@@ -121,6 +125,7 @@ model Service {
   products       ServiceProduct[]
   professionals  ProfessionalService[]
   packages       Package[]
+  comandaItems   ComandaItem[]
 
   @@index([tenantId])
 }
@@ -152,15 +157,18 @@ model Client {
   email       String?
   birthDate   DateTime?
   notes       String?
-  tags        String    @default("")
-  instagram   String?
-  source      String    @default("balcao")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  tags          String    @default("")
+  instagram     String?
+  source        String    @default("balcao")
+  creditCents   Int       @default(0)
+  cashbackCents Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   appointments   Appointment[]
   conversations  Conversation[]
   packages       ClientPackage[]
+  comandas       Comanda[]
 
   @@unique([tenantId, phone])
   @@index([tenantId, name])
@@ -186,19 +194,68 @@ model Appointment {
   commissions  Commission[]
   transactions Transaction[]
   stockMoves   StockMovement[]
+  comanda      Comanda?
 
   @@index([tenantId, startAt])
   @@index([professionalId, startAt])
 }
 
 model AppointmentItem {
-  id            String      @id @default(cuid())
-  appointmentId String
-  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  serviceId     String
-  service       Service     @relation(fields: [serviceId], references: [id])
-  priceCents    Int
-  durationMin   Int
+  id             String      @id @default(cuid())
+  appointmentId  String
+  appointment    Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  serviceId      String
+  service        Service     @relation(fields: [serviceId], references: [id])
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+  startAt        DateTime?
+  priceCents     Int
+  durationMin    Int
+}
+
+model Comanda {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  number         Int
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id])
+  appointmentId  String?  @unique
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+  status         String   @default("OPEN")
+  notes          String?
+  discountCents  Int      @default(0)
+  paymentMethod  String?
+  closedAt       DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items        ComandaItem[]
+  transactions Transaction[]
+  commissions  Commission[]
+  stockMoves   StockMovement[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, status])
+}
+
+model ComandaItem {
+  id             String       @id @default(cuid())
+  comandaId      String
+  comanda        Comanda      @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  type           String       @default("SERVICE")
+  serviceId      String?
+  service        Service?     @relation(fields: [serviceId], references: [id])
+  productId      String?
+  product        Product?     @relation(fields: [productId], references: [id])
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+  description    String
+  quantity       Float        @default(1)
+  priceCents     Int
+  durationMin    Int          @default(0)
 }
 
 model Product {
@@ -218,6 +275,7 @@ model Product {
 
   moves    StockMovement[]
   services ServiceProduct[]
+  comandaItems ComandaItem[]
 
   @@index([tenantId])
 }
@@ -233,6 +291,8 @@ model StockMovement {
   reason        String?
   appointmentId String?
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  comandaId     String?
+  comanda       Comanda?     @relation(fields: [comandaId], references: [id])
   createdAt     DateTime     @default(now())
 
   @@index([tenantId, createdAt])
@@ -244,8 +304,10 @@ model Commission {
   tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id])
-  appointmentId  String
-  appointment    Appointment  @relation(fields: [appointmentId], references: [id])
+  appointmentId  String?
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
+  comandaId      String?
+  comanda        Comanda?     @relation(fields: [comandaId], references: [id])
   amountCents    Int
   percent        Int
   status         String       @default("PENDING")
@@ -266,6 +328,8 @@ model Transaction {
   description   String?
   appointmentId String?
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  comandaId     String?
+  comanda       Comanda?     @relation(fields: [comandaId], references: [id])
   occurredAt    DateTime     @default(now())
   createdAt     DateTime     @default(now())
 

@@ -9,6 +9,8 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.comandaItem.deleteMany();
+  await prisma.comanda.deleteMany();
   await prisma.message.deleteMany();
   await prisma.conversation.deleteMany();
   await prisma.automation.deleteMany();
@@ -400,7 +402,7 @@ async function main() {
     start: at(today, 14, 0),
     status: "CONFIRMED",
   });
-  await book({
+  const emAtendimento = await book({
     professionalId: rafaela.id,
     clientId: carla.id,
     serviceId: limpeza.id,
@@ -482,6 +484,28 @@ async function main() {
       clientId: renata.id,
       packageId: pack.id,
       remaining: 3,
+    },
+  });
+
+  await prisma.comanda.create({
+    data: {
+      tenantId: aurora.id,
+      number: 1,
+      clientId: carla.id,
+      appointmentId: emAtendimento.id,
+      professionalId: rafaela.id,
+      status: "OPEN",
+      items: {
+        create: {
+          type: "SERVICE",
+          serviceId: limpeza.id,
+          professionalId: rafaela.id,
+          description: "Limpeza de pele",
+          quantity: 1,
+          priceCents: 18000,
+          durationMin: 75,
+        },
+      },
     },
   });
 

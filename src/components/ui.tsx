@@ -5,12 +5,13 @@ export function Button({
   className,
   variant = "primary",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "outline" | "danger" }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "outline" | "danger" | "success" }) {
   const styles = {
     primary: "bg-wine text-white hover:bg-wine-deep",
     ghost: "bg-transparent text-ink hover:bg-sand",
     outline: "border border-line bg-paper text-ink hover:bg-sand",
-    danger: "bg-warn text-white hover:opacity-90",
+    danger: "bg-red-600 text-white hover:bg-red-700",
+    success: "bg-emerald-600 text-white hover:bg-emerald-700",
   } as const;
   return (
     <button

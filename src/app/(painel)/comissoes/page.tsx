@@ -10,7 +10,7 @@ export default async function ComissoesPage() {
   const { session } = await requireTenant();
   const professionals = await prisma.professional.findMany({
     where: { tenantId: session.tenantId },
-    include: { commissions: { include: { appointment: { include: { client: true } } } } },
+    include: { commissions: { include: { appointment: { include: { client: true } }, comanda: { include: { client: true } } } } },
   });
 
   return (
@@ -40,7 +40,7 @@ export default async function ComissoesPage() {
                 {p.commissions.slice(0, 8).map((c) => (
                   <div key={c.id} className="flex justify-between border-t border-line pt-2">
                     <span>
-                      {c.appointment.client.name} · {c.percent}%
+                      {c.appointment?.client.name ?? c.comanda?.client.name ?? "Avulsa"} · {c.percent}%
                     </span>
                     <span>
                       {formatBRL(c.amountCents)} · {c.status === "PAID" ? "pago" : "a pagar"}

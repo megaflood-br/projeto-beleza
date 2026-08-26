@@ -4,6 +4,7 @@ import { hasConflict } from "@/lib/appointments";
 import { nextStock, isLowStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify } from "@/lib/utils";
+import { comandaTotal } from "@/lib/comandas";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -67,5 +68,19 @@ describe("helpers", () => {
 
   it("gera slug de tenant", () => {
     expect(slugify("Studio Aurora Belém")).toBe("studio-aurora-belem");
+  });
+});
+
+describe("comandas", () => {
+  it("soma itens e aplica desconto", () => {
+    expect(
+      comandaTotal({
+        items: [
+          { quantity: 1, priceCents: 18000 },
+          { quantity: 2, priceCents: 4500 },
+        ],
+        discountCents: 2000,
+      }),
+    ).toBe(25000);
   });
 });

@@ -1,37 +1,16 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { addDays, differenceInMinutes } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { createAppointment, updateAppointmentStatus } from "@/app/actions/appointments";
-import { Avatar, Badge, Button, Field, Select, Textarea } from "@/components/ui";
+import { AppointmentEditor } from "@/components/agenda/appointment-editor";
+import type { AgendaAppointment, AgendaClient, AgendaProfessional, AgendaService } from "@/components/agenda/types";
+import { Avatar, Badge } from "@/components/ui";
 import { STATUS_COLOR, STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
 import { atTime, buildSlots, formatDateParam, formatDayLabel, formatTime } from "@/lib/dates";
-import { formatBRL } from "@/lib/money";
-import { cn } from "@/lib/utils";
 
 const SLOT_H = 22;
-
-export type AgendaAppointment = {
-  id: string;
-  startAt: string;
-  endAt: string;
-  status: AppointmentStatus;
-  notes: string | null;
-  professionalId: string;
-  client: { id: string; name: string; phone: string };
-  items: { durationMin: number; priceCents: number; service: { name: string; color: string } }[];
-};
-
-export type AgendaProfessional = {
-  id: string;
-  name: string;
-  color: string;
-  specialty: string | null;
-  workStart: string;
-  workEnd: string;
-};
 
 export function AgendaBoard({
   date,
@@ -49,15 +28,13 @@ export function AgendaBoard({
   slotMinutes: number;
   professionals: AgendaProfessional[];
   appointments: AgendaAppointment[];
-  clients: { id: string; name: string }[];
-  services: { id: string; name: string; durationMin: number; priceCents: number }[];
+  clients: AgendaClient[];
+  services: AgendaService[];
 }) {
   const day = useMemo(() => new Date(`${date}T00:00:00`), [date]);
   const slots = useMemo(() => buildSlots(openTime, closeTime, slotMinutes), [openTime, closeTime, slotMinutes]);
-  const [draft, setDraft] = useState<{ professionalId: string; startAt: string } | null>(null);
+  const [draft, setDraft] = useState<{ professionalId: string; time: string } | null>(null);
   const [selected, setSelected] = useState<AgendaAppointment | null>(null);
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const dayStart = atTime(day, openTime);
 
   function pos(start: Date, end: Date) {
@@ -120,12 +97,7 @@ export function AgendaBoard({
                     <button
                       key={slot}
                       type="button"
-                      onClick={() =>
-                        setDraft({
-                          professionalId: pro.id,
-                          startAt: `${date}T${slot}`,
-                        })
-                      }
+                      onClick={() => setDraft({ professionalId: pro.id, time: slot })}
                       className="block w-full border-b border-dashed border-line/80 hover:bg-gold-soft/40"
                       style={{ height: SLOT_H }}
                       aria-label={`Novo horário ${slot} com ${pro.name}`}
@@ -167,92 +139,34 @@ export function AgendaBoard({
       </div>
 
       {draft ? (
-        <Modal title="Novo agendamento" onClose={() => setDraft(null)}>
-          <form
-            className="grid gap-3"
-            action={(formData) => {
-              setError(null);
-              startTransition(async () => {
-                const result = await createAppointment(formData);
-                if (result?.error) setError(result.error);
-                else setDraft(null);
-              });
-            }}
-          >
-            <input type="hidden" name="professionalId" value={draft.professionalId} />
-            <input type="hidden" name="startAt" value={new Date(draft.startAt).toISOString()} />
-            <Field label="Cliente">
-              <Select name="clientId" required>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Serviço">
-              <Select name="serviceId" required>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} · {s.durationMin}min · {formatBRL(s.priceCents)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Observação">
-              <Textarea name="notes" placeholder="Preferências, alergias..." />
-            </Field>
-            {error ? <p className="text-sm text-warn">{error}</p> : null}
-            <Button disabled={pending}>{pending ? "Salvando..." : "Agendar"}</Button>
-          </form>
-        </Modal>
+        <AppointmentEditor
+          mode="create"
+          date={date}
+          defaultProfessionalId={draft.professionalId}
+          defaultTime={draft.time}
+          appointment={null}
+          clients={clients}
+          professionals={professionals}
+          services={services}
+          slots={slots}
+          onClose={() => setDraft(null)}
+        />
       ) : null}
 
       {selected ? (
-        <Modal title={selected.client.name} onClose={() => setSelected(null)}>
-          <div className="space-y-3 text-sm">
-            <div>{selected.items.map((i) => i.service.name).join(", ")}</div>
-            <div className="text-ink-soft">
-              {formatTime(new Date(selected.startAt))} – {formatTime(new Date(selected.endAt))}
-            </div>
-            <Badge color={STATUS_COLOR[selected.status]}>{STATUS_LABEL[selected.status]}</Badge>
-            <div className="flex flex-wrap gap-2 pt-2">
-              {(["CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW"] as AppointmentStatus[]).map((status) => (
-                <Button
-                  key={status}
-                  type="button"
-                  variant="outline"
-                  className={cn("text-xs", selected.status === status && "border-wine text-wine")}
-                  onClick={() => {
-                    startTransition(async () => {
-                      await updateAppointmentStatus(selected.id, status);
-                      setSelected(null);
-                    });
-                  }}
-                >
-                  {STATUS_LABEL[status]}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </Modal>
+        <AppointmentEditor
+          mode="edit"
+          date={date}
+          defaultProfessionalId={selected.professionalId}
+          defaultTime={formatTime(new Date(selected.startAt))}
+          appointment={selected}
+          clients={clients}
+          professionals={professionals}
+          services={services}
+          slots={slots}
+          onClose={() => setSelected(null)}
+        />
       ) : null}
-    </div>
-  );
-}
-
-function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-paper p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-xl">{title}</h2>
-          <button onClick={onClose} className="text-ink-soft">
-            Fechar
-          </button>
-        </div>
-        {children}
-      </div>
     </div>
   );
 }
