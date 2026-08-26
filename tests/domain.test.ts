@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateCommission, sumCommissions } from "@/lib/commissions";
 import { hasConflict } from "@/lib/appointments";
-import { nextStock, isLowStock } from "@/lib/stock";
+import { formatStockQty, isLowStock, nextStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify } from "@/lib/utils";
 import { comandaTotal } from "@/lib/comandas";
@@ -60,6 +60,12 @@ describe("estoque", () => {
   it("marca estoque mínimo", () => {
     expect(isLowStock(2, 4)).toBe(true);
     expect(isLowStock(8, 4)).toBe(false);
+  });
+
+  it("formata quantidade com unidade", () => {
+    expect(formatStockQty(1, "un")).toBe("1 unidade");
+    expect(formatStockQty(3, "un")).toBe("3 unidades");
+    expect(formatStockQty(100, "ml")).toBe("100 ml");
   });
 });
 

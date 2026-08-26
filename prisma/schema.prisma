@@ -37,8 +37,11 @@ model Tenant {
   categories     ServiceCategory[]
   services       Service[]
   appointments   Appointment[]
-  products       Product[]
-  stockMoves     StockMovement[]
+  products           Product[]
+  productCategories  ProductCategory[]
+  productLots        ProductLot[]
+  productRequests    ProductRequest[]
+  stockMoves         StockMovement[]
   commissions    Commission[]
   transactions   Transaction[]
   packages       Package[]
@@ -88,9 +91,10 @@ model Professional {
   appointmentItems AppointmentItem[]
   commissions    Commission[]
   serviceLinks   ProfessionalService[]
-  comandas       Comanda[]
-  comandaItems   ComandaItem[]
-  transactions   Transaction[]
+  comandas         Comanda[]
+  comandaItems     ComandaItem[]
+  transactions     Transaction[]
+  productRequests  ProductRequest[]
 
   @@index([tenantId])
 }
@@ -267,26 +271,82 @@ model ComandaItem {
   durationMin    Int          @default(0)
 }
 
-model Product {
-  id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name        String
-  sku         String?
-  unit        String   @default("un")
-  costCents   Int      @default(0)
-  saleCents   Int      @default(0)
-  stock       Float    @default(0)
-  minStock    Float    @default(2)
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  moves    StockMovement[]
-  services ServiceProduct[]
-  comandaItems ComandaItem[]
+model ProductCategory {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  sortOrder Int       @default(0)
+  products  Product[]
 
   @@index([tenantId])
+}
+
+model Product {
+  id                     String   @id @default(cuid())
+  tenantId               String
+  tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId             String?
+  category               ProductCategory? @relation(fields: [categoryId], references: [id])
+  name                   String
+  sku                    String?
+  barcode                String?
+  brand                  String?
+  unit                   String   @default("un")
+  unitEquals             Float    @default(1)
+  costCents              Int      @default(0)
+  saleCents              Int      @default(0)
+  professionalPriceCents Int      @default(0)
+  extraCostCents         Int      @default(0)
+  commissionPct          Int?
+  cashbackPct            Int?
+  returnAfterDays        Int?
+  stock                  Float    @default(0)
+  minStock               Float    @default(2)
+  imageUrl               String?
+  notes                  String?
+  requestAvailable       Boolean  @default(true)
+  active                 Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  moves        StockMovement[]
+  services     ServiceProduct[]
+  comandaItems ComandaItem[]
+  lots         ProductLot[]
+  requests     ProductRequest[]
+
+  @@index([tenantId])
+}
+
+model ProductLot {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  code      String
+  quantity  Float
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, expiresAt])
+}
+
+model ProductRequest {
+  id             String        @id @default(cuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+  quantity       Float
+  status         String        @default("PENDING")
+  notes          String?
+  createdAt      DateTime      @default(now())
+
+  @@index([tenantId, status])
 }
 
 model StockMovement {

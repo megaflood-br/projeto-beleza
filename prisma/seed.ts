@@ -26,7 +26,10 @@ async function main() {
   await prisma.professionalService.deleteMany();
   await prisma.service.deleteMany();
   await prisma.serviceCategory.deleteMany();
+  await prisma.productRequest.deleteMany();
+  await prisma.productLot.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.productCategory.deleteMany();
   await prisma.user.deleteMany();
   await prisma.professional.deleteMany();
   await prisma.client.deleteMany();
@@ -241,11 +244,24 @@ async function main() {
     });
   }
 
+  const productCats = await prisma.productCategory.createManyAndReturn({
+    data: [
+      { tenantId: aurora.id, name: "Coloração", sortOrder: 1 },
+      { tenantId: aurora.id, name: "Tratamento", sortOrder: 2 },
+      { tenantId: aurora.id, name: "Cabelos", sortOrder: 3 },
+      { tenantId: aurora.id, name: "Unhas", sortOrder: 4 },
+    ],
+  });
+  const [catColor, catTrat, catCabelos, catUnhasProd] = productCats;
+
   const tinta = await prisma.product.create({
     data: {
       tenantId: aurora.id,
+      categoryId: catColor.id,
       name: "Tinta profissional 60ml",
       sku: "TIN-60",
+      barcode: "7891000000011",
+      brand: "Wella",
       unit: "un",
       costCents: 2800,
       saleCents: 0,
@@ -256,8 +272,11 @@ async function main() {
   const mascara = await prisma.product.create({
     data: {
       tenantId: aurora.id,
+      categoryId: catTrat.id,
       name: "Máscara hidratação 500ml",
       sku: "HID-500",
+      barcode: "7891000000028",
+      brand: "L'Oréal",
       unit: "un",
       costCents: 4200,
       saleCents: 8900,
@@ -268,8 +287,10 @@ async function main() {
   const esmalte = await prisma.product.create({
     data: {
       tenantId: aurora.id,
+      categoryId: catUnhasProd.id,
       name: "Esmalte gel rose",
       sku: "GEL-ROSE",
+      brand: "Risqué",
       unit: "un",
       costCents: 1800,
       saleCents: 4500,
@@ -280,13 +301,44 @@ async function main() {
   await prisma.product.create({
     data: {
       tenantId: aurora.id,
+      categoryId: catCabelos.id,
       name: "Shampoo profissional 1L",
       sku: "SHA-1L",
+      brand: "L'Oréal",
       unit: "un",
       costCents: 3500,
       saleCents: 7900,
       stock: 15,
       minStock: 5,
+    },
+  });
+
+  await prisma.productLot.createMany({
+    data: [
+      {
+        tenantId: aurora.id,
+        productId: tinta.id,
+        code: "WEL-2608",
+        quantity: 8,
+        expiresAt: addDays(today, 180),
+      },
+      {
+        tenantId: aurora.id,
+        productId: mascara.id,
+        code: "LOR-112",
+        quantity: 3,
+        expiresAt: addDays(today, 18),
+      },
+    ],
+  });
+
+  await prisma.productRequest.create({
+    data: {
+      tenantId: aurora.id,
+      productId: mascara.id,
+      professionalId: camila.id,
+      quantity: 1,
+      notes: "Uso na hidratação da tarde",
     },
   });
 

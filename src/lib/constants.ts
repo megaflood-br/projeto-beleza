@@ -89,3 +89,15 @@ export const EXPENSE_CATEGORIES = [
   { value: "marketing", label: "Marketing" },
   { value: "outros", label: "Outros" },
 ] as const;
+
+export const STOCK_UNITS = [
+  { value: "un", label: "em unidade", short: "unidade" },
+  { value: "ml", label: "em mililitro", short: "ml" },
+  { value: "g", label: "em grama", short: "g" },
+] as const;
+
+export const REQUEST_STATUS_LABEL: Record<string, string> = {
+  PENDING: "Pendente",
+  APPROVED: "Aprovada",
+  REJECTED: "Recusada",
+};

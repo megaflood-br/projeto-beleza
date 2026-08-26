@@ -1,93 +1,97 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Card, Field, Input, Select } from "@/components/ui";
-import { CreateModal } from "@/components/create-modal";
-import { SearchSelect } from "@/components/search-select";
-import { moveStock, upsertProduct } from "@/app/actions/inventory";
-import { formatBRL } from "@/lib/money";
-import { isLowStock } from "@/lib/stock";
+import { StockBoard } from "@/components/estoque/stock-board";
 
 export default async function EstoquePage() {
   const { session } = await requireTenant();
-  const products = await prisma.product.findMany({
-    where: { tenantId: session.tenantId },
-    include: { moves: { orderBy: { createdAt: "desc" }, take: 3 } },
-    orderBy: { name: "asc" },
-  });
+  const [products, categories, services, lots, requests, professionals] = await Promise.all([
+    prisma.product.findMany({
+      where: { tenantId: session.tenantId },
+      include: { category: true, services: { include: { service: true } } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.productCategory.findMany({ where: { tenantId: session.tenantId }, orderBy: { sortOrder: "asc" } }),
+    prisma.service.findMany({
+      where: { tenantId: session.tenantId, active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.productLot.findMany({
+      where: { tenantId: session.tenantId },
+      include: { product: true },
+      orderBy: { expiresAt: "asc" },
+    }),
+    prisma.productRequest.findMany({
+      where: { tenantId: session.tenantId },
+      include: { product: true, professional: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.professional.findMany({
+      where: { tenantId: session.tenantId, active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
+
+  const brands = [...new Set(products.map((p) => p.brand).filter((name): name is string => Boolean(name)))];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl">Estoque</h1>
-          <p className="text-ink-soft">Baixa automática ao concluir um atendimento que consome produto.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <CreateModal trigger="Novo produto" title="Novo produto" submitLabel="Salvar produto" action={upsertProduct}>
-            <Field label="Nome">
-              <Input name="name" required />
-            </Field>
-            <Field label="SKU">
-              <Input name="sku" />
-            </Field>
-            <Field label="Estoque inicial">
-              <Input name="stock" type="number" defaultValue={0} />
-            </Field>
-            <Field label="Estoque mínimo">
-              <Input name="minStock" type="number" defaultValue={2} />
-            </Field>
-            <Field label="Custo">
-              <Input name="cost" placeholder="28,00" />
-            </Field>
-            <Field label="Preço de venda">
-              <Input name="sale" placeholder="89,00" />
-            </Field>
-          </CreateModal>
-          <CreateModal trigger="Movimentar" title="Movimentar estoque" submitLabel="Registrar" action={moveStock}>
-            <Field label="Produto">
-              <SearchSelect
-                name="productId"
-                required
-                placeholder="Buscar produto..."
-                options={products.map((p) => ({ value: p.id, label: p.name }))}
-              />
-            </Field>
-            <Field label="Tipo">
-              <Select name="type">
-                <option value="IN">Entrada</option>
-                <option value="OUT">Saída</option>
-                <option value="ADJUST">Ajuste (define saldo)</option>
-              </Select>
-            </Field>
-            <Field label="Quantidade">
-              <Input name="quantity" type="number" step="0.1" defaultValue={1} />
-            </Field>
-            <Field label="Motivo">
-              <Input name="reason" placeholder="Compra, perda, uso..." />
-            </Field>
-          </CreateModal>
-        </div>
-      </div>
-      <div className="grid gap-3">
-        {products.map((p) => (
-          <Card key={p.id} className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">{p.name}</div>
-              <div className="text-sm text-ink-soft">
-                SKU {p.sku ?? "—"} · custo {formatBRL(p.costCents)}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="font-display text-2xl">{p.stock}</div>
-              {isLowStock(p.stock, p.minStock) ? (
-                <div className="text-xs text-warn">Abaixo do mínimo ({p.minStock})</div>
-              ) : (
-                <div className="text-xs text-ink-soft">mín. {p.minStock}</div>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
+    <StockBoard
+      categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+      brands={brands}
+      services={services}
+      professionals={professionals}
+      products={products.map((p) => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        barcode: p.barcode,
+        brand: p.brand,
+        categoryId: p.categoryId,
+        categoryName: p.category?.name ?? null,
+        unit: p.unit,
+        unitEquals: p.unitEquals,
+        costCents: p.costCents,
+        saleCents: p.saleCents,
+        professionalPriceCents: p.professionalPriceCents,
+        extraCostCents: p.extraCostCents,
+        commissionPct: p.commissionPct,
+        cashbackPct: p.cashbackPct,
+        returnAfterDays: p.returnAfterDays,
+        stock: p.stock,
+        minStock: p.minStock,
+        imageUrl: p.imageUrl,
+        notes: p.notes,
+        requestAvailable: p.requestAvailable,
+        active: p.active,
+        services: p.services.map((row) => ({
+          serviceId: row.serviceId,
+          quantity: row.quantity,
+          name: row.service.name,
+        })),
+      }))}
+      lots={lots.map((lot) => ({
+        id: lot.id,
+        productId: lot.productId,
+        productName: lot.product.name,
+        brand: lot.product.brand,
+        code: lot.code,
+        quantity: lot.quantity,
+        unit: lot.product.unit,
+        expiresAt: lot.expiresAt.toISOString(),
+      }))}
+      requests={requests.map((req) => ({
+        id: req.id,
+        productId: req.productId,
+        productName: req.product.name,
+        professionalId: req.professionalId,
+        professionalName: req.professional?.name ?? null,
+        quantity: req.quantity,
+        unit: req.product.unit,
+        status: req.status,
+        notes: req.notes,
+        createdAt: req.createdAt.toISOString(),
+      }))}
+    />
   );
 }
