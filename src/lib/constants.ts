@@ -65,7 +65,7 @@ export const COMANDA_STATUS_COLOR: Record<ComandaStatus, string> = {
   CANCELLED: "#94A3B8",
 };
 
-export const DURATION_OPTIONS = [15, 30, 45, 60, 75, 90, 120, 150, 180];
+export const DURATION_OPTIONS = [15, 20, 30, 40, 45, 60, 75, 90, 120, 150, 180];
 
 export const FINANCE_ACCOUNTS = [
   { value: "caixa", label: "Caixa" },

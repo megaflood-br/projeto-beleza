@@ -1,0 +1,21 @@
+export type ServiceFormValue = {
+  id: string;
+  name: string;
+  durationMin: number;
+  priceCents: number;
+  extraCostCents: number;
+  commissionPct: number | null;
+  cashbackPct: number | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  active: boolean;
+  favorite: boolean;
+  description: string | null;
+  aftercare: string | null;
+  returnAfterDays: number | null;
+  priceType: string;
+  imageUrl: string | null;
+  color: string;
+  onlineBooking: boolean;
+  products: { productId: string; quantity: number; name: string }[];
+};

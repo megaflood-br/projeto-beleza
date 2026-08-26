@@ -118,6 +118,14 @@ model Service {
   color         String   @default("#6366F1")
   commissionPct Int?
   active        Boolean  @default(true)
+  favorite      Boolean  @default(false)
+  extraCostCents Int     @default(0)
+  cashbackPct   Int?
+  aftercare     String?
+  returnAfterDays Int?
+  priceType     String   @default("fixed")
+  imageUrl      String?
+  onlineBooking Boolean  @default(true)
   description   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

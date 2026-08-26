@@ -1,68 +1,52 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Card, Field, Input } from "@/components/ui";
-import { CreateModal } from "@/components/create-modal";
-import { SearchSelect } from "@/components/search-select";
-import { upsertService } from "@/app/actions/services";
-import { formatBRL } from "@/lib/money";
+import { ServiceBoard } from "@/components/servicos/service-board";
 
 export default async function ServicosPage() {
   const { session } = await requireTenant();
-  const [services, categories] = await Promise.all([
+  const [services, categories, products] = await Promise.all([
     prisma.service.findMany({
       where: { tenantId: session.tenantId },
-      include: { category: true },
+      include: { category: true, products: { include: { product: true } } },
       orderBy: { name: "asc" },
     }),
-    prisma.serviceCategory.findMany({ where: { tenantId: session.tenantId } }),
+    prisma.serviceCategory.findMany({ where: { tenantId: session.tenantId }, orderBy: { sortOrder: "asc" } }),
+    prisma.product.findMany({
+      where: { tenantId: session.tenantId, active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
   ]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl">Serviços e pacotes</h1>
-          <p className="text-ink-soft">Tabela de preços, duração e comissão.</p>
-        </div>
-        <CreateModal trigger="Novo serviço" title="Novo serviço" submitLabel="Cadastrar" action={upsertService}>
-          <Field label="Nome">
-            <Input name="name" required />
-          </Field>
-          <Field label="Categoria">
-            <SearchSelect
-              name="categoryId"
-              placeholder="Buscar categoria..."
-              emptyOption={{ value: "", label: "Sem categoria" }}
-              options={categories.map((c) => ({ value: c.id, label: c.name }))}
-            />
-          </Field>
-          <Field label="Duração (min)">
-            <Input name="durationMin" type="number" defaultValue={60} />
-          </Field>
-          <Field label="Preço">
-            <Input name="price" placeholder="120,00" />
-          </Field>
-          <Field label="Comissão % (opcional)">
-            <Input name="commissionPct" type="number" />
-          </Field>
-        </CreateModal>
-      </div>
-      <div className="grid gap-3">
-        {services.map((s) => (
-          <Card key={s.id} className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">{s.name}</div>
-              <div className="text-sm text-ink-soft">
-                {s.category?.name} · {s.durationMin} min
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="font-display text-xl">{formatBRL(s.priceCents)}</div>
-              <div className="text-xs text-ink-soft">{s.active ? "Ativo" : "Inativo"}</div>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
+    <ServiceBoard
+      categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+      products={products}
+      services={services.map((s) => ({
+        id: s.id,
+        name: s.name,
+        durationMin: s.durationMin,
+        priceCents: s.priceCents,
+        extraCostCents: s.extraCostCents,
+        commissionPct: s.commissionPct,
+        cashbackPct: s.cashbackPct,
+        categoryId: s.categoryId,
+        categoryName: s.category?.name ?? null,
+        active: s.active,
+        favorite: s.favorite,
+        description: s.description,
+        aftercare: s.aftercare,
+        returnAfterDays: s.returnAfterDays,
+        priceType: s.priceType,
+        imageUrl: s.imageUrl,
+        color: s.color,
+        onlineBooking: s.onlineBooking,
+        products: s.products.map((p) => ({
+          productId: p.productId,
+          quantity: p.quantity,
+          name: p.product.name,
+        })),
+      }))}
+    />
   );
 }
