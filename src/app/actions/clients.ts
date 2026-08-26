@@ -13,13 +13,15 @@ export async function upsertClient(formData: FormData) {
   const notes = String(formData.get("notes") ?? "") || null;
   const tags = String(formData.get("tags") ?? "");
   const instagram = String(formData.get("instagram") ?? "") || null;
+  const birthRaw = String(formData.get("birthDate") ?? "");
+  const birthDate = birthRaw ? new Date(`${birthRaw}T12:00:00.000Z`) : null;
 
   if (!name || !phone) return { error: "Nome e telefone são obrigatórios." };
 
   if (id) {
     await prisma.client.updateMany({
       where: { id, tenantId: session.tenantId },
-      data: { name, phone, email, notes, tags, instagram },
+      data: { name, phone, email, notes, tags, instagram, birthDate },
     });
   } else {
     const duplicate = await prisma.client.findFirst({
@@ -35,12 +37,14 @@ export async function upsertClient(formData: FormData) {
         notes,
         tags,
         instagram,
+        birthDate,
         source: "balcao",
       },
     });
   }
 
   revalidatePath("/clientes");
+  if (id) revalidatePath(`/clientes/${id}`);
   revalidatePath("/agenda");
   return { ok: true };
 }

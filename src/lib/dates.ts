@@ -71,9 +71,19 @@ export function formatDayLabel(date: Date | string) {
   return format(parseISO(`${dateStr}T12:00:00Z`), "EEEE, d 'de' MMMM", { locale: ptBR });
 }
 
+export function formatMediumDate(date: Date) {
+  const p = tzParts(date);
+  const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  return `${p.day} ${months[p.month - 1]}, ${p.year}`;
+}
+
 export function formatShortDate(date: Date) {
   const p = tzParts(date);
   return `${pad(p.day)}/${pad(p.month)}/${p.year}`;
+}
+
+export function daysBetween(from: Date, to: Date = new Date()) {
+  return Math.max(0, Math.floor((to.getTime() - from.getTime()) / 86_400_000));
 }
 
 export function formatDateParam(date: Date | string) {

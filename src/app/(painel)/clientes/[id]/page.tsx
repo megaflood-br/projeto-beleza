@@ -1,69 +1,62 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
-import { formatBRL } from "@/lib/money";
-import { formatShortDate, formatTime } from "@/lib/dates";
-import { Card } from "@/components/ui";
 import { notFound } from "next/navigation";
+import { ClientPanel, isClientTab } from "@/components/clientes/client-panel";
+import { buildClientMetrics } from "@/lib/client-metrics";
 
-export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { session } = await requireTenant();
   const { id } = await params;
+  const { tab: tabParam } = await searchParams;
+  const tab = isClientTab(tabParam) ? tabParam : "painel";
+
   const client = await prisma.client.findFirst({
     where: { id, tenantId: session.tenantId },
     include: {
       appointments: {
-        include: { professional: true, items: { include: { service: true } } },
+        include: {
+          professional: true,
+          comanda: { select: { id: true, status: true } },
+          items: { include: { service: true, professional: true } },
+        },
         orderBy: { startAt: "desc" },
       },
       packages: { include: { package: true } },
-      conversations: { include: { messages: { orderBy: { createdAt: "desc" }, take: 3 } } },
+      conversations: { include: { messages: { orderBy: { createdAt: "asc" } } } },
+      comandas: {
+        include: { professional: true, items: { include: { product: true, professional: true } } },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
   if (!client) notFound();
 
-  const spent = client.appointments
-    .filter((a) => a.status === "COMPLETED")
-    .reduce((sum, a) => sum + a.items.reduce((s, i) => s + i.priceCents, 0), 0);
+  const metrics = buildClientMetrics({
+    createdAt: client.createdAt,
+    creditCents: client.creditCents,
+    cashbackCents: client.cashbackCents,
+    appointments: client.appointments,
+    packages: client.packages,
+    comandas: client.comandas,
+  });
+
+  const messages = client.conversations.flatMap((c) => c.messages);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-4xl">{client.name}</h1>
-        <p className="text-ink-soft">
-          {client.phone} · {client.email ?? "sem e-mail"} · origem {client.source}
-        </p>
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <div className="text-sm text-ink-soft">Lifetime value</div>
-          <div className="font-display text-3xl">{formatBRL(spent)}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-ink-soft">Atendimentos</div>
-          <div className="font-display text-3xl">{client.appointments.length}</div>
-        </Card>
-        <Card>
-          <div className="text-sm text-ink-soft">Tags</div>
-          <div className="mt-1">{client.tags || "—"}</div>
-        </Card>
-      </div>
-      <Card>
-        <h2 className="mb-3 font-display text-2xl">Histórico</h2>
-        <div className="space-y-2 text-sm">
-          {client.appointments.map((a) => (
-            <div key={a.id} className="flex justify-between border-b border-line py-2">
-              <div>
-                {formatShortDate(a.startAt)} {formatTime(a.startAt)} · {a.items.map((i) => i.service.name).join(", ")}
-                <div className="text-xs text-ink-soft">{a.professional.name}</div>
-              </div>
-              <div>
-                {STATUS_LABEL[a.status as AppointmentStatus]} · {formatBRL(a.items.reduce((s, i) => s + i.priceCents, 0))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-    </div>
+    <ClientPanel
+      tab={tab}
+      client={client}
+      metrics={metrics}
+      appointments={client.appointments}
+      comandas={client.comandas}
+      packages={client.packages}
+      messages={messages}
+    />
   );
 }

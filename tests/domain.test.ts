@@ -5,7 +5,8 @@ import { nextStock, isLowStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify } from "@/lib/utils";
 import { comandaTotal } from "@/lib/comandas";
-import { calendarDate, formatTime, minutesInTz, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
+import { calendarDate, daysBetween, formatTime, minutesInTz, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
+import { buildClientMetrics } from "@/lib/client-metrics";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -101,5 +102,33 @@ describe("fuso da agenda", () => {
   it("navega o dia civil sem virar a data no UTC", () => {
     expect(shiftCalendarDate("2026-08-26", -1)).toBe("2026-08-25");
     expect(calendarDate(zonedDateTime("2026-08-26", "00:30"))).toBe("2026-08-26");
+  });
+});
+
+describe("painel do cliente", () => {
+  it("soma faturamento e débito das comandas", () => {
+    const metrics = buildClientMetrics({
+      createdAt: new Date("2026-01-01T12:00:00Z"),
+      creditCents: 1500,
+      cashbackCents: 400,
+      appointments: [
+        {
+          status: "COMPLETED",
+          startAt: new Date("2026-08-01T12:00:00Z"),
+          comanda: { id: "c1", status: "CLOSED" },
+          items: [{ priceCents: 12000 }],
+        },
+      ],
+      packages: [{ remaining: 3 }, { remaining: 0 }],
+      comandas: [
+        { status: "CLOSED", discountCents: 0, items: [{ priceCents: 12000, quantity: 1 }] },
+        { status: "OPEN", discountCents: 0, items: [{ priceCents: 9000, quantity: 1 }] },
+      ],
+    });
+    expect(metrics.revenueCents).toBe(12000);
+    expect(metrics.debitCents).toBe(9000);
+    expect(metrics.openPackages).toBe(1);
+    expect(metrics.creditCents).toBe(1500);
+    expect(daysBetween(new Date("2026-08-01T12:00:00Z"), new Date("2026-08-11T12:00:00Z"))).toBe(10);
   });
 });
