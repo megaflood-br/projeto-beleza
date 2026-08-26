@@ -1,4 +1,4 @@
-# Aura
+# MegaBeauty
 
 CRM e agenda para salões de beleza, barbearias e clínicas de estética — inspirado na experiência da Belasis, com **multi-tenant**, TypeScript e integrações de IA e WhatsApp.
 

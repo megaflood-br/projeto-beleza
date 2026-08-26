@@ -42,7 +42,7 @@ export default async function EquipePage() {
               <Input name="commissionPct" type="number" defaultValue={40} />
             </Field>
             <Field label="Cor na agenda">
-              <Input name="color" type="color" defaultValue="#9B1D3A" />
+              <Input name="color" type="color" defaultValue="#2563EB" />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Início">

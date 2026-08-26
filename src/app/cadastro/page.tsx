@@ -9,7 +9,7 @@ export default function CadastroPage() {
   const [error, setError] = useState<string | null>(null);
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-8">
-      <h1 className="font-display text-4xl">Abra seu salão na Aura</h1>
+      <h1 className="font-display text-4xl">Abra seu salão no MegaBeauty</h1>
       <p className="mt-2 text-ink-soft">Cada conta vira um tenant isolado, com agenda e CRM próprios.</p>
       <form
         className="mt-8 grid gap-3"
@@ -33,7 +33,7 @@ export default function CadastroPage() {
         {error ? <p className="text-sm text-warn">{error}</p> : null}
         <Button>Criar workspace</Button>
       </form>
-      <Link href="/login" className="mt-4 text-sm text-wine">
+      <Link href="/login" className="mt-4 text-sm font-medium text-wine">
         Já tenho conta
       </Link>
     </main>

@@ -8,7 +8,7 @@ import { occupancyPercent } from "@/lib/appointments";
 import { rangeOfDay } from "@/lib/dates";
 import { isLowStock } from "@/lib/stock";
 
-export async function askAura(question: string) {
+export async function askAssistant(question: string) {
   const { session, tenant } = await requireTenant();
   const { start, end } = rangeOfDay(new Date());
 

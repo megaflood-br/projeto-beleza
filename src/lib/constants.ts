@@ -28,12 +28,12 @@ export const STATUS_LABEL: Record<AppointmentStatus, string> = {
 };
 
 export const STATUS_COLOR: Record<AppointmentStatus, string> = {
-  PENDING: "#C4A574",
-  CONFIRMED: "#9B1D3A",
-  IN_PROGRESS: "#2A9D8F",
-  COMPLETED: "#6B8F71",
-  CANCELLED: "#8A8178",
-  NO_SHOW: "#E07A5F",
+  PENDING: "#64748B",
+  CONFIRMED: "#2563EB",
+  IN_PROGRESS: "#0D9488",
+  COMPLETED: "#059669",
+  CANCELLED: "#94A3B8",
+  NO_SHOW: "#EA580C",
 };
 
 export const PAYMENT_METHODS = ["PIX", "CASH", "CREDIT", "DEBIT", "TRANSFER", "PACKAGE"] as const;
@@ -48,4 +48,4 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   PACKAGE: "Pacote",
 };
 
-export const SESSION_COOKIE = "aura_session";
+export const SESSION_COOKIE = "mb_session";

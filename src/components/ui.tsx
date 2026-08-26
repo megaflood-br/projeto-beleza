@@ -15,7 +15,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50",
         styles[variant],
         className,
       )}
@@ -28,7 +28,7 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return (
     <input
       className={cn(
-        "h-11 w-full rounded-xl border border-line bg-paper px-3 text-sm outline-none ring-wine/30 focus:ring-2",
+        "h-11 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none ring-wine/20 focus:ring-2",
         className,
       )}
       {...props}
@@ -40,7 +40,7 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
   return (
     <textarea
       className={cn(
-        "min-h-24 w-full rounded-xl border border-line bg-paper px-3 py-2 text-sm outline-none ring-wine/30 focus:ring-2",
+        "min-h-24 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none ring-wine/20 focus:ring-2",
         className,
       )}
       {...props}
@@ -52,7 +52,7 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
   return (
     <select
       className={cn(
-        "h-11 w-full rounded-xl border border-line bg-paper px-3 text-sm outline-none ring-wine/30 focus:ring-2",
+        "h-11 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none ring-wine/20 focus:ring-2",
         className,
       )}
       {...props}
@@ -70,14 +70,14 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 }
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("rounded-2xl border border-line bg-paper p-5 shadow-[0_8px_30px_rgba(28,18,16,0.04)]", className)}>{children}</div>;
+  return <div className={cn("rounded-xl border border-line bg-paper p-5 shadow-sm", className)}>{children}</div>;
 }
 
 export function Badge({ children, color }: { children: ReactNode; color?: string }) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
-      style={{ background: color ?? "#9B1D3A" }}
+      className="inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium text-white"
+      style={{ background: color ?? "#2563EB" }}
     >
       {children}
     </span>

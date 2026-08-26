@@ -19,7 +19,7 @@ model Tenant {
   city                String?
   timezone            String   @default("America/Sao_Paulo")
   plan                String   @default("profissional")
-  accentColor         String   @default("#9B1D3A")
+  accentColor         String   @default("#2563EB")
   openTime            String   @default("08:00")
   closeTime           String   @default("20:00")
   slotMinutes         Int      @default(15)
@@ -72,7 +72,7 @@ model Professional {
   tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name          String
   nickname      String?
-  color         String   @default("#9B1D3A")
+  color         String   @default("#2563EB")
   phone         String?
   specialty     String?
   commissionPct Int      @default(40)
@@ -110,7 +110,7 @@ model Service {
   name          String
   durationMin   Int
   priceCents    Int
-  color         String   @default("#C45B6B")
+  color         String   @default("#6366F1")
   commissionPct Int?
   active        Boolean  @default(true)
   description   String?

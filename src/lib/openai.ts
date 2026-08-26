@@ -58,7 +58,7 @@ export async function chatWithSalonContext(params: {
       {
         role: "system",
         content:
-          "Você é a Aura, assistente de um CRM para salões de beleza no Brasil. Responda em português, de forma objetiva, com ações práticas sobre agenda, clientes, estoque, comissões, WhatsApp e faturamento. Use apenas o contexto fornecido.",
+          "Você é a assistente da MegaBeauty, um CRM para salões de beleza no Brasil. Responda em português, de forma objetiva, com ações práticas sobre agenda, clientes, estoque, comissões, WhatsApp e faturamento. Use apenas o contexto fornecido.",
       },
       { role: "user", content: `Contexto do salão:\n${params.context}\n\nPergunta: ${params.question}` },
     ],

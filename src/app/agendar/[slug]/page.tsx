@@ -28,7 +28,7 @@ export default async function PublicBookingPage({ params }: { params: Promise<{ 
 
   return (
     <main className="mx-auto min-h-screen max-w-xl px-4 py-10">
-      <p className="text-sm uppercase tracking-[0.2em] text-gold">Agendamento online</p>
+      <p className="text-sm font-medium text-ink-soft">Agendamento online</p>
       <h1 className="font-display text-4xl">{tenant.name}</h1>
       <p className="mt-2 text-ink-soft">{tenant.city ?? "Escolha serviço, profissional e horário."}</p>
       <div className="mt-8">

@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm uppercase tracking-[0.2em] text-gold">Bom atendimento</p>
+        <p className="text-sm font-medium text-ink-soft">Bom atendimento</p>
         <h1 className="font-display text-4xl">{tenant.name}</h1>
         <p className="text-ink-soft">Agenda, caixa e relacionamento em um só lugar.</p>
       </div>
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
           </div>
         </Card>
         <Card>
-          <h2 className="font-display text-2xl">Insight Aura</h2>
+          <h2 className="font-display text-2xl">Insight MegaBeauty</h2>
           <p className="mt-3 text-sm leading-6 text-ink-soft">{insight}</p>
           <Link href="/ia" className="mt-4 inline-block text-sm font-medium text-wine">
             Conversar com a IA →
@@ -118,7 +118,7 @@ function Stat({ title, value, hint }: { title: string; value: string; hint: stri
     <Card>
       <div className="text-sm text-ink-soft">{title}</div>
       <div className="mt-2 font-display text-3xl">{value}</div>
-      <div className="mt-1 text-xs text-gold">{hint}</div>
+      <div className="mt-1 text-xs text-ink-soft">{hint}</div>
     </Card>
   );
 }

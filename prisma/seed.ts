@@ -43,7 +43,7 @@ async function main() {
       address: "Rua Harmonia, 240",
       city: "São Paulo, SP",
       plan: "profissional",
-      accentColor: "#9B1D3A",
+      accentColor: "#2563EB",
       openTime: "08:00",
       closeTime: "20:00",
     },
@@ -54,7 +54,7 @@ async function main() {
       tenantId: aurora.id,
       name: "Camila Ferreira",
       nickname: "Cami",
-      color: "#9B1D3A",
+      color: "#2563EB",
       specialty: "Cabelo",
       commissionPct: 45,
       phone: "11970001111",
@@ -67,7 +67,7 @@ async function main() {
       tenantId: aurora.id,
       name: "Rafaela Nunes",
       nickname: "Rafa",
-      color: "#C45B6B",
+      color: "#7C3AED",
       specialty: "Estética",
       commissionPct: 40,
       phone: "11970002222",
@@ -80,7 +80,7 @@ async function main() {
       tenantId: aurora.id,
       name: "Bruno Almeida",
       nickname: "Bruno",
-      color: "#2A9D8F",
+      color: "#0D9488",
       specialty: "Barbearia",
       commissionPct: 50,
       phone: "11970003333",
@@ -93,7 +93,7 @@ async function main() {
       tenantId: aurora.id,
       name: "Letícia Prado",
       nickname: "Lê",
-      color: "#C4A574",
+      color: "#6366F1",
       specialty: "Unhas",
       commissionPct: 40,
       phone: "11970004444",
@@ -149,7 +149,7 @@ async function main() {
       name: "Corte feminino",
       durationMin: 60,
       priceCents: 12000,
-      color: "#9B1D3A",
+      color: "#2563EB",
       commissionPct: 45,
     },
   });
@@ -160,7 +160,7 @@ async function main() {
       name: "Coloração",
       durationMin: 150,
       priceCents: 38000,
-      color: "#7A1530",
+      color: "#1D4ED8",
     },
   });
   const hidratacao = await prisma.service.create({
@@ -170,7 +170,7 @@ async function main() {
       name: "Hidratação",
       durationMin: 45,
       priceCents: 9000,
-      color: "#C45B6B",
+      color: "#7C3AED",
     },
   });
   const limpeza = await prisma.service.create({
@@ -180,7 +180,7 @@ async function main() {
       name: "Limpeza de pele",
       durationMin: 75,
       priceCents: 18000,
-      color: "#C45B6B",
+      color: "#7C3AED",
     },
   });
   const design = await prisma.service.create({
@@ -190,7 +190,7 @@ async function main() {
       name: "Design de sobrancelha",
       durationMin: 30,
       priceCents: 5500,
-      color: "#E07A5F",
+      color: "#F59E0B",
     },
   });
   const barba = await prisma.service.create({
@@ -200,7 +200,7 @@ async function main() {
       name: "Barba completa",
       durationMin: 40,
       priceCents: 7000,
-      color: "#2A9D8F",
+      color: "#0D9488",
       commissionPct: 50,
     },
   });
@@ -221,7 +221,7 @@ async function main() {
       name: "Esmaltação em gel",
       durationMin: 60,
       priceCents: 9500,
-      color: "#C4A574",
+      color: "#6366F1",
     },
   });
 

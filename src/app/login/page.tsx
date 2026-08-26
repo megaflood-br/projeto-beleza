@@ -10,17 +10,19 @@ export default function LoginPage() {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
-      <section className="hidden bg-[#1c1210] p-12 text-[#f7f1ea] lg:flex lg:flex-col lg:justify-between">
-        <div className="font-display text-4xl">Aura</div>
+      <section className="hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="text-2xl font-semibold tracking-tight">
+          Mega<span className="text-blue-400">Beauty</span>
+        </div>
         <div>
           <h1 className="font-display text-5xl leading-tight">A agenda do salão, sem planilha e sem caos.</h1>
-          <p className="mt-4 max-w-md text-[#e8d7bd]">
+          <p className="mt-4 max-w-md text-slate-300">
             CRM, comissões, estoque, WhatsApp e IA no mesmo lugar — multi-tenant, em TypeScript.
           </p>
         </div>
-        <p className="text-sm text-[#c4a574]">Demo: iris.p@example.org / demo1234</p>
+        <p className="text-sm text-slate-400">Demo: iris.p@example.org / demo1234</p>
       </section>
-      <section className="flex items-center justify-center p-8">
+      <section className="flex items-center justify-center bg-cream p-8">
         <form
           className="w-full max-w-sm space-y-4"
           action={async (formData) => {
@@ -39,7 +41,7 @@ export default function LoginPage() {
           <Button className="w-full">Acessar painel</Button>
           <p className="text-sm text-ink-soft">
             Novo salão?{" "}
-            <Link href="/cadastro" className="text-wine">
+            <Link href="/cadastro" className="font-medium text-wine">
               Criar conta
             </Link>
           </p>

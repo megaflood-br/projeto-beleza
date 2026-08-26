@@ -13,7 +13,7 @@ export async function upsertProfessional(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const specialty = String(formData.get("specialty") ?? "") || null;
-  const color = String(formData.get("color") ?? "#9B1D3A");
+  const color = String(formData.get("color") ?? "#2563EB");
   const commissionPct = Number(formData.get("commissionPct") ?? 40);
   const phone = String(formData.get("phone") ?? "") || null;
   const workStart = String(formData.get("workStart") ?? "09:00");
