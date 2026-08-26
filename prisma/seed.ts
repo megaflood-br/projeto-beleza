@@ -522,6 +522,59 @@ async function main() {
     source: "online",
   });
 
+  const roster = [
+    { pro: camila, client: juliana, service: corte },
+    { pro: bruno, client: pedro, service: barba },
+    { pro: rafaela, client: fernanda, service: limpeza },
+    { pro: leticia, client: beatriz, service: esmalteria },
+    { pro: camila, client: amanda, service: hidratacao },
+    { pro: bruno, client: lucas, service: corteMasc },
+  ];
+  const pastStatuses = ["COMPLETED", "COMPLETED", "CONFIRMED", "CANCELLED", "PENDING", "COMPLETED"];
+  let ticket = 2;
+  for (let d = 2; d <= 28; d++) {
+    const day = addDays(today, -d);
+    const count = 2 + (d % 3);
+    for (let i = 0; i < count; i++) {
+      const slot = roster[(d + i) % roster.length];
+      const status = pastStatuses[(d + i) % pastStatuses.length];
+      const appointment = await book({
+        professionalId: slot.pro.id,
+        clientId: slot.client.id,
+        serviceId: slot.service.id,
+        start: at(day, 9 + i, (i * 10) % 60),
+        status,
+      });
+      if (status !== "COMPLETED") continue;
+      const service = await prisma.service.findUniqueOrThrow({ where: { id: slot.service.id } });
+      await prisma.comanda.create({
+        data: {
+          tenantId: aurora.id,
+          number: ticket,
+          clientId: slot.client.id,
+          appointmentId: appointment.id,
+          professionalId: slot.pro.id,
+          status: "CLOSED",
+          paymentMethod: i % 2 === 0 ? "PIX" : "CASH",
+          occurredAt: at(day, 18, 0),
+          closedAt: at(day, 18, 0),
+          items: {
+            create: {
+              type: "SERVICE",
+              serviceId: service.id,
+              professionalId: slot.pro.id,
+              description: service.name,
+              quantity: 1,
+              priceCents: service.priceCents,
+              durationMin: service.durationMin,
+            },
+          },
+        },
+      });
+      ticket += 1;
+    }
+  }
+
   const pack = await prisma.package.create({
     data: {
       tenantId: aurora.id,

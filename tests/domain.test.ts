@@ -5,9 +5,10 @@ import { formatStockQty, isLowStock, nextStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
-import { calendarDate, daysBetween, formatTime, minutesInTz, minutesToLabel, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
+import { calendarDate, daysBetween, eachCalendarDate, formatTime, minutesInTz, minutesToLabel, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
+import { averageTicket, bucketAppointmentStatus, conversionRate, percentDelta, previousPeriod, rankProfessionals } from "@/lib/dashboard";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -137,6 +138,7 @@ describe("fuso da agenda", () => {
   it("navega o dia civil sem virar a data no UTC", () => {
     expect(shiftCalendarDate("2026-08-26", -1)).toBe("2026-08-25");
     expect(calendarDate(zonedDateTime("2026-08-26", "00:30"))).toBe("2026-08-26");
+    expect(eachCalendarDate("2026-08-12", "2026-08-14")).toEqual(["2026-08-12", "2026-08-13", "2026-08-14"]);
   });
 });
 
@@ -179,5 +181,27 @@ describe("financeiro", () => {
     };
     expect(financeTitular(tx)).toBe("Verônica Rodrigues");
     expect(financeOrigin(tx)).toEqual({ label: "C#12", href: "/comandas/abc" });
+  });
+});
+
+describe("painel", () => {
+  it("calcula variação, conversão e ticket médio", () => {
+    expect(percentDelta(113, 100)).toBe(13);
+    expect(percentDelta(10, 0)).toBe(100);
+    expect(conversionRate(140, 287)).toBe(49);
+    expect(averageTicket(1907849, 140)).toBe(13627);
+  });
+
+  it("classifica status e monta o ranking", () => {
+    expect(bucketAppointmentStatus("PENDING")).toBe("unconfirmed");
+    expect(bucketAppointmentStatus("NO_SHOW")).toBe("cancelled");
+    expect(bucketAppointmentStatus("CONFIRMED")).toBe("confirmed");
+    const ranking = rankProfessionals([
+      { professionalId: "b", name: "Bruno", priceCents: 7000 },
+      { professionalId: "a", name: "Camila", priceCents: 8000 },
+      { professionalId: "a", name: "Camila", priceCents: 38000 },
+    ]);
+    expect(ranking[0]).toMatchObject({ name: "Camila", services: 2, place: 1, avgCents: 23000 });
+    expect(previousPeriod("2026-08-12", "2026-08-26")).toEqual({ from: "2026-07-28", to: "2026-08-11" });
   });
 });

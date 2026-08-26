@@ -95,6 +95,19 @@ export function parseDateParam(value?: string | null) {
   return calendarDate();
 }
 
+export function eachCalendarDate(from: string, to: string) {
+  const start = from <= to ? from : to;
+  const end = from <= to ? to : from;
+  const dates: string[] = [];
+  let current = start;
+  while (current <= end) {
+    dates.push(current);
+    current = shiftCalendarDate(current, 1);
+    if (dates.length > 366) break;
+  }
+  return dates;
+}
+
 export function minutesToLabel(total: number) {
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
