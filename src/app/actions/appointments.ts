@@ -188,6 +188,7 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
         category: "servico",
         amountCents: priceCents,
         method: "PIX",
+        account: "caixa",
         description: appointment.items.map((item) => item.service.name).join(", "),
         appointmentId: appointment.id,
       },

@@ -90,6 +90,7 @@ model Professional {
   serviceLinks   ProfessionalService[]
   comandas       Comanda[]
   comandaItems   ComandaItem[]
+  transactions   Transaction[]
 
   @@index([tenantId])
 }
@@ -318,20 +319,27 @@ model Commission {
 }
 
 model Transaction {
-  id            String       @id @default(cuid())
-  tenantId      String
-  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  type          String
-  category      String
-  amountCents   Int
-  method        String       @default("PIX")
-  description   String?
-  appointmentId String?
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  comandaId     String?
-  comanda       Comanda?     @relation(fields: [comandaId], references: [id])
-  occurredAt    DateTime     @default(now())
-  createdAt     DateTime     @default(now())
+  id             String       @id @default(cuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type           String
+  category       String
+  amountCents    Int
+  method         String       @default("PIX")
+  account        String       @default("caixa")
+  description    String?
+  organizational Boolean      @default(false)
+  supplier       String?
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+  recurrence     String?
+  appointmentId  String?
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
+  comandaId      String?
+  comanda        Comanda?     @relation(fields: [comandaId], references: [id])
+  competenceAt   DateTime?
+  occurredAt     DateTime     @default(now())
+  createdAt      DateTime     @default(now())
 
   @@index([tenantId, occurredAt])
 }

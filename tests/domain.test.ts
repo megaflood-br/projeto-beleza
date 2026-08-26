@@ -7,6 +7,7 @@ import { slugify } from "@/lib/utils";
 import { comandaTotal } from "@/lib/comandas";
 import { calendarDate, daysBetween, formatTime, minutesInTz, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
+import { financeOrigin, financeTitular } from "@/lib/finance";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -130,5 +131,19 @@ describe("painel do cliente", () => {
     expect(metrics.openPackages).toBe(1);
     expect(metrics.creditCents).toBe(1500);
     expect(daysBetween(new Date("2026-08-01T12:00:00Z"), new Date("2026-08-11T12:00:00Z"))).toBe(10);
+  });
+});
+
+describe("financeiro", () => {
+  it("monta titular e origem da comanda", () => {
+    const tx = {
+      type: "INCOME",
+      category: "comanda",
+      description: "Comanda #12",
+      supplier: null,
+      comanda: { id: "abc", number: 12, client: { name: "Verônica Rodrigues" } },
+    };
+    expect(financeTitular(tx)).toBe("Verônica Rodrigues");
+    expect(financeOrigin(tx)).toEqual({ label: "C#12", href: "/comandas/abc" });
   });
 });

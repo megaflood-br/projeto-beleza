@@ -66,3 +66,26 @@ export const COMANDA_STATUS_COLOR: Record<ComandaStatus, string> = {
 };
 
 export const DURATION_OPTIONS = [15, 30, 45, 60, 75, 90, 120, 150, 180];
+
+export const FINANCE_ACCOUNTS = [
+  { value: "caixa", label: "Caixa" },
+  { value: "banco", label: "Banco" },
+  { value: "pix", label: "Pix" },
+] as const;
+
+export const INCOME_CATEGORIES = [
+  { value: "servico", label: "Serviços" },
+  { value: "comanda", label: "Serviços" },
+  { value: "produto", label: "Produtos" },
+  { value: "pacote", label: "Pacotes" },
+  { value: "outros", label: "Outros" },
+] as const;
+
+export const EXPENSE_CATEGORIES = [
+  { value: "aluguel", label: "Aluguel" },
+  { value: "fornecedor", label: "Fornecedor" },
+  { value: "comissao", label: "Comissão" },
+  { value: "salario", label: "Salários" },
+  { value: "marketing", label: "Marketing" },
+  { value: "outros", label: "Outros" },
+] as const;

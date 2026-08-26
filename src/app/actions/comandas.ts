@@ -186,6 +186,7 @@ export async function closeComanda(formData: FormData) {
       category: "comanda",
       amountCents: total,
       method,
+      account: "caixa",
       description: `Comanda #${comanda.number}`,
       appointmentId: comanda.appointmentId,
       comandaId: comanda.id,

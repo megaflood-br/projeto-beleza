@@ -61,10 +61,13 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
   );
 }
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
   return (
     <label className="grid gap-1.5 text-sm">
-      <span className="font-medium text-ink-soft">{label}</span>
+      <span className="font-medium text-ink-soft">
+        {label}
+        {required ? <span className="text-red-500"> *</span> : null}
+      </span>
       {children}
     </label>
   );
