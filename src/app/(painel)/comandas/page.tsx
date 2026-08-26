@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Badge, Card, Field, Select } from "@/components/ui";
+import { Badge, Card, Field } from "@/components/ui";
 import { CreateModal } from "@/components/create-modal";
+import { SearchSelect } from "@/components/search-select";
 import { createWalkInComanda } from "@/app/actions/comandas";
 import { formatBRL } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
@@ -37,23 +38,20 @@ export default async function ComandasPage() {
           action={createWalkInComanda}
         >
           <Field label="Cliente">
-            <Select name="clientId" required>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
+            <SearchSelect
+              name="clientId"
+              required
+              placeholder="Buscar cliente..."
+              options={clients.map((c) => ({ value: c.id, label: c.name, hint: c.phone }))}
+            />
           </Field>
           <Field label="Profissional">
-            <Select name="professionalId">
-              <option value="">Sem responsável</option>
-              {professionals.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
+            <SearchSelect
+              name="professionalId"
+              placeholder="Buscar profissional..."
+              emptyOption={{ value: "", label: "Sem responsável" }}
+              options={professionals.map((p) => ({ value: p.id, label: p.name }))}
+            />
           </Field>
         </CreateModal>
       </div>

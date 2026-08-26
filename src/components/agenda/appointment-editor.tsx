@@ -6,6 +6,7 @@ import { MessageCircle, Trash2, X } from "lucide-react";
 import { deleteAppointment, saveAppointment } from "@/app/actions/appointments";
 import { createComandaFromAppointment } from "@/app/actions/comandas";
 import { Button, Select } from "@/components/ui";
+import { SearchSelect } from "@/components/search-select";
 import { DURATION_OPTIONS, STATUS_COLOR, STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
 import { formatTime, minutesToLabel } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
@@ -48,7 +49,7 @@ export function AppointmentEditor({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [clientId, setClientId] = useState(appointment?.client.id ?? clients[0]?.id ?? "");
+  const [clientId, setClientId] = useState(appointment?.client.id ?? "");
   const [status, setStatus] = useState<AppointmentStatus>(appointment?.status ?? "PENDING");
   const [apptDate, setApptDate] = useState(date);
   const [error, setError] = useState<string | null>(null);
@@ -175,13 +176,13 @@ export function AppointmentEditor({
             <div className="grid gap-3 md:grid-cols-4">
               <label className="grid gap-1 text-sm md:col-span-2">
                 <span className="font-medium text-ink-soft">Cliente</span>
-                <Select value={clientId} onChange={(e) => setClientId(e.target.value)}>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} · {c.phone}
-                    </option>
-                  ))}
-                </Select>
+                <SearchSelect
+                  required
+                  placeholder="Buscar cliente..."
+                  value={clientId}
+                  onChange={setClientId}
+                  options={clients.map((c) => ({ value: c.id, label: c.name, hint: c.phone }))}
+                />
               </label>
               <label className="grid gap-1 text-sm">
                 <span className="font-medium text-ink-soft">Data</span>
@@ -216,21 +217,18 @@ export function AppointmentEditor({
               <div className="mt-2 space-y-2">
                 {items.map((row) => (
                   <div key={row.key} className="grid gap-2 md:grid-cols-[1.4fr_1.2fr_0.8fr_0.8fr_40px]">
-                    <Select value={row.serviceId} onChange={(e) => updateRow(row.key, { serviceId: e.target.value })}>
-                      <option value="">Selecionar serviço</option>
-                      {services.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select value={row.professionalId} onChange={(e) => updateRow(row.key, { professionalId: e.target.value })}>
-                      {professionals.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </Select>
+                    <SearchSelect
+                      placeholder="Buscar serviço..."
+                      value={row.serviceId}
+                      onChange={(serviceId) => updateRow(row.key, { serviceId })}
+                      options={services.map((s) => ({ value: s.id, label: s.name }))}
+                    />
+                    <SearchSelect
+                      placeholder="Buscar profissional..."
+                      value={row.professionalId}
+                      onChange={(professionalId) => updateRow(row.key, { professionalId })}
+                      options={professionals.map((p) => ({ value: p.id, label: p.name }))}
+                    />
                     <Select value={row.time} onChange={(e) => updateRow(row.key, { time: e.target.value })}>
                       {slots.map((slot) => (
                         <option key={slot} value={slot}>

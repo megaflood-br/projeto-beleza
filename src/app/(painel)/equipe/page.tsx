@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { Avatar, Card, Field, Input, Select } from "@/components/ui";
 import { CreateModal } from "@/components/create-modal";
+import { SearchSelect } from "@/components/search-select";
 import { inviteTeamUser, upsertProfessional } from "@/app/actions/team";
 import { ROLE_LABEL, type Role } from "@/lib/constants";
 
@@ -57,14 +58,12 @@ export default async function EquipePage() {
               </Select>
             </Field>
             <Field label="Vincular profissional">
-              <Select name="professionalId">
-                <option value="">Nenhum</option>
-                {professionals.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
+              <SearchSelect
+                name="professionalId"
+                placeholder="Buscar profissional..."
+                emptyOption={{ value: "", label: "Nenhum" }}
+                options={professionals.map((p) => ({ value: p.id, label: p.name }))}
+              />
             </Field>
             <Field label="Senha inicial">
               <Input name="password" defaultValue="demo1234" />

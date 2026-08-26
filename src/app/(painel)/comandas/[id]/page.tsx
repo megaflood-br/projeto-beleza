@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { Badge, Button, Card, Field, Input, Select } from "@/components/ui";
+import { SearchSelect } from "@/components/search-select";
 import { addComandaItem, closeComanda, removeComandaItemForm } from "@/app/actions/comandas";
 import { formAction } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
@@ -92,22 +93,24 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
               <input type="hidden" name="comandaId" value={comanda.id} />
               <input type="hidden" name="type" value="SERVICE" />
               <Field label="Serviço">
-                <Select name="serviceId" required>
-                  {services.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} · {formatBRL(s.priceCents)}
-                    </option>
-                  ))}
-                </Select>
+                <SearchSelect
+                  name="serviceId"
+                  required
+                  placeholder="Buscar serviço..."
+                  options={services.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                    hint: formatBRL(s.priceCents),
+                  }))}
+                />
               </Field>
               <Field label="Profissional">
-                <Select name="professionalId" defaultValue={comanda.professionalId ?? ""}>
-                  {professionals.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </Select>
+                <SearchSelect
+                  name="professionalId"
+                  placeholder="Buscar profissional..."
+                  defaultValue={comanda.professionalId ?? ""}
+                  options={professionals.map((p) => ({ value: p.id, label: p.name }))}
+                />
               </Field>
               <Button>Incluir serviço</Button>
             </form>
@@ -118,13 +121,16 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
               <input type="hidden" name="comandaId" value={comanda.id} />
               <input type="hidden" name="type" value="PRODUCT" />
               <Field label="Produto">
-                <Select name="productId" required>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} · {formatBRL(p.saleCents)}
-                    </option>
-                  ))}
-                </Select>
+                <SearchSelect
+                  name="productId"
+                  required
+                  placeholder="Buscar produto..."
+                  options={products.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                    hint: formatBRL(p.saleCents),
+                  }))}
+                />
               </Field>
               <Field label="Quantidade">
                 <Input name="quantity" type="number" min={1} defaultValue={1} />

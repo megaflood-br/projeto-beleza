@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Card, Field, Input, Select } from "@/components/ui";
+import { Card, Field, Input } from "@/components/ui";
 import { CreateModal } from "@/components/create-modal";
+import { SearchSelect } from "@/components/search-select";
 import { upsertService } from "@/app/actions/services";
 import { formatBRL } from "@/lib/money";
 
@@ -28,14 +29,12 @@ export default async function ServicosPage() {
             <Input name="name" required />
           </Field>
           <Field label="Categoria">
-            <Select name="categoryId">
-              <option value="">Sem categoria</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
+            <SearchSelect
+              name="categoryId"
+              placeholder="Buscar categoria..."
+              emptyOption={{ value: "", label: "Sem categoria" }}
+              options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            />
           </Field>
           <Field label="Duração (min)">
             <Input name="durationMin" type="number" defaultValue={60} />

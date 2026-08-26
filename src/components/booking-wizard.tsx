@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { publicBook } from "@/app/actions/booking";
 import { Button, Field, Input, Select } from "@/components/ui";
+import { SearchSelect } from "@/components/search-select";
 import { formatBRL } from "@/lib/money";
 import { buildSlots } from "@/lib/dates";
 
@@ -77,23 +78,28 @@ export function BookingWizard({
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="startAt" value={time ? new Date(`${date}T${time}:00`).toISOString() : ""} />
       <Field label="Serviço">
-        <Select name="serviceId" value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
-          {services.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name} · {s.durationMin}min · {formatBRL(s.priceCents)}
-            </option>
-          ))}
-        </Select>
+        <SearchSelect
+          name="serviceId"
+          required
+          placeholder="Buscar serviço..."
+          value={serviceId}
+          onChange={setServiceId}
+          options={services.map((s) => ({
+            value: s.id,
+            label: s.name,
+            hint: `${s.durationMin} min · ${formatBRL(s.priceCents)}`,
+          }))}
+        />
       </Field>
       <Field label="Profissional">
-        <Select name="professionalId" value={professionalId} onChange={(e) => setProfessionalId(e.target.value)} required>
-          <option value="">Escolha</option>
-          {pros.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </Select>
+        <SearchSelect
+          name="professionalId"
+          required
+          placeholder="Buscar profissional..."
+          value={professionalId}
+          onChange={setProfessionalId}
+          options={pros.map((p) => ({ value: p.id, label: p.name }))}
+        />
       </Field>
       <Field label="Dia">
         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />

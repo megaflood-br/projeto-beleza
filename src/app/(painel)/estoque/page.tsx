@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { Card, Field, Input, Select } from "@/components/ui";
 import { CreateModal } from "@/components/create-modal";
+import { SearchSelect } from "@/components/search-select";
 import { moveStock, upsertProduct } from "@/app/actions/inventory";
 import { formatBRL } from "@/lib/money";
 import { isLowStock } from "@/lib/stock";
@@ -44,13 +45,12 @@ export default async function EstoquePage() {
           </CreateModal>
           <CreateModal trigger="Movimentar" title="Movimentar estoque" submitLabel="Registrar" action={moveStock}>
             <Field label="Produto">
-              <Select name="productId">
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
+              <SearchSelect
+                name="productId"
+                required
+                placeholder="Buscar produto..."
+                options={products.map((p) => ({ value: p.id, label: p.name }))}
+              />
             </Field>
             <Field label="Tipo">
               <Select name="type">
