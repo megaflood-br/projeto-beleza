@@ -7,7 +7,7 @@ import { requireTenant } from "@/lib/tenant";
 import { hasConflict } from "@/lib/appointments";
 import { calculateCommission } from "@/lib/commissions";
 import { nextStock } from "@/lib/stock";
-import { atTime } from "@/lib/dates";
+import { atTime, calendarDate, formatTime } from "@/lib/dates";
 
 export type AppointmentItemInput = {
   serviceId: string;
@@ -28,7 +28,7 @@ async function loadBusy(professionalId: string, excludeId?: string) {
 }
 
 function itemWindow(date: string, item: AppointmentItemInput) {
-  const start = atTime(new Date(`${date}T00:00:00`), item.time);
+  const start = atTime(date, item.time);
   return { start, end: addMinutes(start, item.durationMin || 15) };
 }
 
@@ -38,8 +38,8 @@ export async function createAppointment(formData: FormData) {
   const serviceId = String(formData.get("serviceId") ?? "");
   const startAt = new Date(String(formData.get("startAt") ?? ""));
   const notes = String(formData.get("notes") ?? "") || undefined;
-  const time = `${String(startAt.getHours()).padStart(2, "0")}:${String(startAt.getMinutes()).padStart(2, "0")}`;
-  const date = startAt.toISOString().slice(0, 10);
+  const time = formatTime(startAt);
+  const date = calendarDate(startAt);
 
   return saveAppointment({
     clientId,

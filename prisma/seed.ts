@@ -1,11 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { addDays, addMinutes, setHours, setMinutes, startOfDay } from "date-fns";
+import { addDays, addMinutes } from "date-fns";
+import { calendarDate, zonedDateTime } from "../src/lib/dates";
 
 const prisma = new PrismaClient();
 
 function at(day: Date, hour: number, minute = 0) {
-  return setMinutes(setHours(startOfDay(day), hour), minute);
+  return zonedDateTime(calendarDate(day), `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
 }
 
 async function main() {
@@ -32,7 +33,7 @@ async function main() {
   await prisma.tenant.deleteMany();
 
   const passwordHash = await bcrypt.hash("demo1234", 10);
-  const today = startOfDay(new Date());
+  const today = zonedDateTime(calendarDate(), "12:00");
 
   const aurora = await prisma.tenant.create({
     data: {

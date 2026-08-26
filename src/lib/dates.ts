@@ -1,40 +1,88 @@
-import {
-  addDays,
-  addMinutes,
-  format,
-  isSameDay,
-  parseISO,
-  startOfDay,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
+import { addDays, addMinutes, format, isSameDay, parseISO, startOfDay, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export const TZ = "America/Sao_Paulo";
 
-export function formatTime(date: Date) {
-  return format(date, "HH:mm");
+function pad(n: number) {
+  return String(n).padStart(2, "0");
 }
 
-export function formatDayLabel(date: Date) {
-  return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
+export function tzParts(date: Date, timeZone = TZ) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+  const map: Record<string, string> = {};
+  for (const part of dtf.formatToParts(date)) {
+    if (part.type !== "literal") map[part.type] = part.value;
+  }
+  return {
+    year: Number(map.year),
+    month: Number(map.month),
+    day: Number(map.day),
+    hour: Number(map.hour),
+    minute: Number(map.minute),
+    second: Number(map.second),
+  };
+}
+
+export function calendarDate(date: Date = new Date(), timeZone = TZ) {
+  const p = tzParts(date, timeZone);
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+}
+
+export function shiftCalendarDate(dateStr: string, days: number) {
+  const next = addDays(parseISO(`${dateStr}T12:00:00Z`), days);
+  return next.toISOString().slice(0, 10);
+}
+
+/** Instant corresponding to YYYY-MM-DD + HH:mm in the salon timezone. */
+export function zonedDateTime(dateStr: string, hhmm: string, timeZone = TZ) {
+  const time = hhmm.length === 5 ? `${hhmm}:00` : hhmm;
+  const utcGuess = new Date(`${dateStr}T${time}Z`);
+  const p = tzParts(utcGuess, timeZone);
+  const asIfUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+  return new Date(utcGuess.getTime() - (asIfUtc - utcGuess.getTime()));
+}
+
+export function minutesInTz(date: Date, timeZone = TZ) {
+  const p = tzParts(date, timeZone);
+  return p.hour * 60 + p.minute;
+}
+
+export function parseHHmm(hhmm: string) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+export function formatTime(date: Date) {
+  const p = tzParts(date);
+  return `${pad(p.hour)}:${pad(p.minute)}`;
+}
+
+export function formatDayLabel(date: Date | string) {
+  const dateStr = typeof date === "string" ? date : calendarDate(date);
+  return format(parseISO(`${dateStr}T12:00:00Z`), "EEEE, d 'de' MMMM", { locale: ptBR });
 }
 
 export function formatShortDate(date: Date) {
-  return format(date, "dd/MM/yyyy");
+  const p = tzParts(date);
+  return `${pad(p.day)}/${pad(p.month)}/${p.year}`;
 }
 
-export function formatDateParam(date: Date) {
-  return format(date, "yyyy-MM-dd");
+export function formatDateParam(date: Date | string) {
+  return typeof date === "string" ? date : calendarDate(date);
 }
 
 export function parseDateParam(value?: string | null) {
-  if (!value) return startOfDay(new Date());
-  try {
-    return startOfDay(parseISO(value));
-  } catch {
-    return startOfDay(new Date());
-  }
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return calendarDate();
 }
 
 export function minutesToLabel(total: number) {
@@ -46,29 +94,29 @@ export function minutesToLabel(total: number) {
 }
 
 export function buildSlots(openTime: string, closeTime: string, slotMinutes: number) {
-  const [openH, openM] = openTime.split(":").map(Number);
-  const [closeH, closeM] = closeTime.split(":").map(Number);
-  const start = openH * 60 + openM;
-  const end = closeH * 60 + closeM;
+  const start = parseHHmm(openTime);
+  const end = parseHHmm(closeTime);
   const slots: string[] = [];
   for (let m = start; m < end; m += slotMinutes) {
-    const hh = String(Math.floor(m / 60)).padStart(2, "0");
-    const mm = String(m % 60).padStart(2, "0");
-    slots.push(`${hh}:${mm}`);
+    slots.push(`${pad(Math.floor(m / 60))}:${pad(m % 60)}`);
   }
   return slots;
 }
 
-export function atTime(day: Date, hhmm: string) {
-  const [h, m] = hhmm.split(":").map(Number);
-  const next = startOfDay(day);
-  next.setHours(h, m, 0, 0);
-  return next;
+export function atTime(day: Date | string, hhmm: string) {
+  const dateStr = typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : calendarDate(typeof day === "string" ? new Date(day) : day);
+  return zonedDateTime(dateStr, hhmm);
+}
+
+export function rangeOfCalendarDate(dateStr: string) {
+  return {
+    start: zonedDateTime(dateStr, "00:00"),
+    end: zonedDateTime(shiftCalendarDate(dateStr, 1), "00:00"),
+  };
 }
 
 export function rangeOfDay(day: Date) {
-  const start = startOfDay(day);
-  return { start, end: addDays(start, 1) };
+  return rangeOfCalendarDate(calendarDate(day));
 }
 
 export function monthRange(day: Date) {

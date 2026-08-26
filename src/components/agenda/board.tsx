@@ -2,15 +2,79 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { addDays, differenceInMinutes } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AppointmentEditor } from "@/components/agenda/appointment-editor";
 import type { AgendaAppointment, AgendaClient, AgendaProfessional, AgendaService } from "@/components/agenda/types";
 import { Avatar, Badge } from "@/components/ui";
 import { STATUS_COLOR, STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
-import { atTime, buildSlots, formatDateParam, formatDayLabel, formatTime } from "@/lib/dates";
+import {
+  buildSlots,
+  formatDayLabel,
+  formatTime,
+  minutesInTz,
+  parseHHmm,
+  shiftCalendarDate,
+} from "@/lib/dates";
 
-const SLOT_H = 22;
+const SLOT_H = 28;
+const HEADER_H = 80;
+
+type Placed = {
+  appt: AgendaAppointment;
+  start: Date;
+  end: Date;
+  top: number;
+  height: number;
+  lane: number;
+  lanes: number;
+};
+
+function placeAppointments(
+  items: AgendaAppointment[],
+  openMin: number,
+  closeMin: number,
+  slotMinutes: number,
+): Placed[] {
+  const visible: Omit<Placed, "lane" | "lanes">[] = [];
+
+  for (const appt of items) {
+    const start = new Date(appt.startAt);
+    const end = new Date(appt.endAt);
+    const startMin = minutesInTz(start);
+    const endMin = Math.max(startMin + slotMinutes, minutesInTz(end));
+    const clippedStart = Math.max(startMin, openMin);
+    const clippedEnd = Math.min(endMin, closeMin);
+    if (clippedEnd <= clippedStart) continue;
+    visible.push({
+      appt,
+      start,
+      end,
+      top: ((clippedStart - openMin) / slotMinutes) * SLOT_H,
+      height: Math.max(SLOT_H, ((clippedEnd - clippedStart) / slotMinutes) * SLOT_H),
+    });
+  }
+
+  const sorted = visible.sort((a, b) => a.top - b.top || b.height - a.height);
+  const laneEnds: number[] = [];
+  const withLane = sorted.map((item) => {
+    let lane = laneEnds.findIndex((end) => end <= item.top + 0.5);
+    if (lane < 0) {
+      lane = laneEnds.length;
+      laneEnds.push(item.top + item.height);
+    } else {
+      laneEnds[lane] = item.top + item.height;
+    }
+    return { ...item, lane, lanes: 1 };
+  });
+
+  return withLane.map((item) => {
+    const overlapping = withLane.filter(
+      (other) => other.top < item.top + item.height - 0.5 && other.top + other.height > item.top + 0.5,
+    );
+    const lanes = Math.max(...overlapping.map((o) => o.lane), item.lane) + 1;
+    return { ...item, lanes };
+  });
+}
 
 export function AgendaBoard({
   date,
@@ -31,33 +95,28 @@ export function AgendaBoard({
   clients: AgendaClient[];
   services: AgendaService[];
 }) {
-  const day = useMemo(() => new Date(`${date}T00:00:00`), [date]);
   const slots = useMemo(() => buildSlots(openTime, closeTime, slotMinutes), [openTime, closeTime, slotMinutes]);
   const [draft, setDraft] = useState<{ professionalId: string; time: string } | null>(null);
   const [selected, setSelected] = useState<AgendaAppointment | null>(null);
-  const dayStart = atTime(day, openTime);
-
-  function pos(start: Date, end: Date) {
-    const top = (differenceInMinutes(start, dayStart) / slotMinutes) * SLOT_H;
-    const height = Math.max(SLOT_H * 2, (differenceInMinutes(end, start) / slotMinutes) * SLOT_H);
-    return { top, height };
-  }
+  const openMin = parseHHmm(openTime);
+  const closeMin = parseHHmm(closeTime);
+  const gridHeight = slots.length * SLOT_H;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl">Agenda</h1>
-          <p className="capitalize text-ink-soft">{formatDayLabel(day)}</p>
+          <p className="capitalize text-ink-soft">{formatDayLabel(date)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/agenda?date=${formatDateParam(addDays(day, -1))}`} className="rounded-full border border-line p-2">
+          <Link href={`/agenda?date=${shiftCalendarDate(date, -1)}`} className="rounded-full border border-line p-2">
             <ChevronLeft size={18} />
           </Link>
           <Link href="/agenda" className="rounded-full border border-line px-4 py-2 text-sm">
             Hoje
           </Link>
-          <Link href={`/agenda?date=${formatDateParam(addDays(day, 1))}`} className="rounded-full border border-line p-2">
+          <Link href={`/agenda?date=${shiftCalendarDate(date, 1)}`} className="rounded-full border border-line p-2">
             <ChevronRight size={18} />
           </Link>
         </div>
@@ -71,10 +130,10 @@ export function AgendaBoard({
         ))}
       </div>
 
-      <div className="agenda-scroll overflow-auto rounded-2xl border border-line bg-paper">
+      <div className="agenda-scroll max-h-[calc(100vh-13rem)] overflow-auto rounded-2xl border border-line bg-paper">
         <div className="flex min-w-max">
-          <div className="sticky left-0 z-10 w-16 shrink-0 bg-sand">
-            <div className="h-20 border-b border-line" />
+          <div className="sticky left-0 z-30 w-16 shrink-0 bg-sand">
+            <div className="sticky top-0 z-30 border-b border-line bg-sand" style={{ height: HEADER_H }} />
             {slots.map((slot) => (
               <div key={slot} className="border-b border-line/70 px-1 text-[10px] text-ink-soft" style={{ height: SLOT_H }}>
                 {slot.endsWith(":00") ? slot : ""}
@@ -82,17 +141,25 @@ export function AgendaBoard({
             ))}
           </div>
           {professionals.map((pro) => {
-            const items = appointments.filter((a) => a.professionalId === pro.id);
+            const placed = placeAppointments(
+              appointments.filter((a) => a.professionalId === pro.id),
+              openMin,
+              closeMin,
+              slotMinutes,
+            );
             return (
-              <div key={pro.id} className="relative w-56 shrink-0 border-l border-line">
-                <div className="flex h-20 items-center gap-3 border-b border-line px-3">
+              <div key={pro.id} className="w-56 shrink-0 border-l border-line">
+                <div
+                  className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-paper px-3"
+                  style={{ height: HEADER_H }}
+                >
                   <Avatar name={pro.name} color={pro.color} />
-                  <div>
-                    <div className="text-sm font-semibold">{pro.name.split(" ")[0]}</div>
-                    <div className="text-xs text-ink-soft">{pro.specialty}</div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{pro.name.split(" ")[0]}</div>
+                    <div className="truncate text-xs text-ink-soft">{pro.specialty}</div>
                   </div>
                 </div>
-                <div className="relative" style={{ height: slots.length * SLOT_H }}>
+                <div className="relative overflow-hidden" style={{ height: gridHeight }}>
                   {slots.map((slot) => (
                     <button
                       key={slot}
@@ -103,30 +170,31 @@ export function AgendaBoard({
                       aria-label={`Novo horário ${slot} com ${pro.name}`}
                     />
                   ))}
-                  {items.map((appt) => {
-                    const start = new Date(appt.startAt);
-                    const end = new Date(appt.endAt);
-                    const { top, height } = pos(start, end);
-                    const service = appt.items[0]?.service;
+                  {placed.map((item) => {
+                    const service = item.appt.items[0]?.service;
+                    const width = `calc((100% - 8px) / ${item.lanes})`;
+                    const left = `calc(4px + ${item.lane} * (100% - 8px) / ${item.lanes})`;
                     return (
                       <button
-                        key={appt.id}
+                        key={item.appt.id}
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelected(appt);
+                          setSelected(item.appt);
                         }}
-                        className="absolute left-1 right-1 overflow-hidden rounded-xl p-2 text-left text-white shadow-sm"
+                        className="absolute overflow-hidden rounded-lg px-2 py-1 text-left text-white shadow-sm"
                         style={{
-                          top,
-                          height,
-                          background: STATUS_COLOR[appt.status],
+                          top: item.top,
+                          height: item.height,
+                          left,
+                          width,
+                          background: STATUS_COLOR[item.appt.status],
                         }}
                       >
-                        <div className="text-xs font-semibold leading-tight">{appt.client.name}</div>
+                        <div className="text-xs font-semibold leading-tight">{item.appt.client.name}</div>
                         <div className="text-[11px] opacity-90">{service?.name}</div>
                         <div className="text-[10px] opacity-80">
-                          {formatTime(start)}–{formatTime(end)}
+                          {formatTime(item.start)}–{formatTime(item.end)}
                         </div>
                       </button>
                     );

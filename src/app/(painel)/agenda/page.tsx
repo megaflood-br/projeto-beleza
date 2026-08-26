@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { parseDateParam, rangeOfDay } from "@/lib/dates";
+import { parseDateParam, rangeOfCalendarDate } from "@/lib/dates";
 import { AgendaBoard } from "@/components/agenda/board";
 import type { AgendaAppointment, AgendaClient } from "@/components/agenda/types";
 import type { AppointmentStatus } from "@/lib/constants";
@@ -13,7 +13,7 @@ export default async function AgendaPage({
   const { session, tenant } = await requireTenant();
   const params = await searchParams;
   const date = parseDateParam(typeof params.date === "string" ? params.date : null);
-  const { start, end } = rangeOfDay(date);
+  const { start, end } = rangeOfCalendarDate(date);
 
   const [professionals, appointments, clients, services] = await Promise.all([
     prisma.professional.findMany({
@@ -75,7 +75,7 @@ export default async function AgendaPage({
 
   return (
     <AgendaBoard
-      date={date.toISOString().slice(0, 10)}
+      date={date}
       openTime={tenant.openTime}
       closeTime={tenant.closeTime}
       slotMinutes={tenant.slotMinutes}

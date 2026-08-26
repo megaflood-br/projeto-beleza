@@ -5,7 +5,7 @@ import { publicBook } from "@/app/actions/booking";
 import { Button, Field, Input, Select } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
 import { formatBRL } from "@/lib/money";
-import { buildSlots } from "@/lib/dates";
+import { buildSlots, calendarDate, zonedDateTime } from "@/lib/dates";
 
 type Service = { id: string; name: string; durationMin: number; priceCents: number };
 type Professional = { id: string; name: string; color: string; serviceIds: string[] };
@@ -32,7 +32,7 @@ export function BookingWizard({
 }) {
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [professionalId, setProfessionalId] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => calendarDate());
   const [time, setTime] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function BookingWizard({
 
   const freeSlots = slots.filter((slot) => {
     if (!professionalId || !service) return false;
-    const start = new Date(`${date}T${slot}:00`);
+    const start = zonedDateTime(date, slot);
     const end = new Date(start.getTime() + service.durationMin * 60000);
     return !busy.some((b) => {
       if (b.professionalId !== professionalId) return false;
@@ -76,7 +76,7 @@ export function BookingWizard({
       }}
     >
       <input type="hidden" name="slug" value={slug} />
-      <input type="hidden" name="startAt" value={time ? new Date(`${date}T${time}:00`).toISOString() : ""} />
+      <input type="hidden" name="startAt" value={time ? zonedDateTime(date, time).toISOString() : ""} />
       <Field label="Serviço">
         <SearchSelect
           name="serviceId"

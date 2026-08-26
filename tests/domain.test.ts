@@ -5,6 +5,7 @@ import { nextStock, isLowStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify } from "@/lib/utils";
 import { comandaTotal } from "@/lib/comandas";
+import { calendarDate, formatTime, minutesInTz, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -82,5 +83,23 @@ describe("comandas", () => {
         discountCents: 2000,
       }),
     ).toBe(25000);
+  });
+});
+
+describe("fuso da agenda", () => {
+  it("grava 09:00 de São Paulo como UTC correto", () => {
+    expect(zonedDateTime("2026-08-26", "09:00").toISOString()).toBe("2026-08-26T12:00:00.000Z");
+  });
+
+  it("lê o relógio do salão, não o do servidor", () => {
+    const start = zonedDateTime("2026-08-26", "09:00");
+    expect(formatTime(start)).toBe("09:00");
+    expect(minutesInTz(start)).toBe(9 * 60);
+    expect(parseHHmm("08:00")).toBe(8 * 60);
+  });
+
+  it("navega o dia civil sem virar a data no UTC", () => {
+    expect(shiftCalendarDate("2026-08-26", -1)).toBe("2026-08-25");
+    expect(calendarDate(zonedDateTime("2026-08-26", "00:30"))).toBe("2026-08-26");
   });
 });
