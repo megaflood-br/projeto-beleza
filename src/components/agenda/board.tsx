@@ -72,7 +72,7 @@ export function AgendaBoard({
       </div>
 
       <div className="agenda-scroll overflow-auto rounded-2xl border border-line bg-paper">
-        <div className="flex min-w-max">
+        <div className="flex min-w-full">
           <div className="sticky left-0 z-10 w-16 shrink-0 bg-sand">
             <div className="h-20 border-b border-line" />
             {slots.map((slot) => (
@@ -84,7 +84,7 @@ export function AgendaBoard({
           {professionals.map((pro) => {
             const items = appointments.filter((a) => a.professionalId === pro.id);
             return (
-              <div key={pro.id} className="relative w-56 shrink-0 border-l border-line">
+              <div key={pro.id} className="relative w-56 min-w-56 flex-1 border-l border-line">
                 <div className="flex h-20 items-center gap-3 border-b border-line px-3">
                   <Avatar name={pro.name} color={pro.color} />
                   <div>
