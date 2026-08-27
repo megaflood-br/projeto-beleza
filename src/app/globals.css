@@ -66,6 +66,11 @@ textarea {
   letter-spacing: -0.03em;
 }
 
+.agenda-scroll {
+  display: block;
+  width: 100%;
+}
+
 .agenda-scroll::-webkit-scrollbar {
   height: 8px;
   width: 8px;
@@ -74,4 +79,21 @@ textarea {
 .agenda-scroll::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 999px;
+}
+
+/* Fill the agenda card: columns grow equally; min-width only kicks in when there are many professionals. */
+.agenda-day-row {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.agenda-day-gutter {
+  flex: 0 0 4rem;
+  width: 4rem;
+}
+
+.agenda-day-col {
+  flex: 1 1 0%;
+  min-width: 14rem;
 }

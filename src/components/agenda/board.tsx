@@ -132,12 +132,12 @@ export function AgendaBoard({
 
       <div className="agenda-scroll max-h-[calc(100vh-13rem)] overflow-auto rounded-2xl border border-line bg-paper">
         <div
-          className="grid w-max min-w-full"
+          className="agenda-day-row"
           style={{
-            gridTemplateColumns: `4rem repeat(${Math.max(professionals.length, 1)}, minmax(14rem, 1fr))`,
+            minWidth: `max(100%, calc(4rem + ${Math.max(professionals.length, 1)} * 14rem))`,
           }}
         >
-          <div className="sticky left-0 z-30 bg-sand">
+          <div className="agenda-day-gutter sticky left-0 z-30 bg-sand">
             <div className="sticky top-0 z-30 border-b border-line bg-sand" style={{ height: HEADER_H }} />
             {slots.map((slot) => (
               <div key={slot} className="border-b border-line/70 px-1 text-[10px] text-ink-soft" style={{ height: SLOT_H }}>
@@ -153,7 +153,7 @@ export function AgendaBoard({
               slotMinutes,
             );
             return (
-              <div key={pro.id} className="min-w-0 border-l border-line">
+              <div key={pro.id} className="agenda-day-col border-l border-line">
                 <div
                   className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-paper px-3"
                   style={{ height: HEADER_H }}
