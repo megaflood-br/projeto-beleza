@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { addDays, addMinutes } from "date-fns";
 import { calendarDate, zonedDateTime } from "../src/lib/dates";
 import { ensureFinanceCatalog } from "../src/lib/finance-catalog";
+import { ensureAnamnesisForms, serializeAnswers } from "../src/lib/anamnesis";
 import { postLedgerEntry } from "../src/lib/ledger";
 
 const prisma = new PrismaClient();
@@ -12,6 +13,8 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.anamnesis.deleteMany();
+  await prisma.anamnesisForm.deleteMany();
   await prisma.comandaItem.deleteMany();
   await prisma.comanda.deleteMany();
   await prisma.message.deleteMany();
@@ -60,6 +63,7 @@ async function main() {
     },
   });
   await ensureFinanceCatalog(aurora.id);
+  await ensureAnamnesisForms(aurora.id);
 
   const camila = await prisma.professional.create({
     data: {
@@ -379,6 +383,99 @@ async function main() {
   }
 
   const [juliana, pedro, fernanda, carla, thiago, beatriz, amanda, lucas, patricia, renata] = clients;
+
+  const forms = await prisma.anamnesisForm.findMany({ where: { tenantId: aurora.id } });
+  const formBySlug = Object.fromEntries(forms.map((form) => [form.slug, form]));
+  async function fillAnamnesis(opts: {
+    clientId: string;
+    slug: string;
+    professionalId: string;
+    status: "DRAFT" | "COMPLETED";
+    answers: Record<string, { value: string; detail?: string }>;
+    notes?: string;
+    signedName?: string;
+    daysAgo?: number;
+  }) {
+    const form = formBySlug[opts.slug];
+    if (!form) return;
+    await prisma.anamnesis.create({
+      data: {
+        tenantId: aurora.id,
+        clientId: opts.clientId,
+        formId: form.id,
+        professionalId: opts.professionalId,
+        status: opts.status,
+        answers: serializeAnswers(opts.answers),
+        notes: opts.notes,
+        signedName: opts.signedName,
+        signedAt: opts.status === "COMPLETED" ? addDays(today, -(opts.daysAgo ?? 3)) : null,
+        occurredAt: addDays(today, -(opts.daysAgo ?? 3)),
+      },
+    });
+  }
+
+  await fillAnamnesis({
+    clientId: juliana.id,
+    slug: "coloracao",
+    professionalId: camila.id,
+    status: "COMPLETED",
+    daysAgo: 12,
+    signedName: "Juliana Martins",
+    notes: "Teste de mecha ok. Seguir com coloração tom 7.1.",
+    answers: {
+      quimica_recente: { value: "no" },
+      couro: { value: "no" },
+      ppd: { value: "yes", detail: "Relatou coceira leve com henna há 2 anos" },
+      teste_mecha: { value: "yes" },
+      queda: { value: "no" },
+      observacoes: { value: "Cabelo sensibilizado nas pontas." },
+    },
+  });
+  await fillAnamnesis({
+    clientId: carla.id,
+    slug: "estetica",
+    professionalId: rafaela.id,
+    status: "COMPLETED",
+    daysAgo: 5,
+    signedName: "Carla Mendes",
+    answers: {
+      acidos: { value: "yes", detail: "Ácido glicólico 2x por semana" },
+      procedimento: { value: "no" },
+      pele: { value: "yes", detail: "Melasma na região malar" },
+      sol: { value: "no" },
+      protetor: { value: "yes" },
+      observacoes: { value: "Evitar peeling médio." },
+    },
+  });
+  await fillAnamnesis({
+    clientId: beatriz.id,
+    slug: "unhas",
+    professionalId: leticia.id,
+    status: "DRAFT",
+    daysAgo: 1,
+    answers: {
+      micose: { value: "no" },
+      alergia_gel: { value: "no" },
+      circulacao: { value: "no" },
+    },
+  });
+  await fillAnamnesis({
+    clientId: juliana.id,
+    slug: "geral",
+    professionalId: camila.id,
+    status: "COMPLETED",
+    daysAgo: 40,
+    signedName: "Juliana Martins",
+    answers: {
+      alergia: { value: "yes", detail: "Látex" },
+      medicamentos: { value: "no" },
+      gestante: { value: "no" },
+      cronica: { value: "no" },
+      herpes: { value: "no" },
+      queloide: { value: "no" },
+      reacao: { value: "no" },
+    },
+  });
 
   async function book(opts: {
     professionalId: string;

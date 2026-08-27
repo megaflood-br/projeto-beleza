@@ -52,6 +52,8 @@ model Tenant {
   financeAccounts    FinanceAccount[]
   paymentMethods     PaymentMethodConfig[]
   financeCategories  FinanceCategory[]
+  anamnesisForms     AnamnesisForm[]
+  anamneses          Anamnesis[]
 
   @@index([slug])
 }
@@ -116,6 +118,7 @@ model Professional {
   comandaItems     ComandaItem[]
   transactions     Transaction[]
   productRequests  ProductRequest[]
+  anamneses        Anamnesis[]
 
   @@index([tenantId])
 }
@@ -225,6 +228,7 @@ model Client {
   conversations  Conversation[]
   packages       ClientPackage[]
   comandas       Comanda[]
+  anamneses      Anamnesis[]
 
   @@unique([tenantId, phone])
   @@index([tenantId, name])
@@ -590,4 +594,47 @@ model Automation {
   trigger   String
   template  String
   active    Boolean @default(true)
+}
+
+model AnamnesisForm {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  area        String   @default("geral")
+  description String   @default("")
+  questions   String   @default("[]")
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  records Anamnesis[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, sortOrder])
+}
+
+model Anamnesis {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  formId         String
+  form           AnamnesisForm @relation(fields: [formId], references: [id])
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+  status         String    @default("DRAFT")
+  answers        String    @default("{}")
+  notes          String?
+  signedName     String?
+  signedAt       DateTime?
+  occurredAt     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId, occurredAt])
+  @@index([clientId])
 }
