@@ -9,7 +9,7 @@ import { calendarDate, daysBetween, eachCalendarDate, formatTime, minutesInTz, m
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
 import { averageTicket, bucketAppointmentStatus, conversionRate, percentDelta, previousPeriod, rankProfessionals } from "@/lib/dashboard";
-import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementLabel } from "@/lib/ledger";
+import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementLabel, summarizeAccountBalances } from "@/lib/ledger";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -217,6 +217,32 @@ describe("ledger", () => {
     expect(accountBalanceDelta({ type: "INCOME", netCents: 9464, settled: true })).toBe(9464);
     expect(accountBalanceDelta({ type: "EXPENSE", netCents: 16200, settled: true })).toBe(-16200);
     expect(accountBalanceDelta({ type: "INCOME", netCents: 9464, settled: false })).toBe(0);
+  });
+
+  it("soma saldo por conta vinculada à forma de pagamento", () => {
+    const rows = summarizeAccountBalances({
+      accounts: [
+        { id: "caixa", name: "Caixa", details: "Caixa", isDefault: true, active: true, sortOrder: 0 },
+        { id: "itau", name: "Itau Emps", details: "", isDefault: false, active: true, sortOrder: 1 },
+        { id: "cora", name: "Cora", details: "", isDefault: false, active: true, sortOrder: 2 },
+        { id: "cofre", name: "Cofre", details: "", isDefault: false, active: true, sortOrder: 3 },
+      ],
+      methods: [
+        { accountId: "caixa", name: "Dinheiro", active: true },
+        { accountId: "itau", name: "CC Elo 1x", active: true },
+        { accountId: "itau", name: "Amex", active: true },
+        { accountId: "cora", name: "Boleto", active: true },
+      ],
+      transactions: [
+        { accountId: "itau", type: "INCOME", settled: true, netCents: 6656, amountCents: 7000, feeCents: 344 },
+        { accountId: "caixa", type: "EXPENSE", settled: true, netCents: 3500, amountCents: 3500 },
+        { accountId: "pix", type: "INCOME", settled: true, netCents: 8900, amountCents: 8900 },
+      ],
+    });
+    expect(rows.map((r) => r.name)).toEqual(["Caixa", "Itau Emps", "Cora"]);
+    expect(rows[0]).toMatchObject({ settledCents: -3500, methodNames: ["Dinheiro"], expenseCents: 3500 });
+    expect(rows[1]).toMatchObject({ settledCents: 6656, incomeCents: 6656, methodNames: ["CC Elo 1x", "Amex"] });
+    expect(rows[2]).toMatchObject({ settledCents: 0, methodNames: ["Boleto"] });
   });
 });
 

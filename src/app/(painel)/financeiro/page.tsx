@@ -2,18 +2,19 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { Card } from "@/components/ui";
 import { TransactionDrawer } from "@/components/finance/transaction-drawer";
+import { AccountBalances } from "@/components/finance/account-balances";
 import { formatBRL } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
 import { financeAccountLabel, financeCategoryLabel, financeMethodLabel, financeOrigin, financeSubtitle, financeTitular } from "@/lib/finance";
 import { loadFinanceCatalog } from "@/lib/finance-catalog";
-import { accountBalanceDelta } from "@/lib/ledger";
+import { summarizeAccountBalances } from "@/lib/ledger";
 import { CirclePlay } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export default async function FinanceiroPage() {
   const { session } = await requireTenant();
-  const [txs, professionals, catalog] = await Promise.all([
+  const [txs, ledgerRows, professionals, catalog] = await Promise.all([
     prisma.transaction.findMany({
       where: { tenantId: session.tenantId },
       include: {
@@ -27,6 +28,17 @@ export default async function FinanceiroPage() {
       orderBy: { occurredAt: "desc" },
       take: 80,
     }),
+    prisma.transaction.findMany({
+      where: { tenantId: session.tenantId, organizational: false },
+      select: {
+        accountId: true,
+        type: true,
+        settled: true,
+        netCents: true,
+        amountCents: true,
+        feeCents: true,
+      },
+    }),
     prisma.professional.findMany({
       where: { tenantId: session.tenantId, active: true },
       orderBy: { name: "asc" },
@@ -34,25 +46,22 @@ export default async function FinanceiroPage() {
     }),
     loadFinanceCatalog(session.tenantId),
   ]);
-  const income = txs.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amountCents, 0);
-  const expense = txs.filter((t) => t.type === "EXPENSE").reduce((s, t) => s + t.amountCents, 0);
+  const balances = summarizeAccountBalances({
+    accounts: catalog.accounts,
+    methods: catalog.methods,
+    transactions: ledgerRows,
+  });
+  const income = balances.reduce((sum, row) => sum + row.incomeCents, 0);
+  const expense = balances.reduce((sum, row) => sum + row.expenseCents, 0);
+  const saldo = balances.reduce((sum, row) => sum + row.settledCents, 0);
   const suppliers = [...new Set(txs.map((t) => t.supplier).filter((name): name is string => Boolean(name)))];
-  const balances = catalog.accounts
-    .filter((a) => a.active)
-    .map((account) => {
-      const related = txs.filter((t) => t.accountId === account.id);
-      const settled = related.reduce((sum, t) => sum + accountBalanceDelta({ type: t.type, netCents: t.netCents || t.amountCents, settled: t.settled }), 0);
-      const pending = related.filter((t) => !t.settled && t.type === "INCOME").reduce((sum, t) => sum + (t.netCents || t.amountCents), 0);
-      return { ...account, settled, pending };
-    })
-    .filter((a) => a.settled !== 0 || a.pending !== 0 || a.isDefault);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl">Financeiro</h1>
-          <p className="text-ink-soft">Entradas, saídas e saldo do salão.</p>
+          <p className="text-ink-soft">Saldo das contas vinculadas às formas de pagamento.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <TransactionDrawer
@@ -83,24 +92,12 @@ export default async function FinanceiroPage() {
           <div className="font-display text-2xl text-rose-700">{formatBRL(expense)}</div>
         </Card>
         <Card>
-          <div className="text-xs text-ink-soft">Saldo da lista</div>
-          <div className="font-display text-2xl">{formatBRL(income - expense)}</div>
+          <div className="text-xs text-ink-soft">Saldo nas contas</div>
+          <div className={cn("font-display text-2xl", saldo < 0 ? "text-rose-700" : "")}>{formatBRL(saldo)}</div>
         </Card>
       </div>
 
-      {balances.length ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {balances.map((account) => (
-            <Card key={account.id} className="py-4">
-              <div className="text-xs text-ink-soft">{account.name}</div>
-              <div className="font-display text-xl">{formatBRL(account.settled)}</div>
-              {account.pending ? (
-                <div className="text-xs text-ink-soft">A receber {formatBRL(account.pending)}</div>
-              ) : null}
-            </Card>
-          ))}
-        </div>
-      ) : null}
+      <AccountBalances rows={balances} />
 
       <Card className="overflow-hidden p-0">
         <div className="flex items-center gap-2 border-b border-line px-4 py-3">
