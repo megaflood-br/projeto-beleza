@@ -3,6 +3,7 @@ import { requireTenant } from "@/lib/tenant";
 import { notFound } from "next/navigation";
 import { ClientPanel, isClientTab } from "@/components/clientes/client-panel";
 import { buildClientMetrics } from "@/lib/client-metrics";
+import { ensureAnamnesisForms, mapAnamnesisRow, mapFormRow } from "@/lib/anamnesis";
 
 export default async function ClientePage({
   params,
@@ -15,6 +16,7 @@ export default async function ClientePage({
   const { id } = await params;
   const { tab: tabParam } = await searchParams;
   const tab = isClientTab(tabParam) ? tabParam : "painel";
+  await ensureAnamnesisForms(session.tenantId);
 
   const client = await prisma.client.findFirst({
     where: { id, tenantId: session.tenantId },
@@ -33,9 +35,26 @@ export default async function ClientePage({
         include: { professional: true, items: { include: { product: true, professional: true } } },
         orderBy: { createdAt: "desc" },
       },
+      anamneses: {
+        include: { client: true, form: true, professional: true },
+        orderBy: { occurredAt: "desc" },
+      },
     },
   });
   if (!client) notFound();
+
+  const [forms, professionals] = await Promise.all([
+    prisma.anamnesisForm.findMany({
+      where: { tenantId: session.tenantId },
+      include: { _count: { select: { records: true } } },
+      orderBy: { sortOrder: "asc" },
+    }),
+    prisma.professional.findMany({
+      where: { tenantId: session.tenantId, active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   const metrics = buildClientMetrics({
     createdAt: client.createdAt,
@@ -57,6 +76,9 @@ export default async function ClientePage({
       comandas={client.comandas}
       packages={client.packages}
       messages={messages}
+      anamneses={client.anamneses.map(mapAnamnesisRow)}
+      forms={forms.map(mapFormRow)}
+      professionals={professionals}
     />
   );
 }

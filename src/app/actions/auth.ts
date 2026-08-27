@@ -12,6 +12,7 @@ import {
 import { slugify } from "@/lib/utils";
 import type { Role } from "@/lib/constants";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
+import { ensureAnamnesisForms } from "@/lib/anamnesis";
 
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") ?? "")
@@ -88,6 +89,7 @@ export async function registerAction(formData: FormData) {
 
   const user = tenant.users[0];
   await ensureFinanceCatalog(tenant.id);
+  await ensureAnamnesisForms(tenant.id);
   await setSessionCookie({
     userId: user.id,
     tenantId: tenant.id,

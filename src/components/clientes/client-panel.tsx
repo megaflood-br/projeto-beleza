@@ -20,6 +20,8 @@ import { formatBRL } from "@/lib/money";
 import { calendarDate, formatMediumDate, formatTime } from "@/lib/dates";
 import { STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
 import { comandaTotal } from "@/lib/comandas";
+import { ClientAnamneses } from "@/components/anamneses/client-anamneses";
+import type { AnamnesisFormRow, AnamnesisRow } from "@/components/anamneses/types";
 import type { buildClientMetrics } from "@/lib/client-metrics";
 
 const TABS = [
@@ -80,6 +82,9 @@ export function ClientPanel({
   comandas,
   packages,
   messages,
+  anamneses,
+  forms,
+  professionals,
 }: {
   tab: ClientTab;
   client: {
@@ -100,6 +105,9 @@ export function ClientPanel({
   comandas: ComandaRow[];
   packages: { id: string; remaining: number; package: { name: string; sessions: number; priceCents: number } }[];
   messages: { id: string; direction: string; body: string; createdAt: Date }[];
+  anamneses: AnamnesisRow[];
+  forms: AnamnesisFormRow[];
+  professionals: { id: string; name: string }[];
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
@@ -131,7 +139,11 @@ export function ClientPanel({
                 )}
               >
                 <span>{item.label}</span>
-                {"badge" in item && item.badge ? (
+                {item.id === "anamneses" && anamneses.length ? (
+                  <span className="ml-2 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+                    {anamneses.length}
+                  </span>
+                ) : "badge" in item && item.badge ? (
                   <span className="ml-2 rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white uppercase">
                     {item.badge}
                   </span>
@@ -175,7 +187,12 @@ export function ClientPanel({
           ) : tab === "arquivos" ? (
             <EmptyState text="Nenhuma imagem ou arquivo anexado." />
           ) : tab === "anamneses" ? (
-            <EmptyState text="Nenhuma anamnese preenchida." />
+            <ClientAnamneses
+              client={{ id: client.id, name: client.name, phone: client.phone }}
+              records={anamneses}
+              forms={forms}
+              professionals={professionals}
+            />
           ) : (
             <EmptyState text="Nenhuma venda por assinatura." />
           )}

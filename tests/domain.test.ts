@@ -10,6 +10,7 @@ import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
 import { averageTicket, bucketAppointmentStatus, conversionRate, percentDelta, previousPeriod, rankProfessionals } from "@/lib/dashboard";
 import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementLabel, summarizeAccountBalances } from "@/lib/ledger";
+import { collectAlerts, DEFAULT_ANAMNESIS_FORMS, missingRequired, parseQuestions, serializeQuestions } from "@/lib/anamnesis";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -265,5 +266,36 @@ describe("painel", () => {
     ]);
     expect(ranking[0]).toMatchObject({ name: "Camila", services: 2, place: 1, avgCents: 23000 });
     expect(previousPeriod("2026-08-12", "2026-08-26")).toEqual({ from: "2026-07-28", to: "2026-08-11" });
+  });
+});
+
+describe("anamnese", () => {
+  it("detecta alertas clínicos em respostas Sim", () => {
+    const questions = DEFAULT_ANAMNESIS_FORMS[0].questions;
+    const alerts = collectAlerts(questions, {
+      alergia: { value: "yes", detail: "Látex" },
+      gestante: { value: "no" },
+    });
+    expect(alerts.some((item) => item.includes("Látex") || item.includes("Possui alguma alergia"))).toBe(true);
+    expect(alerts.some((item) => item.toLowerCase().includes("gestante"))).toBe(false);
+  });
+
+  it("lista perguntas obrigatórias em branco", () => {
+    const questions = DEFAULT_ANAMNESIS_FORMS[0].questions;
+    const missing = missingRequired(questions, { alergia: { value: "no" } });
+    expect(missing.length).toBeGreaterThan(3);
+    expect(
+      missingRequired(
+        questions,
+        Object.fromEntries(questions.filter((q) => q.required).map((q) => [q.id, { value: "no" }])),
+      ),
+    ).toEqual([]);
+  });
+
+  it("serializa e lê perguntas da ficha", () => {
+    const json = serializeQuestions(DEFAULT_ANAMNESIS_FORMS[1].questions);
+    const parsed = parseQuestions(json);
+    expect(parsed.find((q) => q.id === "ppd")?.alertOn).toBe("yes");
+    expect(parseQuestions("não-é-json")).toEqual([]);
   });
 });

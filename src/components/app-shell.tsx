@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  ClipboardList,
   LayoutDashboard,
   Users,
   Scissors,
@@ -24,6 +25,7 @@ const NAV = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/anamneses", label: "Anamnese", icon: ClipboardList },
   { href: "/servicos", label: "Serviços", icon: Scissors },
   { href: "/equipe", label: "Equipe", icon: Users },
   { href: "/estoque", label: "Estoque", icon: Boxes },
