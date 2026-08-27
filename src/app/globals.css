@@ -67,7 +67,7 @@ textarea {
 }
 
 .agenda-scroll {
-  display: block;
+  position: relative;
   width: 100%;
 }
 
@@ -81,10 +81,8 @@ textarea {
   border-radius: 999px;
 }
 
-/* Fill the agenda card: columns grow equally; min-width only kicks in when there are many professionals. */
 .agenda-day-row {
   display: flex;
-  width: 100%;
   box-sizing: border-box;
 }
 

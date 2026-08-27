@@ -131,10 +131,16 @@ export function AgendaBoard({
       </div>
 
       <div className="agenda-scroll max-h-[calc(100vh-13rem)] overflow-auto rounded-2xl border border-line bg-paper">
+        <div aria-hidden className="w-full" style={{ height: HEADER_H + gridHeight }} />
         <div
           className="agenda-day-row"
           style={{
-            minWidth: `max(100%, calc(4rem + ${Math.max(professionals.length, 1)} * 14rem))`,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: HEADER_H + gridHeight,
+            minWidth: `calc(4rem + ${Math.max(professionals.length, 1)} * 14rem)`,
           }}
         >
           <div className="agenda-day-gutter sticky left-0 z-30 bg-sand">
