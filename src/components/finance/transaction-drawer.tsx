@@ -5,54 +5,75 @@ import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { Button, Field, Input } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
-import { createTransaction } from "@/app/actions/finance";
+import { saveTransaction } from "@/app/actions/finance";
 import { calendarDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { CatalogAccount, CatalogCategory, CatalogMethod } from "@/lib/finance-catalog";
+import type { TransactionFormValue } from "@/components/finance/types";
+
+function centsToInput(cents: number) {
+  return (cents / 100).toFixed(2).replace(".", ",");
+}
 
 export function TransactionDrawer({
   type,
+  transaction,
   professionals,
   suppliers,
   accounts,
   methods,
   categories,
+  showTrigger = true,
+  onClose,
 }: {
   type: "INCOME" | "EXPENSE";
+  transaction?: TransactionFormValue | null;
   professionals: { id: string; name: string }[];
   suppliers: string[];
   accounts: CatalogAccount[];
   methods: CatalogMethod[];
   categories: CatalogCategory[];
+  showTrigger?: boolean;
+  onClose?: () => void;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const isEdit = Boolean(transaction?.id);
+  const [open, setOpen] = useState(isEdit);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [organizational, setOrganizational] = useState(false);
-  const [adjustDates, setAdjustDates] = useState(false);
-  const [recurring, setRecurring] = useState(false);
+  const [organizational, setOrganizational] = useState(transaction?.organizational ?? false);
+  const [adjustDates, setAdjustDates] = useState(Boolean(transaction?.competenceDate));
+  const [recurring, setRecurring] = useState(Boolean(transaction?.recurrence));
   const isExpense = type === "EXPENSE";
   const typeCategories = categories.filter((c) => c.active && c.type === type);
-  const defaultAccount = accounts.find((a) => a.isDefault && a.active) ?? accounts.find((a) => a.active);
+  const defaultAccount =
+    accounts.find((a) => a.id === transaction?.accountId) ??
+    accounts.find((a) => a.isDefault && a.active) ??
+    accounts.find((a) => a.active);
   const defaultMethod =
-    methods.find((m) => m.active && m.code === (isExpense ? "PIX" : "PIX") && m.favorite) ??
+    methods.find((m) => m.id === transaction?.methodId) ??
+    methods.find((m) => m.active && m.code === "PIX" && m.favorite) ??
     methods.find((m) => m.active && m.code === "PIX") ??
     methods.find((m) => m.active);
+
+  function close() {
+    setOpen(false);
+    onClose?.();
+  }
 
   async function handleAction(formData: FormData) {
     setError(null);
     setPending(true);
     formData.set("type", type);
     formData.set("organizational", organizational ? "1" : "");
-    formData.set("recurrence", recurring ? String(formData.get("recurrence") ?? "MONTHLY") : "");
+    formData.set("recurrence", recurring ? String(formData.get("recurrence") ?? transaction?.recurrence ?? "MONTHLY") : "");
     try {
-      const result = await createTransaction(formData);
+      const result = await saveTransaction(formData);
       if (result && "error" in result && result.error) {
         setError(result.error);
         return;
       }
-      setOpen(false);
+      close();
       router.refresh();
     } finally {
       setPending(false);
@@ -61,21 +82,26 @@ export function TransactionDrawer({
 
   return (
     <>
-      <Button type="button" variant={isExpense ? "danger" : "success"} onClick={() => setOpen(true)}>
-        <Plus size={16} />
-        {isExpense ? "Nova despesa" : "Nova receita"}
-      </Button>
+      {showTrigger && !isEdit ? (
+        <Button type="button" variant={isExpense ? "danger" : "success"} onClick={() => setOpen(true)}>
+          <Plus size={16} />
+          {isExpense ? "Nova despesa" : "Nova receita"}
+        </Button>
+      ) : null}
       {open ? (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <button type="button" className="absolute inset-0 bg-slate-900/40" aria-label="Fechar" onClick={() => setOpen(false)} />
+          <button type="button" className="absolute inset-0 bg-slate-900/40" aria-label="Fechar" onClick={close} />
           <aside className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
-              <h2 className="text-lg font-semibold">{isExpense ? "Nova despesa" : "Nova receita"}</h2>
-              <button type="button" onClick={() => setOpen(false)} className="rounded-lg p-1 text-ink-soft hover:bg-sand" aria-label="Fechar">
+              <h2 className="text-lg font-semibold">
+                {isEdit ? (isExpense ? "Editar despesa" : "Editar receita") : isExpense ? "Nova despesa" : "Nova receita"}
+              </h2>
+              <button type="button" onClick={close} className="rounded-lg p-1 text-ink-soft hover:bg-sand" aria-label="Fechar">
                 <X size={18} />
               </button>
             </div>
             <form action={handleAction} className="flex min-h-0 flex-1 flex-col">
+              {transaction?.id ? <input type="hidden" name="id" value={transaction.id} /> : null}
               <div className="grid flex-1 gap-4 overflow-y-auto px-5 py-4">
                 {isExpense ? (
                   <Toggle
@@ -88,16 +114,21 @@ export function TransactionDrawer({
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Valor" required>
-                    <Input name="amount" required placeholder="R$ 0,00" />
+                    <Input
+                      name="amount"
+                      required
+                      placeholder="R$ 0,00"
+                      defaultValue={transaction ? centsToInput(transaction.amountCents) : ""}
+                    />
                   </Field>
                   <Field label="Descrição">
-                    <Input name="description" placeholder="Insira uma descrição (opcional)" />
+                    <Input name="description" placeholder="Insira uma descrição (opcional)" defaultValue={transaction?.description ?? ""} />
                   </Field>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Vencimento" required>
-                    <Input name="dueDate" type="date" required defaultValue={calendarDate()} />
+                    <Input name="dueDate" type="date" required defaultValue={transaction?.dueDate ?? calendarDate()} />
                   </Field>
                   <Field label="Forma de pagamento" required>
                     <SearchSelect
@@ -125,6 +156,7 @@ export function TransactionDrawer({
                       name="category"
                       required
                       placeholder={isExpense ? "Fornecedor" : "Categoria"}
+                      defaultValue={transaction?.category}
                       options={typeCategories.map((c) => ({ value: c.slug, label: c.name }))}
                     />
                   </Field>
@@ -133,7 +165,7 @@ export function TransactionDrawer({
                 {isExpense ? (
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Pago para fornecedor">
-                      <Input name="supplier" placeholder="Fornecedor" list="supplier-list" />
+                      <Input name="supplier" placeholder="Fornecedor" list="supplier-list" defaultValue={transaction?.supplier ?? ""} />
                       <datalist id="supplier-list">
                         {suppliers.map((name) => (
                           <option key={name} value={name} />
@@ -145,6 +177,7 @@ export function TransactionDrawer({
                         name="professionalId"
                         placeholder="Selecionar profissional"
                         emptyOption={{ value: "", label: "Nenhum" }}
+                        defaultValue={transaction?.professionalId ?? ""}
                         options={professionals.map((p) => ({ value: p.id, label: p.name }))}
                       />
                     </Field>
@@ -160,7 +193,7 @@ export function TransactionDrawer({
                 ) : null}
                 {adjustDates ? (
                   <Field label="Data de competência">
-                    <Input name="competenceDate" type="date" defaultValue={calendarDate()} />
+                    <Input name="competenceDate" type="date" defaultValue={transaction?.competenceDate || calendarDate()} />
                   </Field>
                 ) : null}
 
@@ -169,7 +202,7 @@ export function TransactionDrawer({
                   <Field label="Frequência">
                     <SearchSelect
                       name="recurrence"
-                      defaultValue="MONTHLY"
+                      defaultValue={transaction?.recurrence ?? "MONTHLY"}
                       options={[
                         { value: "WEEKLY", label: "Semanal" },
                         { value: "MONTHLY", label: "Mensal" },

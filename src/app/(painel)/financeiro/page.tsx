@@ -3,14 +3,14 @@ import { requireTenant } from "@/lib/tenant";
 import { Card } from "@/components/ui";
 import { TransactionDrawer } from "@/components/finance/transaction-drawer";
 import { AccountBalances } from "@/components/finance/account-balances";
+import { FinanceTransactions } from "@/components/finance/finance-transactions";
 import { formatBRL } from "@/lib/money";
-import { formatShortDate } from "@/lib/dates";
+import { calendarDate, formatShortDate } from "@/lib/dates";
 import { financeAccountLabel, financeCategoryLabel, financeMethodLabel, financeOrigin, financeSubtitle, financeTitular } from "@/lib/finance";
 import { loadFinanceCatalog } from "@/lib/finance-catalog";
 import { summarizeAccountBalances } from "@/lib/ledger";
-import { CirclePlay } from "lucide-react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
+import type { TransactionListRow } from "@/components/finance/types";
 
 export default async function FinanceiroPage() {
   const { session } = await requireTenant();
@@ -55,6 +55,42 @@ export default async function FinanceiroPage() {
   const expense = balances.reduce((sum, row) => sum + row.expenseCents, 0);
   const saldo = balances.reduce((sum, row) => sum + row.settledCents, 0);
   const suppliers = [...new Set(txs.map((t) => t.supplier).filter((name): name is string => Boolean(name)))];
+  const rows: TransactionListRow[] = txs.map((t) => {
+    const origin = financeOrigin(t);
+    return {
+      id: t.id,
+      type: t.type === "EXPENSE" ? "EXPENSE" : "INCOME",
+      dateLabel: formatShortDate(t.occurredAt),
+      titular: financeTitular(t),
+      subtitle: financeSubtitle(t),
+      originLabel: origin.label,
+      originHref: origin.href,
+      methodLabel: financeMethodLabel(t.method, t.paymentMethodConfig?.name),
+      accountLabel: financeAccountLabel(t.account, t.financeAccount?.name),
+      settled: t.settled,
+      organizational: t.organizational,
+      categoryLabel: financeCategoryLabel(t.category, t.financeCategory?.name),
+      amountCents: t.amountCents,
+      feeCents: t.feeCents,
+      netCents: t.netCents || t.amountCents,
+      form: {
+        id: t.id,
+        type: t.type === "EXPENSE" ? "EXPENSE" : "INCOME",
+        category: t.category,
+        amountCents: t.amountCents,
+        methodId: t.paymentMethodId,
+        method: t.method,
+        accountId: t.accountId,
+        description: t.description,
+        organizational: t.organizational,
+        supplier: t.supplier,
+        professionalId: t.professionalId,
+        recurrence: t.recurrence,
+        dueDate: calendarDate(t.occurredAt),
+        competenceDate: t.competenceAt ? calendarDate(t.competenceAt) : "",
+      },
+    };
+  });
 
   return (
     <div className="space-y-4">
@@ -99,80 +135,14 @@ export default async function FinanceiroPage() {
 
       <AccountBalances rows={balances} />
 
-      <Card className="overflow-hidden p-0">
-        <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-          <h2 className="font-semibold">Transações</h2>
-          <CirclePlay size={14} className="text-ink-soft" />
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-sm">
-            <thead className="bg-slate-50 text-left text-ink-soft">
-              <tr>
-                <th className="px-4 py-3 font-medium">Data</th>
-                <th className="font-medium">Titular</th>
-                <th className="font-medium">Origem</th>
-                <th className="font-medium">Forma de pagamento</th>
-                <th className="font-medium">Conta</th>
-                <th className="font-medium">Categoria</th>
-                <th className="px-4 text-right font-medium">Valor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {txs.map((t) => {
-                const origin = financeOrigin(t);
-                const subtitle = financeSubtitle(t);
-                const net = t.netCents || t.amountCents;
-                return (
-                  <tr
-                    key={t.id}
-                    className={cn(
-                      "border-t border-white/60",
-                      t.type === "EXPENSE" ? "bg-rose-50/80" : "bg-emerald-50/80",
-                    )}
-                  >
-                    <td className="px-4 py-3 align-top whitespace-nowrap">{formatShortDate(t.occurredAt)}</td>
-                    <td className="py-3 pr-3 align-top">
-                      <div className="font-medium text-blue-700">{financeTitular(t)}</div>
-                      {subtitle ? <div className="text-xs text-ink-soft">{subtitle}</div> : null}
-                    </td>
-                    <td className="py-3 align-top">
-                      {origin.href ? (
-                        <Link href={origin.href} className="text-blue-700 hover:underline">
-                          {origin.label}
-                        </Link>
-                      ) : (
-                        origin.label
-                      )}
-                    </td>
-                    <td className="py-3 align-top">{financeMethodLabel(t.method, t.paymentMethodConfig?.name)}</td>
-                    <td className="py-3 align-top">
-                      <div>{t.organizational ? "—" : financeAccountLabel(t.account, t.financeAccount?.name)}</div>
-                      <div className="text-xs text-ink-soft">
-                        {t.settled ? "Baixa automática" : "A receber"}
-                      </div>
-                    </td>
-                    <td className="py-3 align-top">{financeCategoryLabel(t.category, t.financeCategory?.name)}</td>
-                    <td
-                      className={cn(
-                        "px-4 py-3 text-right align-top font-medium whitespace-nowrap",
-                        t.type === "EXPENSE" ? "text-rose-700" : "text-emerald-700",
-                      )}
-                    >
-                      {t.type === "EXPENSE" ? "-" : "+"}
-                      {formatBRL(t.amountCents)}
-                      {t.feeCents ? (
-                        <div className="text-xs font-normal text-ink-soft">
-                          líq. {formatBRL(net)}
-                        </div>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <FinanceTransactions
+        rows={rows}
+        professionals={professionals}
+        suppliers={suppliers}
+        accounts={catalog.accounts}
+        methods={catalog.methods}
+        categories={catalog.categories}
+      />
     </div>
   );
 }

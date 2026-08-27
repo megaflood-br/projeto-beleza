@@ -6,12 +6,9 @@ import { requireTenant } from "@/lib/tenant";
 import { canSeeFinance } from "@/lib/auth";
 import { parseBRLToCents } from "@/lib/money";
 import { zonedDateTime } from "@/lib/dates";
-import { postLedgerEntry } from "@/lib/ledger";
+import { postLedgerEntry, updateLedgerEntry } from "@/lib/ledger";
 
-export async function createTransaction(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
-
+function parseTransactionForm(formData: FormData) {
   const type = String(formData.get("type") ?? "INCOME") === "EXPENSE" ? "EXPENSE" : "INCOME";
   const category = String(formData.get("category") ?? "outros") || "outros";
   const amountCents = parseBRLToCents(String(formData.get("amount") ?? "0"));
@@ -25,39 +22,74 @@ export async function createTransaction(formData: FormData) {
   const recurrence = String(formData.get("recurrence") ?? "").trim() || null;
   const dueDate = String(formData.get("dueDate") ?? "");
   const competenceDate = String(formData.get("competenceDate") ?? "");
-
-  if (!amountCents) return { error: "Informe um valor." };
-  if (!category) return { error: "Selecione a categoria." };
-  if (!methodId && !method) return { error: "Selecione a forma de pagamento." };
-
-  if (professionalId) {
-    const professional = await prisma.professional.findFirst({
-      where: { id: professionalId, tenantId: session.tenantId },
-      select: { id: true },
-    });
-    if (!professional) return { error: "Profissional inválido." };
-  }
-
-  await postLedgerEntry({
-    tenantId: session.tenantId,
-    type,
+  return {
+    type: type as "INCOME" | "EXPENSE",
     category,
     amountCents,
     methodId,
-    methodCode: method,
-    accountId: organizational ? null : accountId,
+    method,
+    accountId,
     description,
     organizational,
     supplier,
     professionalId,
     recurrence,
-    occurredAt: dueDate ? zonedDateTime(dueDate, "12:00") : new Date(),
-    competenceAt: competenceDate ? zonedDateTime(competenceDate, "12:00") : null,
-  });
+    dueDate,
+    competenceDate,
+  };
+}
+
+export async function saveTransaction(formData: FormData) {
+  const { session } = await requireTenant();
+  if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
+
+  const id = String(formData.get("id") ?? "");
+  const parsed = parseTransactionForm(formData);
+
+  if (!parsed.amountCents) return { error: "Informe um valor." };
+  if (!parsed.category) return { error: "Selecione a categoria." };
+  if (!parsed.methodId && !parsed.method) return { error: "Selecione a forma de pagamento." };
+
+  if (parsed.professionalId) {
+    const professional = await prisma.professional.findFirst({
+      where: { id: parsed.professionalId, tenantId: session.tenantId },
+      select: { id: true },
+    });
+    if (!professional) return { error: "Profissional inválido." };
+  }
+
+  const payload = {
+    tenantId: session.tenantId,
+    type: parsed.type,
+    category: parsed.category,
+    amountCents: parsed.amountCents,
+    methodId: parsed.methodId,
+    methodCode: parsed.method,
+    accountId: parsed.organizational ? null : parsed.accountId,
+    description: parsed.description,
+    organizational: parsed.organizational,
+    supplier: parsed.supplier,
+    professionalId: parsed.professionalId,
+    recurrence: parsed.recurrence,
+    occurredAt: parsed.dueDate ? zonedDateTime(parsed.dueDate, "12:00") : new Date(),
+    competenceAt: parsed.competenceDate ? zonedDateTime(parsed.competenceDate, "12:00") : null,
+  };
+
+  if (id) {
+    const updated = await updateLedgerEntry(id, payload);
+    if (!updated) return { error: "Transação não encontrada." };
+  } else {
+    await postLedgerEntry(payload);
+  }
+
   revalidatePath("/financeiro");
   revalidatePath("/dashboard");
   revalidatePath("/cadastros");
   return { ok: true };
+}
+
+export async function createTransaction(formData: FormData) {
+  return saveTransaction(formData);
 }
 
 export async function payCommissions(formData?: FormData) {

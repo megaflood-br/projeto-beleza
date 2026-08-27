@@ -174,7 +174,7 @@ export async function resolveCategory(tenantId: string, slug: string, type: "INC
   });
 }
 
-export async function postLedgerEntry(input: LedgerEntryInput) {
+async function resolveLedgerData(input: LedgerEntryInput) {
   const organizational = Boolean(input.organizational);
   const occurredAt = input.occurredAt ?? new Date();
   const method = organizational
@@ -190,30 +190,48 @@ export async function postLedgerEntry(input: LedgerEntryInput) {
   const days = method?.settlementDays ?? 0;
   const settled = organizational ? true : (method?.autoSettle ?? true);
 
+  return {
+    type: input.type,
+    category: category?.slug ?? input.category,
+    categoryId: category?.id ?? null,
+    amountCents: input.amountCents,
+    feeCents: fee,
+    netCents: net,
+    method: method?.code ?? input.methodCode ?? "PIX",
+    paymentMethodId: method?.id ?? null,
+    account: account ? slugify(account.name) || "caixa" : organizational ? "nenhuma" : "caixa",
+    accountId: account?.id ?? null,
+    description: input.description ?? null,
+    organizational,
+    supplier: input.supplier ?? null,
+    professionalId: input.professionalId ?? null,
+    recurrence: input.recurrence ?? null,
+    appointmentId: input.appointmentId ?? null,
+    comandaId: input.comandaId ?? null,
+    occurredAt,
+    competenceAt: input.competenceAt ?? null,
+    availableAt: availableAt(occurredAt, days),
+    settled,
+  };
+}
+
+export async function postLedgerEntry(input: LedgerEntryInput) {
+  const data = await resolveLedgerData(input);
   return prisma.transaction.create({
-    data: {
-      tenantId: input.tenantId,
-      type: input.type,
-      category: category?.slug ?? input.category,
-      categoryId: category?.id,
-      amountCents: input.amountCents,
-      feeCents: fee,
-      netCents: net,
-      method: method?.code ?? input.methodCode ?? "PIX",
-      paymentMethodId: method?.id,
-      account: account ? slugify(account.name) || "caixa" : organizational ? "nenhuma" : "caixa",
-      accountId: account?.id,
-      description: input.description,
-      organizational,
-      supplier: input.supplier,
-      professionalId: input.professionalId,
-      recurrence: input.recurrence,
-      appointmentId: input.appointmentId,
-      comandaId: input.comandaId,
-      occurredAt,
-      competenceAt: input.competenceAt ?? null,
-      availableAt: availableAt(occurredAt, days),
-      settled,
-    },
+    data: { tenantId: input.tenantId, ...data },
   });
+}
+
+export async function updateLedgerEntry(id: string, input: LedgerEntryInput) {
+  const existing = await prisma.transaction.findFirst({
+    where: { id, tenantId: input.tenantId },
+    select: { id: true, appointmentId: true, comandaId: true },
+  });
+  if (!existing) return null;
+  const data = await resolveLedgerData({
+    ...input,
+    appointmentId: input.appointmentId ?? existing.appointmentId,
+    comandaId: input.comandaId ?? existing.comandaId,
+  });
+  return prisma.transaction.update({ where: { id }, data });
 }
