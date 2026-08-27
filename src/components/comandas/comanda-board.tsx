@@ -8,7 +8,7 @@ import { ComandaDrawer } from "@/components/comandas/comanda-drawer";
 import { formatBRL } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
 import { COMANDA_STATUS_COLOR, COMANDA_STATUS_LABEL, PAYMENT_LABEL, type ComandaStatus } from "@/lib/constants";
-import type { ComandaFormValue } from "@/components/comandas/types";
+import type { ComandaFormValue, PaymentMethodOption } from "@/components/comandas/types";
 
 export function ComandaBoard({
   comandas,
@@ -17,6 +17,7 @@ export function ComandaBoard({
   professionals,
   services,
   products,
+  paymentMethods = [],
 }: {
   comandas: ComandaFormValue[];
   nextNumber: number;
@@ -24,6 +25,7 @@ export function ComandaBoard({
   professionals: { id: string; name: string }[];
   services: { id: string; name: string; priceCents: number }[];
   products: { id: string; name: string; priceCents: number }[];
+  paymentMethods?: PaymentMethodOption[];
 }) {
   const [editing, setEditing] = useState<ComandaFormValue | null | undefined>(undefined);
   const [showOpen, setShowOpen] = useState(true);
@@ -141,6 +143,7 @@ export function ComandaBoard({
           professionals={professionals}
           services={services}
           products={products}
+          paymentMethods={paymentMethods}
           onClose={() => setEditing(undefined)}
         />
       ) : null}

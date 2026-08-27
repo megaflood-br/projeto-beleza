@@ -6,6 +6,7 @@ import { requireTenant } from "@/lib/tenant";
 import { canSeeFinance } from "@/lib/auth";
 import { parseBRLToCents } from "@/lib/money";
 import { zonedDateTime } from "@/lib/dates";
+import { postLedgerEntry } from "@/lib/ledger";
 
 export async function createTransaction(formData: FormData) {
   const { session } = await requireTenant();
@@ -14,8 +15,9 @@ export async function createTransaction(formData: FormData) {
   const type = String(formData.get("type") ?? "INCOME") === "EXPENSE" ? "EXPENSE" : "INCOME";
   const category = String(formData.get("category") ?? "outros") || "outros";
   const amountCents = parseBRLToCents(String(formData.get("amount") ?? "0"));
+  const methodId = String(formData.get("methodId") ?? "") || null;
   const method = String(formData.get("method") ?? "PIX") || "PIX";
-  const account = String(formData.get("account") ?? "caixa") || "caixa";
+  const accountId = String(formData.get("accountId") ?? "") || String(formData.get("account") ?? "") || null;
   const description = String(formData.get("description") ?? "").trim() || null;
   const organizational = String(formData.get("organizational") ?? "") === "1";
   const supplier = String(formData.get("supplier") ?? "").trim() || null;
@@ -26,7 +28,7 @@ export async function createTransaction(formData: FormData) {
 
   if (!amountCents) return { error: "Informe um valor." };
   if (!category) return { error: "Selecione a categoria." };
-  if (!method) return { error: "Selecione a forma de pagamento." };
+  if (!methodId && !method) return { error: "Selecione a forma de pagamento." };
 
   if (professionalId) {
     const professional = await prisma.professional.findFirst({
@@ -36,25 +38,25 @@ export async function createTransaction(formData: FormData) {
     if (!professional) return { error: "Profissional inválido." };
   }
 
-  await prisma.transaction.create({
-    data: {
-      tenantId: session.tenantId,
-      type,
-      category,
-      amountCents,
-      method,
-      account: organizational ? "nenhuma" : account,
-      description,
-      organizational,
-      supplier,
-      professionalId,
-      recurrence,
-      occurredAt: dueDate ? zonedDateTime(dueDate, "12:00") : new Date(),
-      competenceAt: competenceDate ? zonedDateTime(competenceDate, "12:00") : null,
-    },
+  await postLedgerEntry({
+    tenantId: session.tenantId,
+    type,
+    category,
+    amountCents,
+    methodId,
+    methodCode: method,
+    accountId: organizational ? null : accountId,
+    description,
+    organizational,
+    supplier,
+    professionalId,
+    recurrence,
+    occurredAt: dueDate ? zonedDateTime(dueDate, "12:00") : new Date(),
+    competenceAt: competenceDate ? zonedDateTime(competenceDate, "12:00") : null,
   });
   revalidatePath("/financeiro");
   revalidatePath("/dashboard");
+  revalidatePath("/cadastros");
   return { ok: true };
 }
 
@@ -64,6 +66,8 @@ export async function payCommissions(formData?: FormData) {
   const data = formData instanceof FormData ? formData : new FormData();
   const professionalId = String(data.get("professionalId") ?? "");
   const ids = data.getAll("commissionId").map(String).filter(Boolean);
+  const accountId = String(data.get("accountId") ?? "") || null;
+  const methodId = String(data.get("methodId") ?? "") || null;
 
   if (!ids.length && !professionalId) return { error: "Selecione as comissões para pagar." };
 
@@ -92,21 +96,21 @@ export async function payCommissions(formData?: FormData) {
 
   for (const [id, info] of byProfessional) {
     if (!info.total) continue;
-    await prisma.transaction.create({
-      data: {
-        tenantId: session.tenantId,
-        type: "EXPENSE",
-        category: "comissao",
-        amountCents: info.total,
-        method: "PIX",
-        account: "caixa",
-        professionalId: id,
-        description: `Pagamento de comissão para ${info.name}`,
-      },
+    await postLedgerEntry({
+      tenantId: session.tenantId,
+      type: "EXPENSE",
+      category: "comissao",
+      amountCents: info.total,
+      methodId,
+      methodCode: "PIX",
+      accountId,
+      professionalId: id,
+      description: `Pagamento de comissão para ${info.name}`,
     });
   }
 
   revalidatePath("/comissoes");
   revalidatePath("/financeiro");
+  revalidatePath("/cadastros");
   return { ok: true };
 }

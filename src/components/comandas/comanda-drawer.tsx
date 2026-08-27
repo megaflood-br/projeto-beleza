@@ -10,7 +10,7 @@ import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { comandaTotal, itemLineTotal } from "@/lib/comandas";
 import { calendarDate } from "@/lib/dates";
 import { PaymentDrawer } from "@/components/comandas/payment-drawer";
-import type { ComandaFormValue, ComandaItemDraft, PaymentDraft } from "@/components/comandas/types";
+import type { ComandaFormValue, ComandaItemDraft, PaymentDraft, PaymentMethodOption } from "@/components/comandas/types";
 
 function centsToInput(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",");
@@ -54,6 +54,7 @@ export function ComandaDrawer({
   professionals,
   services,
   products,
+  paymentMethods = [],
   onClose,
 }: {
   open: boolean;
@@ -63,6 +64,7 @@ export function ComandaDrawer({
   professionals: { id: string; name: string }[];
   services: { id: string; name: string; priceCents: number }[];
   products: { id: string; name: string; priceCents: number }[];
+  paymentMethods?: PaymentMethodOption[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -178,6 +180,7 @@ export function ComandaDrawer({
     fillItems(formData);
     for (const payment of payments) {
       formData.append("payMethod", payment.method);
+      formData.append("payMethodId", payment.paymentMethodId ?? "");
       formData.append("payAmount", centsToInput(payment.amountCents));
       formData.append("payInstallments", String(payment.installments));
       formData.append("payDate", payment.date);
@@ -399,6 +402,7 @@ export function ComandaDrawer({
         discountCents={headerDiscount + itemDiscounts}
         pending={pending}
         error={payOpen ? error : null}
+        methods={paymentMethods}
         onClose={() => setPayOpen(false)}
         onInvoice={confirmInvoice}
       />

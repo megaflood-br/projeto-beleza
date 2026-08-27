@@ -8,13 +8,15 @@ import { addComandaItem, closeComanda, removeComandaItemForm } from "@/app/actio
 import { formAction } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
 import { comandaSubtotal, comandaTotal, itemLineTotal } from "@/lib/comandas";
-import { COMANDA_STATUS_COLOR, COMANDA_STATUS_LABEL, PAYMENT_LABEL, type ComandaStatus, type PaymentMethod } from "@/lib/constants";
+import { COMANDA_STATUS_COLOR, COMANDA_STATUS_LABEL, type ComandaStatus } from "@/lib/constants";
+import { loadFinanceCatalog } from "@/lib/finance-catalog";
+import { financeMethodLabel } from "@/lib/finance";
 import { Trash2 } from "lucide-react";
 
 export default async function ComandaPage({ params }: { params: Promise<{ id: string }> }) {
   const { session } = await requireTenant();
   const { id } = await params;
-  const [comanda, services, products, professionals] = await Promise.all([
+  const [comanda, services, products, professionals, catalog] = await Promise.all([
     prisma.comanda.findFirst({
       where: { id, tenantId: session.tenantId },
       include: { client: true, professional: true, appointment: true, items: { include: { professional: true } } },
@@ -22,6 +24,7 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
     prisma.service.findMany({ where: { tenantId: session.tenantId, active: true }, orderBy: { name: "asc" } }),
     prisma.product.findMany({ where: { tenantId: session.tenantId, active: true }, orderBy: { name: "asc" } }),
     prisma.professional.findMany({ where: { tenantId: session.tenantId, active: true }, orderBy: { name: "asc" } }),
+    loadFinanceCatalog(session.tenantId),
   ]);
   if (!comanda) notFound();
 
@@ -162,19 +165,21 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
                 <Input name="discount" defaultValue={(comanda.discountCents / 100).toFixed(2).replace(".", ",")} />
               </Field>
               <Field label="Pagamento">
-                <Select name="method" defaultValue="PIX">
-                  {Object.entries(PAYMENT_LABEL).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
+                <Select name="paymentMethodId" defaultValue={catalog.methods.find((m) => m.code === "PIX" && m.active)?.id ?? catalog.methods.find((m) => m.active)?.id ?? ""}>
+                  {catalog.methods
+                    .filter((m) => m.active)
+                    .map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} · {m.accountName}
+                      </option>
+                    ))}
                 </Select>
               </Field>
               <Button variant="success">Fechar comanda</Button>
             </form>
           ) : (
             <p className="text-sm text-ink-soft">
-              Paga via {PAYMENT_LABEL[comanda.paymentMethod as PaymentMethod] ?? comanda.paymentMethod}
+              Paga via {financeMethodLabel(comanda.paymentMethod ?? "", catalog.methods.find((m) => m.code === comanda.paymentMethod)?.name)}
             </p>
           )}
         </div>

@@ -12,6 +12,7 @@ import { formatBRL } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { CommissionRow, CommissionRule } from "@/components/comissoes/types";
+import type { CatalogAccount, CatalogMethod } from "@/lib/finance-catalog";
 
 type Tab = "detalhadas" | "resumidas" | "pagas" | "config";
 
@@ -24,11 +25,15 @@ function moneyClass(cents: number) {
 export function CommissionBoard({
   rows,
   professionals,
+  accounts = [],
+  methods = [],
   defaultFrom,
   defaultTo,
 }: {
   rows: CommissionRow[];
   professionals: CommissionRule[];
+  accounts?: CatalogAccount[];
+  methods?: CatalogMethod[];
   defaultFrom: string;
   defaultTo: string;
 }) {
@@ -42,6 +47,10 @@ export function CommissionBoard({
   const [actionsOpen, setActionsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const defaultAccount = accounts.find((a) => a.isDefault && a.active) ?? accounts.find((a) => a.active);
+  const defaultMethod = methods.find((m) => m.active && m.code === "PIX") ?? methods.find((m) => m.active);
+  const [accountId, setAccountId] = useState(defaultAccount?.id ?? "");
+  const [methodId, setMethodId] = useState(defaultMethod?.id ?? "");
 
   const filtered = useMemo(
     () =>
@@ -87,6 +96,8 @@ export function CommissionBoard({
     }
     const fd = new FormData();
     for (const id of ids) fd.append("commissionId", id);
+    if (accountId) fd.set("accountId", accountId);
+    if (methodId) fd.set("methodId", methodId);
     setError(null);
     startTransition(async () => {
       const result = await payCommissions(fd);
@@ -294,9 +305,29 @@ export function CommissionBoard({
                 Líquido <strong className="text-emerald-600">{formatBRL(net)}</strong>
               </span>
             </div>
-            <Button type="button" variant="success" disabled={pending || !payRows.length} onClick={() => pay(payRows.map((row) => row.id))}>
-              {pending ? "Pagando..." : "Pagar comissões"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {accounts.length ? (
+                <SearchSelect
+                  value={accountId}
+                  onChange={setAccountId}
+                  placeholder="Conta"
+                  className="w-44"
+                  options={accounts.filter((a) => a.active).map((a) => ({ value: a.id, label: a.name }))}
+                />
+              ) : null}
+              {methods.length ? (
+                <SearchSelect
+                  value={methodId}
+                  onChange={setMethodId}
+                  placeholder="Forma"
+                  className="w-40"
+                  options={methods.filter((m) => m.active).map((m) => ({ value: m.id, label: m.name }))}
+                />
+              ) : null}
+              <Button type="button" variant="success" disabled={pending || !payRows.length} onClick={() => pay(payRows.map((row) => row.id))}>
+                {pending ? "Pagando..." : "Pagar comissões"}
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}

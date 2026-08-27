@@ -12,9 +12,21 @@ export type ComandaItemDraft = {
 export type PaymentDraft = {
   key: string;
   method: string;
+  paymentMethodId?: string;
+  methodName?: string;
   amountCents: number;
   installments: number;
   date: string;
+};
+
+export type PaymentMethodOption = {
+  id: string;
+  name: string;
+  code: string;
+  group: string;
+  feeBps: number;
+  accountName: string;
+  settlementDays: number;
 };
 
 export type ComandaFormValue = {

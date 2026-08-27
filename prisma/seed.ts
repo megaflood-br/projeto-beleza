@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, addMinutes } from "date-fns";
 import { calendarDate, zonedDateTime } from "../src/lib/dates";
+import { ensureFinanceCatalog } from "../src/lib/finance-catalog";
+import { postLedgerEntry } from "../src/lib/ledger";
 
 const prisma = new PrismaClient();
 
@@ -20,6 +22,9 @@ async function main() {
   await prisma.commission.deleteMany();
   await prisma.stockMovement.deleteMany();
   await prisma.transaction.deleteMany();
+  await prisma.paymentMethodConfig.deleteMany();
+  await prisma.financeCategory.deleteMany();
+  await prisma.financeAccount.deleteMany();
   await prisma.appointmentItem.deleteMany();
   await prisma.appointment.deleteMany();
   await prisma.serviceProduct.deleteMany();
@@ -54,6 +59,7 @@ async function main() {
       closeTime: "20:00",
     },
   });
+  await ensureFinanceCatalog(aurora.id);
 
   const camila = await prisma.professional.create({
     data: {
@@ -417,17 +423,15 @@ async function main() {
           status: "PENDING",
         },
       });
-      await prisma.transaction.create({
-        data: {
-          tenantId: aurora.id,
-          type: "INCOME",
-          category: "servico",
-          amountCents: service.priceCents,
-          method: "PIX",
-          description: service.name,
-          appointmentId: appointment.id,
-          occurredAt: opts.start,
-        },
+      await postLedgerEntry({
+        tenantId: aurora.id,
+        type: "INCOME",
+        category: "servico",
+        amountCents: service.priceCents,
+        methodCode: "PIX",
+        description: service.name,
+        appointmentId: appointment.id,
+        occurredAt: opts.start,
       });
     }
     return appointment;
@@ -615,49 +619,44 @@ async function main() {
     },
   });
 
-  await prisma.transaction.createMany({
-    data: [
-      {
-        tenantId: aurora.id,
-        type: "EXPENSE",
-        category: "aluguel",
-        amountCents: 450000,
-        method: "TRANSFER",
-        organizational: true,
-        account: "nenhuma",
-        description: "Aluguel do ponto",
-        occurredAt: at(today, 8, 0),
-      },
-      {
-        tenantId: aurora.id,
-        type: "EXPENSE",
-        category: "fornecedor",
-        amountCents: 62000,
-        method: "PIX",
-        supplier: "Beauty Supply SP",
-        description: "Reposição de tinta e máscaras",
-        occurredAt: at(addDays(today, -2), 14, 0),
-      },
-      {
-        tenantId: aurora.id,
-        type: "EXPENSE",
-        category: "comissao",
-        amountCents: 16200,
-        method: "PIX",
-        professionalId: camila.id,
-        description: "Pagamento de comissão para Camila Ferreira",
-        occurredAt: at(addDays(today, -1), 18, 0),
-      },
-      {
-        tenantId: aurora.id,
-        type: "INCOME",
-        category: "produto",
-        amountCents: 8900,
-        method: "PIX",
-        description: "Venda máscara hidratação",
-        occurredAt: at(today, 13, 0),
-      },
-    ],
+  await postLedgerEntry({
+    tenantId: aurora.id,
+    type: "EXPENSE",
+    category: "aluguel",
+    amountCents: 450000,
+    methodCode: "TRANSFER",
+    organizational: true,
+    description: "Aluguel do ponto",
+    occurredAt: at(today, 8, 0),
+  });
+  await postLedgerEntry({
+    tenantId: aurora.id,
+    type: "EXPENSE",
+    category: "fornecedor",
+    amountCents: 62000,
+    methodCode: "PIX",
+    supplier: "Beauty Supply SP",
+    description: "Reposição de tinta e máscaras",
+    occurredAt: at(addDays(today, -2), 14, 0),
+  });
+  await postLedgerEntry({
+    tenantId: aurora.id,
+    type: "EXPENSE",
+    category: "comissao",
+    amountCents: 16200,
+    methodCode: "PIX",
+    professionalId: camila.id,
+    description: "Pagamento de comissão para Camila Ferreira",
+    occurredAt: at(addDays(today, -1), 18, 0),
+  });
+  await postLedgerEntry({
+    tenantId: aurora.id,
+    type: "INCOME",
+    category: "produto",
+    amountCents: 8900,
+    methodCode: "PIX",
+    description: "Venda máscara hidratação",
+    occurredAt: at(today, 13, 0),
   });
 
   const convJuliana = await prisma.conversation.create({
@@ -744,6 +743,7 @@ async function main() {
       plan: "starter",
     },
   });
+  await ensureFinanceCatalog(norte.id);
   await prisma.user.create({
     data: {
       tenantId: norte.id,

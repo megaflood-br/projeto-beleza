@@ -9,6 +9,7 @@ import { calendarDate, daysBetween, eachCalendarDate, formatTime, minutesInTz, m
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
 import { averageTicket, bucketAppointmentStatus, conversionRate, percentDelta, previousPeriod, rankProfessionals } from "@/lib/dashboard";
+import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementLabel } from "@/lib/ledger";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -193,6 +194,29 @@ describe("financeiro", () => {
     };
     expect(financeTitular(tx)).toBe("Verônica Rodrigues");
     expect(financeOrigin(tx)).toEqual({ label: "C#12", href: "/comandas/abc" });
+  });
+});
+
+describe("ledger", () => {
+  it("calcula taxa e líquido em bps", () => {
+    expect(feeCents(10000, 536)).toBe(536);
+    expect(netAmountCents(10000, 536)).toBe(9464);
+    expect(feeCents(10000, 0)).toBe(0);
+    expect(netAmountCents(18000, 189)).toBe(17660);
+  });
+
+  it("descreve prazo de recebimento", () => {
+    expect(settlementLabel(0)).toBe("À vista");
+    expect(settlementLabel(1)).toBe("Disponível em 1 dia");
+    expect(settlementLabel(2)).toBe("Disponível em 2 dias");
+  });
+
+  it("agenda disponibilidade e saldo da conta", () => {
+    const day = new Date("2026-08-26T12:00:00Z");
+    expect(availableAt(day, 1).toISOString()).toBe("2026-08-27T12:00:00.000Z");
+    expect(accountBalanceDelta({ type: "INCOME", netCents: 9464, settled: true })).toBe(9464);
+    expect(accountBalanceDelta({ type: "EXPENSE", netCents: 16200, settled: true })).toBe(-16200);
+    expect(accountBalanceDelta({ type: "INCOME", netCents: 9464, settled: false })).toBe(0);
   });
 });
 

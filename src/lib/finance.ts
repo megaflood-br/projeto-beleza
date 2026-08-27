@@ -5,16 +5,16 @@ const CATEGORY_LABEL: Record<string, string> = {
   ...Object.fromEntries(EXPENSE_CATEGORIES.map((c) => [c.value, c.label])),
 };
 
-export function financeCategoryLabel(category: string) {
-  return CATEGORY_LABEL[category] ?? category;
+export function financeCategoryLabel(category: string, categoryName?: string | null) {
+  return categoryName || CATEGORY_LABEL[category] || category;
 }
 
-export function financeAccountLabel(account: string | null | undefined) {
-  return FINANCE_ACCOUNTS.find((a) => a.value === account)?.label ?? account ?? "Caixa";
+export function financeAccountLabel(account: string | null | undefined, accountName?: string | null) {
+  return accountName || FINANCE_ACCOUNTS.find((a) => a.value === account)?.label || account || "Caixa";
 }
 
-export function financeMethodLabel(method: string) {
-  return PAYMENT_LABEL[method as PaymentMethod] ?? method;
+export function financeMethodLabel(method: string, methodName?: string | null) {
+  return methodName || PAYMENT_LABEL[method as PaymentMethod] || method;
 }
 
 export function financeTitular(tx: {

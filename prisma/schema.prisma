@@ -49,6 +49,9 @@ model Tenant {
   conversations  Conversation[]
   automations    Automation[]
   comandas       Comanda[]
+  financeAccounts    FinanceAccount[]
+  paymentMethods     PaymentMethodConfig[]
+  financeCategories  FinanceCategory[]
 
   @@index([slug])
 }
@@ -430,6 +433,67 @@ model Commission {
   @@index([tenantId, status])
 }
 
+model FinanceAccount {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  details   String   @default("")
+  adminOnly Boolean  @default(false)
+  isDefault Boolean  @default(false)
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  paymentMethods PaymentMethodConfig[]
+  transactions   Transaction[]
+
+  @@index([tenantId, sortOrder])
+}
+
+model PaymentMethodConfig {
+  id             String         @id @default(cuid())
+  tenantId       String
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name           String
+  code           String
+  group          String         @default("OTHER")
+  feeBps         Int            @default(0)
+  accountId      String
+  account        FinanceAccount @relation(fields: [accountId], references: [id])
+  settlementDays Int            @default(0)
+  autoSettle     Boolean        @default(true)
+  favorite       Boolean        @default(false)
+  active         Boolean        @default(true)
+  sortOrder      Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  transactions Transaction[]
+
+  @@index([tenantId, sortOrder])
+  @@index([tenantId, code])
+}
+
+model FinanceCategory {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  type      String
+  slug      String
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+
+  @@index([tenantId, type])
+  @@unique([tenantId, slug, type])
+}
+
 model Transaction {
   id             String       @id @default(cuid())
   tenantId       String
@@ -437,8 +501,16 @@ model Transaction {
   type           String
   category       String
   amountCents    Int
+  feeCents       Int          @default(0)
+  netCents       Int          @default(0)
   method         String       @default("PIX")
   account        String       @default("caixa")
+  accountId      String?
+  financeAccount FinanceAccount? @relation(fields: [accountId], references: [id])
+  paymentMethodId String?
+  paymentMethodConfig PaymentMethodConfig? @relation(fields: [paymentMethodId], references: [id])
+  categoryId     String?
+  financeCategory FinanceCategory? @relation(fields: [categoryId], references: [id])
   description    String?
   organizational Boolean      @default(false)
   supplier       String?
@@ -451,9 +523,12 @@ model Transaction {
   comanda        Comanda?     @relation(fields: [comandaId], references: [id])
   competenceAt   DateTime?
   occurredAt     DateTime     @default(now())
+  availableAt    DateTime?
+  settled        Boolean      @default(true)
   createdAt      DateTime     @default(now())
 
   @@index([tenantId, occurredAt])
+  @@index([tenantId, accountId])
 }
 
 model Package {

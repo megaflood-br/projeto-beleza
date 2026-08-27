@@ -8,6 +8,7 @@ import { hasConflict } from "@/lib/appointments";
 import { calculateCommission } from "@/lib/commissions";
 import { nextStock } from "@/lib/stock";
 import { atTime, calendarDate, formatTime } from "@/lib/dates";
+import { postLedgerEntry } from "@/lib/ledger";
 
 export type AppointmentItemInput = {
   serviceId: string;
@@ -181,17 +182,14 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
       },
     });
 
-    await prisma.transaction.create({
-      data: {
-        tenantId: session.tenantId,
-        type: "INCOME",
-        category: "servico",
-        amountCents: priceCents,
-        method: "PIX",
-        account: "caixa",
-        description: appointment.items.map((item) => item.service.name).join(", "),
-        appointmentId: appointment.id,
-      },
+    await postLedgerEntry({
+      tenantId: session.tenantId,
+      type: "INCOME",
+      category: "servico",
+      amountCents: priceCents,
+      methodCode: "PIX",
+      description: appointment.items.map((item) => item.service.name).join(", "),
+      appointmentId: appointment.id,
     });
 
     for (const item of appointment.items) {

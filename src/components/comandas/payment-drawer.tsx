@@ -7,22 +7,33 @@ import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { calendarDate, formatShortDate } from "@/lib/dates";
 import { paymentChange } from "@/lib/comandas";
 import { PAYMENT_LABEL, type PaymentMethod } from "@/lib/constants";
-import type { PaymentDraft } from "@/components/comandas/types";
+import { feePercentLabel } from "@/lib/finance-catalog";
+import type { PaymentDraft, PaymentMethodOption } from "@/components/comandas/types";
 
 function centsToInput(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",");
 }
 
-const CARD_METHODS: { value: PaymentMethod; label: string }[] = [
-  { value: "CREDIT", label: "Crédito" },
-  { value: "DEBIT", label: "Débito" },
+const FALLBACK_CARD: PaymentMethodOption[] = [
+  { id: "", name: "Crédito", code: "CREDIT", group: "CARD", feeBps: 0, accountName: "Caixa", settlementDays: 0 },
+  { id: "", name: "Débito", code: "DEBIT", group: "CARD", feeBps: 0, accountName: "Caixa", settlementDays: 0 },
 ];
 
-const OTHER_METHODS: { value: PaymentMethod; label: string }[] = [
-  { value: "PIX", label: "Pix" },
-  { value: "TRANSFER", label: "Transferência" },
-  { value: "PACKAGE", label: "Pacote" },
+const FALLBACK_OTHER: PaymentMethodOption[] = [
+  { id: "", name: "Pix", code: "PIX", group: "OTHER", feeBps: 0, accountName: "Pix", settlementDays: 0 },
+  { id: "", name: "Transferência", code: "TRANSFER", group: "OTHER", feeBps: 0, accountName: "Caixa", settlementDays: 0 },
+  { id: "", name: "Pacote", code: "PACKAGE", group: "OTHER", feeBps: 0, accountName: "Caixa", settlementDays: 0 },
 ];
+
+const FALLBACK_CASH: PaymentMethodOption = {
+  id: "",
+  name: "Dinheiro",
+  code: "CASH",
+  group: "CASH",
+  feeBps: 0,
+  accountName: "Caixa",
+  settlementDays: 0,
+};
 
 export function PaymentDrawer({
   open,
@@ -30,6 +41,7 @@ export function PaymentDrawer({
   discountCents,
   pending,
   error,
+  methods = [],
   onClose,
   onInvoice,
 }: {
@@ -38,6 +50,7 @@ export function PaymentDrawer({
   discountCents: number;
   pending?: boolean;
   error?: string | null;
+  methods?: PaymentMethodOption[];
   onClose: () => void;
   onInvoice: (payments: PaymentDraft[]) => void;
 }) {
@@ -47,9 +60,17 @@ export function PaymentDrawer({
   const [payments, setPayments] = useState<PaymentDraft[]>([]);
   const [cardOpen, setCardOpen] = useState(false);
   const [otherOpen, setOtherOpen] = useState(false);
+  const [cashOpen, setCashOpen] = useState(false);
   const [showChange, setShowChange] = useState(false);
   const [received, setReceived] = useState("0,00");
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const cashMethods = methods.filter((m) => m.group === "CASH");
+  const cardMethods = methods.filter((m) => m.group === "CARD");
+  const otherMethods = methods.filter((m) => m.group !== "CASH" && m.group !== "CARD");
+  const cashOptions = cashMethods.length ? cashMethods : [FALLBACK_CASH];
+  const cardOptions = cardMethods.length ? cardMethods : FALLBACK_CARD;
+  const otherOptions = otherMethods.length ? otherMethods : FALLBACK_OTHER;
 
   useEffect(() => {
     if (!open) return;
@@ -59,6 +80,7 @@ export function PaymentDrawer({
     setDate(calendarDate());
     setCardOpen(false);
     setOtherOpen(false);
+    setCashOpen(false);
     setShowChange(false);
     setReceived(centsToInput(totalCents));
     setLocalError(null);
@@ -70,9 +92,10 @@ export function PaymentDrawer({
 
   if (!open) return null;
 
-  function addPayment(method: PaymentMethod) {
+  function addPayment(option: PaymentMethodOption) {
     setCardOpen(false);
     setOtherOpen(false);
+    setCashOpen(false);
     setLocalError(null);
     let amountCents = parseBRLToCents(amount);
     if (amountCents <= 0) amountCents = remaining;
@@ -83,7 +106,15 @@ export function PaymentDrawer({
     const qty = Math.max(1, Math.min(12, Math.round(Number(installments) || 1)));
     setPayments((rows) => [
       ...rows,
-      { key: crypto.randomUUID(), method, amountCents, installments: qty, date },
+      {
+        key: crypto.randomUUID(),
+        method: option.code,
+        paymentMethodId: option.id || undefined,
+        methodName: option.name,
+        amountCents,
+        installments: qty,
+        date,
+      },
     ]);
     const nextRemaining = Math.max(0, remaining - amountCents);
     setAmount(centsToInput(nextRemaining));
@@ -135,7 +166,22 @@ export function PaymentDrawer({
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <MethodButton icon={<DollarSign size={18} />} label="Dinheiro" onClick={() => addPayment("CASH")} />
+            <div className="relative">
+              <MethodButton
+                icon={<DollarSign size={18} />}
+                label="Dinheiro"
+                chevron={cashOptions.length > 1}
+                onClick={() => {
+                  if (cashOptions.length === 1) addPayment(cashOptions[0]);
+                  else {
+                    setCardOpen(false);
+                    setOtherOpen(false);
+                    setCashOpen((v) => !v);
+                  }
+                }}
+              />
+              {cashOpen ? <MethodMenu options={cashOptions} onSelect={addPayment} /> : null}
+            </div>
             <div className="relative">
               <MethodButton
                 icon={<CreditCard size={18} />}
@@ -143,15 +189,11 @@ export function PaymentDrawer({
                 chevron
                 onClick={() => {
                   setOtherOpen(false);
+                  setCashOpen(false);
                   setCardOpen((v) => !v);
                 }}
               />
-              {cardOpen ? (
-                <MethodMenu
-                  options={CARD_METHODS}
-                  onSelect={addPayment}
-                />
-              ) : null}
+              {cardOpen ? <MethodMenu options={cardOptions} onSelect={addPayment} /> : null}
             </div>
             <div className="relative col-span-2">
               <MethodButton
@@ -160,10 +202,11 @@ export function PaymentDrawer({
                 chevron
                 onClick={() => {
                   setCardOpen(false);
+                  setCashOpen(false);
                   setOtherOpen((v) => !v);
                 }}
               />
-              {otherOpen ? <MethodMenu options={OTHER_METHODS} onSelect={addPayment} /> : null}
+              {otherOpen ? <MethodMenu options={otherOptions} onSelect={addPayment} /> : null}
             </div>
           </div>
 
@@ -176,7 +219,9 @@ export function PaymentDrawer({
                 {payments.map((payment) => (
                   <li key={payment.key} className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
                     <div>
-                      <div className="font-medium">{PAYMENT_LABEL[payment.method as PaymentMethod] ?? payment.method}</div>
+                      <div className="font-medium">
+                        {payment.methodName || PAYMENT_LABEL[payment.method as PaymentMethod] || payment.method}
+                      </div>
                       <div className="text-xs text-ink-soft">
                         {payment.installments}x · {formatShortDate(new Date(`${payment.date}T12:00:00`))}
                       </div>
@@ -271,19 +316,23 @@ function MethodMenu({
   options,
   onSelect,
 }: {
-  options: { value: PaymentMethod; label: string }[];
-  onSelect: (value: PaymentMethod) => void;
+  options: PaymentMethodOption[];
+  onSelect: (value: PaymentMethodOption) => void;
 }) {
   return (
-    <div className="absolute top-[calc(100%+4px)] right-0 left-0 z-10 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-xl">
+    <div className="absolute top-[calc(100%+4px)] right-0 left-0 z-10 max-h-64 overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-xl">
       {options.map((option) => (
         <button
-          key={option.value}
+          key={option.id || option.code + option.name}
           type="button"
           className="block w-full px-3 py-2 text-left text-sm hover:bg-sand"
-          onClick={() => onSelect(option.value)}
+          onClick={() => onSelect(option)}
         >
-          {option.label}
+          <span className="font-medium">{option.name}</span>
+          <span className="mt-0.5 block text-xs text-ink-soft">
+            {option.accountName}
+            {option.feeBps ? ` · taxa ${feePercentLabel(option.feeBps)}` : ""}
+          </span>
         </button>
       ))}
     </div>

@@ -8,16 +8,22 @@ import { SearchSelect } from "@/components/search-select";
 import { createTransaction } from "@/app/actions/finance";
 import { calendarDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import { EXPENSE_CATEGORIES, FINANCE_ACCOUNTS, INCOME_CATEGORIES, PAYMENT_LABEL } from "@/lib/constants";
+import type { CatalogAccount, CatalogCategory, CatalogMethod } from "@/lib/finance-catalog";
 
 export function TransactionDrawer({
   type,
   professionals,
   suppliers,
+  accounts,
+  methods,
+  categories,
 }: {
   type: "INCOME" | "EXPENSE";
   professionals: { id: string; name: string }[];
   suppliers: string[];
+  accounts: CatalogAccount[];
+  methods: CatalogMethod[];
+  categories: CatalogCategory[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -27,7 +33,12 @@ export function TransactionDrawer({
   const [adjustDates, setAdjustDates] = useState(false);
   const [recurring, setRecurring] = useState(false);
   const isExpense = type === "EXPENSE";
-  const categories = isExpense ? EXPENSE_CATEGORIES : INCOME_CATEGORIES.filter((c) => c.value !== "comanda");
+  const typeCategories = categories.filter((c) => c.active && c.type === type);
+  const defaultAccount = accounts.find((a) => a.isDefault && a.active) ?? accounts.find((a) => a.active);
+  const defaultMethod =
+    methods.find((m) => m.active && m.code === (isExpense ? "PIX" : "PIX") && m.favorite) ??
+    methods.find((m) => m.active && m.code === "PIX") ??
+    methods.find((m) => m.active);
 
   async function handleAction(formData: FormData) {
     setError(null);
@@ -90,10 +101,11 @@ export function TransactionDrawer({
                   </Field>
                   <Field label="Forma de pagamento" required>
                     <SearchSelect
-                      name="method"
+                      name="methodId"
                       required
                       placeholder="Forma de pagamento"
-                      options={Object.entries(PAYMENT_LABEL).map(([value, label]) => ({ value, label }))}
+                      defaultValue={defaultMethod?.id}
+                      options={methods.filter((m) => m.active).map((m) => ({ value: m.id, label: m.name, hint: m.accountName }))}
                     />
                   </Field>
                 </div>
@@ -101,10 +113,11 @@ export function TransactionDrawer({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Conta" required>
                     <SearchSelect
-                      name="account"
+                      name="accountId"
                       required={!organizational}
                       placeholder="Conta"
-                      options={FINANCE_ACCOUNTS.map((a) => ({ value: a.value, label: a.label }))}
+                      defaultValue={defaultAccount?.id}
+                      options={accounts.filter((a) => a.active).map((a) => ({ value: a.id, label: a.name }))}
                     />
                   </Field>
                   <Field label="Categoria" required>
@@ -112,7 +125,7 @@ export function TransactionDrawer({
                       name="category"
                       required
                       placeholder={isExpense ? "Fornecedor" : "Categoria"}
-                      options={categories.map((c) => ({ value: c.value, label: c.label }))}
+                      options={typeCategories.map((c) => ({ value: c.slug, label: c.name }))}
                     />
                   </Field>
                 </div>

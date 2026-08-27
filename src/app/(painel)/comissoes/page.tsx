@@ -4,6 +4,7 @@ import { calendarDate, shiftCalendarDate } from "@/lib/dates";
 import { availableCommission, consumedProductCents } from "@/lib/commissions";
 import { CommissionBoard } from "@/components/comissoes/commission-board";
 import type { CommissionRow } from "@/components/comissoes/types";
+import { loadFinanceCatalog } from "@/lib/finance-catalog";
 
 type ProductUsage = { quantity: number; product: { costCents: number } };
 
@@ -15,7 +16,7 @@ export default async function ComissoesPage() {
   const { session } = await requireTenant();
   const today = calendarDate();
   const defaultFrom = shiftCalendarDate(today, -30);
-  const [commissions, professionals] = await Promise.all([
+  const [commissions, professionals, catalog] = await Promise.all([
     prisma.commission.findMany({
       where: { tenantId: session.tenantId },
       include: {
@@ -40,6 +41,7 @@ export default async function ComissoesPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true, commissionPct: true, receivesCommission: true },
     }),
+    loadFinanceCatalog(session.tenantId),
   ]);
 
   const rows: CommissionRow[] = commissions.map((c) => {
@@ -81,6 +83,8 @@ export default async function ComissoesPage() {
     <CommissionBoard
       rows={rows}
       professionals={professionals}
+      accounts={catalog.accounts}
+      methods={catalog.methods}
       defaultFrom={defaultFrom}
       defaultTo={today}
     />

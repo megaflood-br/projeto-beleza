@@ -3,10 +3,11 @@ import { requireTenant } from "@/lib/tenant";
 import { ComandaBoard } from "@/components/comandas/comanda-board";
 import { calendarDate } from "@/lib/dates";
 import { comandaTotal } from "@/lib/comandas";
+import { loadFinanceCatalog } from "@/lib/finance-catalog";
 
 export default async function ComandasPage() {
   const { session } = await requireTenant();
-  const [comandas, clients, professionals, services, products, last] = await Promise.all([
+  const [comandas, clients, professionals, services, products, last, catalog] = await Promise.all([
     prisma.comanda.findMany({
       where: { tenantId: session.tenantId },
       include: { client: true, professional: true, items: true },
@@ -37,6 +38,7 @@ export default async function ComandasPage() {
       orderBy: { number: "desc" },
       select: { number: true },
     }),
+    loadFinanceCatalog(session.tenantId),
   ]);
 
   return (
@@ -46,6 +48,7 @@ export default async function ComandasPage() {
       professionals={professionals}
       services={services}
       products={products.map((p) => ({ id: p.id, name: p.name, priceCents: p.saleCents }))}
+      paymentMethods={catalog.methods.filter((m) => m.active)}
       comandas={comandas.map((c) => ({
         id: c.id,
         number: c.number,

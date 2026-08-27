@@ -10,6 +10,7 @@ import { allocatePayments, comandaTotal } from "@/lib/comandas";
 import { parseBRLToCents } from "@/lib/money";
 import { zonedDateTime } from "@/lib/dates";
 import { PAYMENT_METHODS } from "@/lib/constants";
+import { postLedgerEntry } from "@/lib/ledger";
 
 async function nextNumber(tenantId: string) {
   const last = await prisma.comanda.findFirst({
@@ -27,6 +28,7 @@ function revalidateComandas() {
   revalidatePath("/financeiro");
   revalidatePath("/comissoes");
   revalidatePath("/estoque");
+  revalidatePath("/cadastros");
 }
 
 export async function createComandaFromAppointment(appointmentId: string) {
@@ -305,6 +307,7 @@ export async function removeComandaItemForm(formData: FormData) {
 
 type ParsedPayment = {
   method: string;
+  paymentMethodId?: string;
   amountCents: number;
   installments: number;
   occurredAt: Date;
@@ -312,20 +315,23 @@ type ParsedPayment = {
 
 function parsePayments(formData: FormData): ParsedPayment[] {
   const methods = formData.getAll("payMethod").map(String);
+  const methodIds = formData.getAll("payMethodId").map(String);
   const amounts = formData.getAll("payAmount").map(String);
   const installments = formData.getAll("payInstallments").map(String);
   const dates = formData.getAll("payDate").map(String);
   const allowed = new Set<string>(PAYMENT_METHODS);
   const payments: ParsedPayment[] = [];
-  for (let i = 0; i < methods.length; i++) {
-    const method = methods[i];
-    if (!allowed.has(method)) continue;
+  const count = Math.max(methods.length, methodIds.length, amounts.length);
+  for (let i = 0; i < count; i++) {
+    const method = methods[i] ?? "";
+    const paymentMethodId = methodIds[i] || undefined;
+    if (!paymentMethodId && !allowed.has(method)) continue;
     const amountCents = parseBRLToCents(amounts[i] ?? "0");
     if (amountCents <= 0) continue;
     const qty = Math.max(1, Math.min(12, Math.round(Number(installments[i] ?? "1") || 1)));
     const dateRaw = dates[i] ?? "";
     const occurredAt = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? zonedDateTime(dateRaw, "12:00") : new Date();
-    payments.push({ method, amountCents, installments: qty, occurredAt });
+    payments.push({ method: method || "PIX", paymentMethodId, amountCents, installments: qty, occurredAt });
   }
   return payments;
 }
@@ -386,20 +392,18 @@ async function finalizeOpenComanda(
 
   for (const payment of allocated) {
     if (payment.appliedCents <= 0) continue;
-    await prisma.transaction.create({
-      data: {
-        tenantId,
-        type: "INCOME",
-        category: "comanda",
-        amountCents: payment.appliedCents,
-        method: payment.method,
-        account: "caixa",
-        description:
-          payment.installments > 1 ? `Comanda #${comanda.number} · ${payment.installments}x` : `Comanda #${comanda.number}`,
-        appointmentId: comanda.appointmentId,
-        comandaId: comanda.id,
-        occurredAt: payment.occurredAt,
-      },
+    await postLedgerEntry({
+      tenantId,
+      type: "INCOME",
+      category: "comanda",
+      amountCents: payment.appliedCents,
+      methodId: payment.paymentMethodId,
+      methodCode: payment.method,
+      description:
+        payment.installments > 1 ? `Comanda #${comanda.number} · ${payment.installments}x` : `Comanda #${comanda.number}`,
+      appointmentId: comanda.appointmentId,
+      comandaId: comanda.id,
+      occurredAt: payment.occurredAt,
     });
   }
 
@@ -494,10 +498,11 @@ export async function invoiceComanda(formData: FormData) {
 export async function closeComanda(formData: FormData) {
   const { session } = await requireTenant();
   const comandaId = String(formData.get("comandaId") ?? "");
+  const paymentMethodId = String(formData.get("paymentMethodId") ?? "");
   const method = String(formData.get("method") ?? "PIX");
   const discountCents = parseBRLToCents(String(formData.get("discount") ?? "0"));
   const allowed = new Set<string>(PAYMENT_METHODS);
-  if (!allowed.has(method)) return { error: "Forma de pagamento inválida." };
+  if (!paymentMethodId && !allowed.has(method)) return { error: "Forma de pagamento inválida." };
 
   const comanda = await prisma.comanda.findFirst({
     where: { id: comandaId, tenantId: session.tenantId },
@@ -514,7 +519,7 @@ export async function closeComanda(formData: FormData) {
   return finalizeOpenComanda(
     session.tenantId,
     comandaId,
-    [{ method, amountCents: total, installments: 1, occurredAt: new Date() }],
+    [{ method, paymentMethodId: paymentMethodId || undefined, amountCents: total, installments: 1, occurredAt: new Date() }],
     discountCents,
   );
 }
