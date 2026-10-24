@@ -13,6 +13,7 @@ import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementL
 import { collectAlerts, DEFAULT_ANAMNESIS_FORMS, missingRequired, parseQuestions, serializeQuestions } from "@/lib/anamnesis";
 import { isPlatformAdmin } from "@/lib/auth";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
+import { featuresFromText, formatPlanPrice, nextPlanSlug, parsePlanFeatures, planLabel, serializePlanFeatures } from "@/lib/plans";
 import {
   formatSupportWhen,
   isPresenceOnline,
@@ -316,6 +317,18 @@ describe("plataforma", () => {
     expect(isPlatformAdmin("SUPER_ADMIN")).toBe(true);
     expect(isPlatformAdmin("OWNER")).toBe(false);
     expect(TENANT_STATUS_LABEL.SUSPENDED).toBe("Suspensa");
+  });
+
+  it("serializa tipos de plano e preço", () => {
+    expect(parsePlanFeatures('["Agenda","Caixa"]')).toEqual(["Agenda", "Caixa"]);
+    expect(parsePlanFeatures("Agenda\n- Caixa")).toEqual(["Agenda", "Caixa"]);
+    expect(serializePlanFeatures([" Agenda ", ""])).toBe('["Agenda"]');
+    expect(JSON.parse(featuresFromText("WhatsApp\nAnamnese"))).toEqual(["WhatsApp", "Anamnese"]);
+    expect(formatPlanPrice(0)).toBe("Grátis");
+    expect(formatPlanPrice(19900, "monthly")).toContain("199");
+    expect(nextPlanSlug("Profissional", ["profissional"])).toBe("profissional-2");
+    expect(planLabel("premium", [{ slug: "premium", name: "Premium" }])).toBe("Premium");
+    expect(planLabel("avulso", [])).toBe("avulso");
   });
 });
 

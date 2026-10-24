@@ -7,18 +7,12 @@ import { Building2, Headphones, LogIn, Pencil, Plus, Search } from "lucide-react
 import { Badge, Button, Input } from "@/components/ui";
 import { TenantDrawer } from "@/components/plataforma/tenant-drawer";
 import { deleteTenantAccount, impersonateTenant, setTenantStatus } from "@/app/actions/platform";
-import {
-  TENANT_PLAN_LABEL,
-  TENANT_STATUS_COLOR,
-  TENANT_STATUS_LABEL,
-  type TenantPlan,
-  type TenantStatus,
-} from "@/lib/constants";
+import { TENANT_STATUS_COLOR, TENANT_STATUS_LABEL, type TenantStatus } from "@/lib/constants";
 import { formatMediumDate } from "@/lib/dates";
 import { cn, formAction } from "@/lib/utils";
-import type { TenantAccountRow } from "@/components/plataforma/types";
+import type { PlatformPlanOption, TenantAccountRow } from "@/components/plataforma/types";
 
-export function PlatformBoard({ accounts }: { accounts: TenantAccountRow[] }) {
+export function PlatformBoard({ accounts, plans }: { accounts: TenantAccountRow[]; plans: PlatformPlanOption[] }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<TenantStatus | "ALL">("ALL");
@@ -130,7 +124,7 @@ export function PlatformBoard({ accounts }: { accounts: TenantAccountRow[] }) {
                     <div>{row.ownerName ?? "—"}</div>
                     <div className="text-xs text-ink-soft">{row.ownerEmail ?? ""}</div>
                   </td>
-                  <td>{TENANT_PLAN_LABEL[row.plan as TenantPlan] ?? row.plan}</td>
+                  <td>{row.planLabel}</td>
                   <td className="text-ink-soft">
                     {row.users} usuários · {row.clients} clientes · {row.appointments} agend.
                   </td>
@@ -197,7 +191,9 @@ export function PlatformBoard({ accounts }: { accounts: TenantAccountRow[] }) {
         )}
       </div>
 
-      {editing !== undefined ? <TenantDrawer open account={editing} onClose={() => setEditing(undefined)} /> : null}
+      {editing !== undefined ? (
+        <TenantDrawer open account={editing} plans={plans} onClose={() => setEditing(undefined)} />
+      ) : null}
     </div>
   );
 }

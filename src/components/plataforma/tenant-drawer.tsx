@@ -5,16 +5,18 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { saveTenantAccount } from "@/app/actions/platform";
-import { TENANT_PLANS, TENANT_PLAN_LABEL, TENANT_STATUSES, TENANT_STATUS_LABEL } from "@/lib/constants";
-import type { TenantAccountRow } from "@/components/plataforma/types";
+import { TENANT_STATUSES, TENANT_STATUS_LABEL } from "@/lib/constants";
+import type { PlatformPlanOption, TenantAccountRow } from "@/components/plataforma/types";
 
 export function TenantDrawer({
   open,
   account,
+  plans,
   onClose,
 }: {
   open: boolean;
   account: TenantAccountRow | null;
+  plans: PlatformPlanOption[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -69,12 +71,17 @@ export function TenantDrawer({
             )}
             <div className="grid grid-cols-2 gap-3">
               <Field label="Plano">
-                <Select name="plan" defaultValue={account?.plan ?? "profissional"}>
-                  {TENANT_PLANS.map((plan) => (
-                    <option key={plan} value={plan}>
-                      {TENANT_PLAN_LABEL[plan]}
-                    </option>
-                  ))}
+                <Select
+                  name="plan"
+                  defaultValue={account?.plan ?? plans.find((plan) => plan.active)?.slug ?? plans[0]?.slug ?? ""}
+                >
+                  {plans
+                    .filter((plan) => plan.active || plan.slug === account?.plan)
+                    .map((plan) => (
+                      <option key={plan.slug} value={plan.slug}>
+                        {plan.name}
+                      </option>
+                    ))}
                 </Select>
               </Field>
               <Field label="Status">

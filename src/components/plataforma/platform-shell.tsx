@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Headphones, LogOut } from "lucide-react";
+import { BadgePercent, Building2, Headphones, LogOut } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { SupportCallOverlay } from "@/components/suporte/call-overlay";
 import { SupportLiveProvider, useSupportLive } from "@/components/suporte/live-context";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/plataforma", label: "Contas", icon: Building2, exact: true },
+  { href: "/plataforma/planos", label: "Planos", icon: BadgePercent, exact: false },
   { href: "/plataforma/suporte", label: "Suporte", icon: Headphones, exact: false },
 ];
 
