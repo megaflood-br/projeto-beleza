@@ -3,6 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
+import { parseBRLToCents } from "@/lib/money";
+import { normalizeCentsPerPoint } from "@/lib/cashback";
+
+function toInt(raw: FormDataEntryValue | null, fallback: number) {
+  const value = Number(String(raw ?? "").replace(",", "."));
+  return Number.isFinite(value) ? Math.round(value) : fallback;
+}
+
+function checked(formData: FormData, key: string) {
+  return formData.getAll(key).map(String).includes("1");
+}
 
 export async function saveSettings(formData: FormData) {
   const { session } = await requireTenant();
@@ -23,5 +34,33 @@ export async function saveSettings(formData: FormData) {
   });
   revalidatePath("/configuracoes");
   revalidatePath("/agenda");
+  return { ok: true };
+}
+
+export async function saveCashbackSettings(formData: FormData) {
+  const { session } = await requireTenant();
+  const earnPct = Math.min(100, Math.max(0, toInt(formData.get("cashbackEarnPct"), 5)));
+  const maxRedeemPct = Math.min(100, Math.max(0, toInt(formData.get("cashbackMaxRedeemPct"), 100)));
+  const expireDays = Math.max(0, toInt(formData.get("cashbackExpireDays"), 0));
+  const centsPerPoint = normalizeCentsPerPoint(parseBRLToCents(String(formData.get("cashbackPointValue") ?? "1")));
+  const minSpendCents = Math.max(0, parseBRLToCents(String(formData.get("cashbackMinSpend") ?? "0")));
+
+  await prisma.tenant.update({
+    where: { id: session.tenantId },
+    data: {
+      cashbackEnabled: checked(formData, "cashbackEnabled"),
+      cashbackEarnPct: earnPct,
+      cashbackUseItemPct: checked(formData, "cashbackUseItemPct"),
+      cashbackOnServices: checked(formData, "cashbackOnServices"),
+      cashbackOnProducts: checked(formData, "cashbackOnProducts"),
+      cashbackMinSpendCents: minSpendCents,
+      cashbackMaxRedeemPct: maxRedeemPct,
+      cashbackExpireDays: expireDays,
+      cashbackCentsPerPoint: centsPerPoint,
+    },
+  });
+  revalidatePath("/configuracoes");
+  revalidatePath("/clientes");
+  revalidatePath("/comandas");
   return { ok: true };
 }

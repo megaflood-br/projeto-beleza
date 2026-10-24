@@ -1,10 +1,13 @@
 import { requireTenant } from "@/lib/tenant";
 import { Button, Card, Field, Input } from "@/components/ui";
-import { saveSettings } from "@/app/actions/settings";
+import { saveCashbackSettings, saveSettings } from "@/app/actions/settings";
 import { formAction } from "@/lib/utils";
+import { formatBRL } from "@/lib/money";
+import { tenantCashbackConfig } from "@/lib/cashback";
 
 export default async function ConfigPage() {
   const { tenant } = await requireTenant();
+  const cashback = tenantCashbackConfig(tenant);
   return (
     <div className="max-w-2xl space-y-4">
       <h1 className="font-display text-3xl">Configurações do salão</h1>
@@ -46,6 +49,57 @@ export default async function ConfigPage() {
             Link de agendamento online: <code>/agendar/{tenant.slug}</code>
           </p>
           <Button>Salvar</Button>
+        </form>
+      </Card>
+
+      <Card>
+        <form action={formAction(saveCashbackSettings)} className="grid gap-3">
+          <div>
+            <h2 className="font-display text-2xl">Cashback</h2>
+            <p className="mt-1 text-sm text-ink-soft">
+              Ative o módulo e defina como os pontos são gerados e usados nas comandas.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm">
+            <input type="checkbox" name="cashbackEnabled" value="1" defaultChecked={cashback.enabled} />
+            Ativar módulo de cashback
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Percentual padrão">
+              <Input name="cashbackEarnPct" type="number" min={0} max={100} defaultValue={cashback.earnPct} />
+            </Field>
+            <Field label="Uso máximo na comanda (%)">
+              <Input name="cashbackMaxRedeemPct" type="number" min={0} max={100} defaultValue={cashback.maxRedeemPct} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Valor de 1 ponto">
+              <Input name="cashbackPointValue" defaultValue={formatBRL(cashback.centsPerPoint)} />
+            </Field>
+            <Field label="Gasto mínimo para acumular">
+              <Input name="cashbackMinSpend" defaultValue={formatBRL(cashback.minSpendCents)} />
+            </Field>
+          </div>
+          <Field label="Validade dos pontos (dias, 0 = sem validade)">
+            <Input name="cashbackExpireDays" type="number" min={0} defaultValue={cashback.expireDays} />
+          </Field>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="cashbackUseItemPct" value="1" defaultChecked={cashback.useItemPct} />
+            Usar percentual do serviço ou produto quando estiver cadastrado
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="cashbackOnServices" value="1" defaultChecked={cashback.onServices} />
+            Acumular em serviços
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="cashbackOnProducts" value="1" defaultChecked={cashback.onProducts} />
+            Acumular em produtos
+          </label>
+          <p className="text-xs text-ink-soft">
+            Ao fechar a comanda, o cliente acumula o percentual sobre os itens elegíveis e pode resgatar até o limite
+            configurado. Lançamentos manuais ficam na aba Cashback do cliente.
+          </p>
+          <Button>Salvar cashback</Button>
         </form>
       </Card>
     </div>

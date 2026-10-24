@@ -12,7 +12,7 @@ export default async function ClientePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const { session } = await requireTenant();
+  const { session, tenant } = await requireTenant();
   const { id } = await params;
   const { tab: tabParam } = await searchParams;
   const tab = isClientTab(tabParam) ? tabParam : "painel";
@@ -39,6 +39,7 @@ export default async function ClientePage({
         include: { client: true, form: true, professional: true },
         orderBy: { occurredAt: "desc" },
       },
+      cashbackMoves: { orderBy: { createdAt: "desc" }, take: 40 },
     },
   });
   if (!client) notFound();
@@ -79,6 +80,21 @@ export default async function ClientePage({
       anamneses={client.anamneses.map(mapAnamnesisRow)}
       forms={forms.map(mapFormRow)}
       professionals={professionals}
+      cashbackEnabled={tenant.cashbackEnabled}
+      cashbackCentsPerPoint={tenant.cashbackCentsPerPoint}
+      cashbackMoves={client.cashbackMoves.map((move) => ({
+        id: move.id,
+        type: (["EARN", "REDEEM", "MANUAL", "ADJUST"].includes(move.type) ? move.type : "ADJUST") as
+          | "EARN"
+          | "REDEEM"
+          | "MANUAL"
+          | "ADJUST",
+        amountCents: move.amountCents,
+        points: move.points,
+        reason: move.reason,
+        createdByName: move.createdByName,
+        createdAt: move.createdAt.toISOString(),
+      }))}
     />
   );
 }

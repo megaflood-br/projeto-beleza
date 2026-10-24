@@ -14,6 +14,7 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.cashbackMovement.deleteMany();
   await prisma.platformPlan.deleteMany();
   await prisma.supportMessage.deleteMany();
   await prisma.supportCall.deleteMany();
@@ -91,6 +92,13 @@ async function main() {
       accentColor: "#2563EB",
       openTime: "08:00",
       closeTime: "20:00",
+      cashbackEnabled: true,
+      cashbackEarnPct: 5,
+      cashbackUseItemPct: true,
+      cashbackOnServices: true,
+      cashbackOnProducts: true,
+      cashbackMaxRedeemPct: 50,
+      cashbackCentsPerPoint: 100,
     },
   });
   await ensureFinanceCatalog(aurora.id);
@@ -439,6 +447,21 @@ async function main() {
   }
 
   const [juliana, pedro, fernanda, carla, thiago, beatriz, amanda, lucas, patricia, renata] = clients;
+  await prisma.client.update({
+    where: { id: juliana.id },
+    data: { cashbackCents: 4500 },
+  });
+  await prisma.cashbackMovement.create({
+    data: {
+      tenantId: aurora.id,
+      clientId: juliana.id,
+      type: "MANUAL",
+      amountCents: 4500,
+      points: 45,
+      reason: "Saldo inicial de demonstração",
+      createdByName: "Admin MegaBeauty",
+    },
+  });
 
   const forms = await prisma.anamnesisForm.findMany({ where: { tenantId: aurora.id } });
   const formBySlug = Object.fromEntries(forms.map((form) => [form.slug, form]));

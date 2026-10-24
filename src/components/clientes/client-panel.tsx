@@ -21,6 +21,7 @@ import { calendarDate, formatMediumDate, formatTime } from "@/lib/dates";
 import { STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
 import { comandaTotal } from "@/lib/comandas";
 import { ClientAnamneses } from "@/components/anamneses/client-anamneses";
+import { CashbackTab, type CashbackMoveRow } from "@/components/clientes/cashback-tab";
 import type { AnamnesisFormRow, AnamnesisRow } from "@/components/anamneses/types";
 import type { buildClientMetrics } from "@/lib/client-metrics";
 
@@ -85,6 +86,9 @@ export function ClientPanel({
   anamneses,
   forms,
   professionals,
+  cashbackEnabled,
+  cashbackCentsPerPoint,
+  cashbackMoves,
 }: {
   tab: ClientTab;
   client: {
@@ -108,6 +112,9 @@ export function ClientPanel({
   anamneses: AnamnesisRow[];
   forms: AnamnesisFormRow[];
   professionals: { id: string; name: string }[];
+  cashbackEnabled: boolean;
+  cashbackCentsPerPoint: number;
+  cashbackMoves: CashbackMoveRow[];
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
@@ -167,7 +174,13 @@ export function ClientPanel({
           ) : tab === "creditos" ? (
             <BalanceTab label="Crédito disponível" amount={client.creditCents} empty="Sem crédito lançado." />
           ) : tab === "cashback" ? (
-            <BalanceTab label="Cashback" amount={client.cashbackCents} empty="Sem cashback acumulado." />
+            <CashbackTab
+              clientId={client.id}
+              balanceCents={client.cashbackCents}
+              enabled={cashbackEnabled}
+              centsPerPoint={cashbackCentsPerPoint}
+              movements={cashbackMoves}
+            />
           ) : tab === "agendamentos" ? (
             <AppointmentsTab appointments={appointments} />
           ) : tab === "produtos" ? (
