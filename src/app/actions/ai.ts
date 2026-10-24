@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { chatWithSalonContext, fallbackInsight } from "@/lib/openai";
+import { resolvePlatformIntegrations } from "@/lib/integrations";
 import { formatBRL } from "@/lib/money";
 import { occupancyPercent } from "@/lib/appointments";
 import { rangeOfDay } from "@/lib/dates";
@@ -59,8 +60,9 @@ export async function askAssistant(question: string) {
     };
   }
 
+  const integrations = await resolvePlatformIntegrations();
   return chatWithSalonContext({
-    apiKey: tenant.openaiApiKey,
+    apiKey: integrations.openaiApiKey,
     question,
     context,
   });

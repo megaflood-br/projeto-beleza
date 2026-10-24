@@ -45,9 +45,9 @@ export async function chatWithSalonContext(params: {
     return {
       source: "local" as const,
       answer:
-        "A OpenAI ainda não está configurada neste salão. Com os dados atuais: " +
+        "A OpenAI ainda não está configurada na plataforma. Com os dados atuais: " +
         params.context.slice(0, 400) +
-        " Configure a chave em Configurações para respostas mais precisas.",
+        " Configure a chave universal em Plataforma → Integrações.",
     };
   }
 

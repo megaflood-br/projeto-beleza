@@ -25,6 +25,8 @@ import {
   supportSide,
   ticketUnreadFor,
 } from "@/lib/support";
+import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEvolutionState } from "@/lib/evolution";
+import { evolutionWebhookUrl, instanceNameForTenant, maskSecret } from "@/lib/integrations";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -372,5 +374,33 @@ describe("suporte", () => {
     expect(reopenOnSalonReply("RESOLVED")).toBe(true);
     expect(reopenOnSalonReply("OPEN")).toBe(false);
     expect(formatSupportWhen(now, now)).toBe("agora");
+  });
+});
+
+describe("integrações da plataforma", () => {
+  it("nomeia a instância Evolution pelo slug do salão", () => {
+    expect(instanceNameForTenant("studio-aurora")).toBe("mb-studio-aurora");
+    expect(instanceNameForTenant("Studio Aurora!!!")).toBe("mb-studio-aurora");
+    expect(instanceNameForTenant("")).toBe("mb-salao");
+  });
+
+  it("monta webhook público por tenant", () => {
+    expect(evolutionWebhookUrl("https://app.megabeauty.com.br/", "studio-aurora")).toBe(
+      "https://app.megabeauty.com.br/api/webhooks/evolution?tenant=studio-aurora",
+    );
+    expect(evolutionWebhookUrl("", "studio-aurora")).toBe("");
+  });
+
+  it("mascara segredos e lê QR/estado da Evolution", () => {
+    expect(maskSecret("sk-abcdefghij")).toBe("sk-••••ij");
+    expect(maskSecret("abc")).toBe("••••");
+    expect(isEvolutionConfigured({ url: "https://evo", apiKey: "k", instance: "mb-x" })).toBe(true);
+    expect(isEvolutionConfigured({ url: "https://evo", apiKey: "k", instance: "" })).toBe(false);
+    expect(extractQrBase64({ base64: "data:image/png;base64,AAAA" })).toBe("data:image/png;base64,AAAA");
+    expect(extractQrBase64({ qrcode: { base64: "BBBB".repeat(25) } })).toMatch(/^data:image\/png;base64,/);
+    expect(parseEvolutionState({ instance: { state: "open" } })).toBe("open");
+    expect(parseEvolutionState({ status: "qrcode" })).toBe("connecting");
+    expect(parseEvolutionState({})).toBe("close");
+    expect(extractEvolutionNumber({ instance: { owner: "5511999999999@s.whatsapp.net" } })).toBe("5511999999999");
   });
 });

@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { isEvolutionConfigured, sendTextMessage } from "@/lib/evolution";
+import { isEvolutionConfigured, logoutEvolutionInstance, sendTextMessage } from "@/lib/evolution";
 import { draftWhatsAppMessage } from "@/lib/openai";
+import { resolvePlatformIntegrations } from "@/lib/integrations";
+import { provisionWhatsAppInstance } from "@/lib/whatsapp-live";
 
 export async function sendWhatsApp(formData: FormData) {
   const { session, tenant } = await requireTenant();
@@ -25,13 +27,14 @@ export async function sendWhatsApp(formData: FormData) {
       create: { tenantId: session.tenantId, phone, lastMessageAt: new Date() },
     }));
 
+  const server = await resolvePlatformIntegrations();
   const config = {
-    url: tenant.evolutionUrl ?? process.env.EVOLUTION_API_URL ?? "",
-    apiKey: tenant.evolutionApiKey ?? process.env.EVOLUTION_API_KEY ?? "",
+    url: server.evolutionUrl,
+    apiKey: server.evolutionApiKey,
     instance: tenant.evolutionInstance ?? "",
   };
 
-  if (isEvolutionConfigured(config)) {
+  if (isEvolutionConfigured(config) && tenant.evolutionStatus === "open") {
     await sendTextMessage(config, phone, body);
   }
 
@@ -48,13 +51,14 @@ export async function sendWhatsApp(formData: FormData) {
   });
 
   revalidatePath("/whatsapp");
-  return { ok: true, mocked: !isEvolutionConfigured(config) };
+  return { ok: true, mocked: !(isEvolutionConfigured(config) && tenant.evolutionStatus === "open") };
 }
 
 export async function generateWhatsAppDraft(goal: string, clientName: string) {
   const { tenant } = await requireTenant();
+  const integrations = await resolvePlatformIntegrations();
   const text = await draftWhatsAppMessage({
-    apiKey: tenant.openaiApiKey,
+    apiKey: integrations.openaiApiKey,
     goal,
     clientName,
     salonName: tenant.name,
@@ -62,17 +66,35 @@ export async function generateWhatsAppDraft(goal: string, clientName: string) {
   return { text };
 }
 
-export async function saveEvolutionSettings(formData: FormData) {
+export async function connectWhatsAppInstance() {
   const { session } = await requireTenant();
+  try {
+    const result = await provisionWhatsAppInstance(session.tenantId);
+    revalidatePath("/whatsapp");
+    return { ok: true as const, qr: result.qr };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Não foi possível gerar o QR Code." };
+  }
+}
+
+export async function disconnectWhatsAppInstance() {
+  const { session, tenant } = await requireTenant();
+  const server = await resolvePlatformIntegrations();
+  if (server.hasEvolution && tenant.evolutionInstance) {
+    try {
+      await logoutEvolutionInstance({
+        url: server.evolutionUrl,
+        apiKey: server.evolutionApiKey,
+        instance: tenant.evolutionInstance,
+      });
+    } catch {
+      // still clear local status
+    }
+  }
   await prisma.tenant.update({
     where: { id: session.tenantId },
-    data: {
-      evolutionUrl: String(formData.get("evolutionUrl") ?? "") || null,
-      evolutionApiKey: String(formData.get("evolutionApiKey") ?? "") || null,
-      evolutionInstance: String(formData.get("evolutionInstance") ?? "") || null,
-    },
+    data: { evolutionStatus: "close", evolutionNumber: null },
   });
   revalidatePath("/whatsapp");
-  revalidatePath("/configuracoes");
-  return { ok: true };
+  return { ok: true as const };
 }

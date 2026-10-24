@@ -28,7 +28,6 @@ export async function saveSettings(formData: FormData) {
       city: String(formData.get("city") ?? "") || null,
       openTime: String(formData.get("openTime") ?? "08:00"),
       closeTime: String(formData.get("closeTime") ?? "20:00"),
-      openaiApiKey: String(formData.get("openaiApiKey") ?? "") || null,
       reminderHours: Number(formData.get("reminderHours") ?? 24),
     },
   });

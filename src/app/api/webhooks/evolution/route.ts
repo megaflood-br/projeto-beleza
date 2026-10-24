@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { extractInboundText, extractPhone } from "@/lib/evolution";
+import { extractEvolutionNumber, extractInboundText, extractPhone, parseEvolutionState } from "@/lib/evolution";
 
 export async function POST(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("tenant");
@@ -10,6 +10,17 @@ export async function POST(request: NextRequest) {
   if (!tenant) return NextResponse.json({ error: "unknown tenant" }, { status: 404 });
 
   const payload = (await request.json()) as Record<string, unknown>;
+  const event = String(payload.event ?? payload.type ?? "").toLowerCase();
+  if (event.includes("connection")) {
+    const state = parseEvolutionState(payload.data ?? payload);
+    const number = extractEvolutionNumber(payload.data ?? payload);
+    await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: { evolutionStatus: state, ...(number ? { evolutionNumber: number } : {}) },
+    });
+    return NextResponse.json({ ok: true, event: "connection" });
+  }
+
   const phone = extractPhone(payload);
   const body = extractInboundText(payload);
   if (!phone || !body) return NextResponse.json({ ok: true, ignored: true });
