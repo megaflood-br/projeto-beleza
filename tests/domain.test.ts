@@ -5,6 +5,8 @@ import { formatStockQty, isLowStock, nextStock } from "@/lib/stock";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
+import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
+import { parseSettingsTab } from "@/lib/settings";
 import { calendarDate, daysBetween, eachCalendarDate, formatTime, minutesInTz, minutesToLabel, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
@@ -134,6 +136,25 @@ describe("comandas", () => {
         cashbackCents: 300,
       }),
     ).toBe(8000);
+  });
+
+  it("calcula cashback por percentual e limita o resgate", () => {
+    const config = defaultCashbackConfig({ enabled: true, earnPct: 10, onProducts: false, maxRedeemPct: 50 });
+    expect(
+      earnCashbackCents(
+        [
+          { type: "SERVICE", quantity: 1, priceCents: 10000 },
+          { type: "PRODUCT", quantity: 1, priceCents: 5000 },
+        ],
+        config,
+      ),
+    ).toBe(1000);
+    expect(earnCashbackCents([{ type: "SERVICE", quantity: 1, priceCents: 10000 }], { ...config, enabled: false })).toBe(0);
+    expect(maxRedeemCents(10000, config, 8000)).toBe(5000);
+    expect(pointsToCents(10, 100)).toBe(1000);
+    expect(centsToPoints(1990, 100)).toBe(19);
+    expect(parseSettingsTab("cashback")).toBe("cashback");
+    expect(parseSettingsTab("outro")).toBe("salao");
   });
 
   it("calcula troco e rateia pagamentos no total", () => {

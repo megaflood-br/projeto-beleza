@@ -32,6 +32,15 @@ model Tenant {
   evolutionApiKey     String?
   evolutionInstance   String?
   reminderHours       Int      @default(24)
+  cashbackEnabled      Boolean  @default(false)
+  cashbackEarnPct      Int      @default(5)
+  cashbackUseItemPct   Boolean  @default(true)
+  cashbackOnServices   Boolean  @default(true)
+  cashbackOnProducts   Boolean  @default(true)
+  cashbackMinSpendCents Int     @default(0)
+  cashbackMaxRedeemPct Int      @default(100)
+  cashbackExpireDays   Int      @default(0)
+  cashbackCentsPerPoint Int     @default(100)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -58,6 +67,7 @@ model Tenant {
   financeCategories  FinanceCategory[]
   anamnesisForms     AnamnesisForm[]
   anamneses          Anamnesis[]
+  cashbackMoves      CashbackMovement[]
   supportTickets     SupportTicket[]
   supportCalls       SupportCall[]
   supportPresences   SupportPresence[]
@@ -243,6 +253,7 @@ model Client {
   packages       ClientPackage[]
   comandas       Comanda[]
   anamneses      Anamnesis[]
+  cashbackMoves  CashbackMovement[]
 
   @@unique([tenantId, phone])
   @@index([tenantId, name])
@@ -741,4 +752,23 @@ model PlatformPlan {
   updatedAt   DateTime @updatedAt
 
   @@index([active, sortOrder])
+}
+
+model CashbackMovement {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type          String
+  amountCents   Int
+  points        Int
+  reason        String?
+  comandaId     String?
+  createdById   String?
+  createdByName String?
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, clientId, createdAt])
 }

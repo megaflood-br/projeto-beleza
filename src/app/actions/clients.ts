@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { digitsOnly } from "@/lib/utils";
 import { zonedDateTime } from "@/lib/dates";
+import { cashbackExpiry, pointsToCents } from "@/lib/cashback";
 
 function flag(formData: FormData, key: string, fallback = true) {
   const raw = formData.get(key);
@@ -126,4 +127,44 @@ export async function upsertClient(formData: FormData) {
   if (id) revalidatePath(`/clientes/${id}`);
   revalidatePath("/agenda");
   return { ok: true };
+}
+
+export async function addManualCashback(formData: FormData) {
+  const { session, tenant } = await requireTenant();
+  if (!tenant.cashbackEnabled) return { error: "Ative o módulo de cashback em Configurações." };
+  const clientId = String(formData.get("clientId") ?? "");
+  const points = Math.round(Number(String(formData.get("points") ?? "").replace(",", ".")));
+  const reason = String(formData.get("reason") ?? "").trim() || "Lançamento manual";
+  if (!clientId) return { error: "Cliente não encontrado." };
+  if (!Number.isFinite(points) || points === 0) return { error: "Informe a quantidade de pontos." };
+
+  const client = await prisma.client.findFirst({ where: { id: clientId, tenantId: session.tenantId } });
+  if (!client) return { error: "Cliente não encontrado." };
+
+  const amountCents = pointsToCents(points, tenant.cashbackCentsPerPoint);
+  const nextBalance = client.cashbackCents + amountCents;
+  if (nextBalance < 0) return { error: "O saldo de cashback não pode ficar negativo." };
+
+  await prisma.$transaction([
+    prisma.client.update({
+      where: { id: client.id },
+      data: { cashbackCents: nextBalance },
+    }),
+    prisma.cashbackMovement.create({
+      data: {
+        tenantId: session.tenantId,
+        clientId: client.id,
+        type: "MANUAL",
+        amountCents,
+        points,
+        reason,
+        createdById: session.userId,
+        createdByName: session.name,
+        expiresAt: amountCents > 0 ? cashbackExpiry(tenant.cashbackExpireDays) : null,
+      },
+    }),
+  ]);
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${client.id}`);
+  return { ok: true as const };
 }

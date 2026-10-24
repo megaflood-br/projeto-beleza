@@ -6,11 +6,18 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { calculateCommission } from "@/lib/commissions";
 import { nextStock } from "@/lib/stock";
-import { allocatePayments, comandaTotal } from "@/lib/comandas";
-import { parseBRLToCents } from "@/lib/money";
+import { allocatePayments, comandaSubtotal, comandaTotal } from "@/lib/comandas";
+import { parseBRLToCents, formatBRL } from "@/lib/money";
 import { zonedDateTime } from "@/lib/dates";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { postLedgerEntry } from "@/lib/ledger";
+import {
+  cashbackExpiry,
+  centsToPoints,
+  earnCashbackCents,
+  maxRedeemCents,
+  tenantCashbackConfig,
+} from "@/lib/cashback";
 
 async function nextNumber(tenantId: string) {
   const last = await prisma.comanda.findFirst({
@@ -345,7 +352,7 @@ async function finalizeOpenComanda(
   const comanda = await prisma.comanda.findFirst({
     where: { id: comandaId, tenantId },
     include: {
-      items: { include: { service: { include: { products: true } } } },
+      items: { include: { service: { include: { products: true } }, product: true } },
       appointment: { include: { commissions: true } },
     },
   });
@@ -355,6 +362,16 @@ async function finalizeOpenComanda(
   if (!payments.length) return { error: "Adicione um pagamento." };
 
   const discountCents = discountOverride ?? comanda.discountCents;
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant) return { error: "Salão não encontrado." };
+  const cashback = tenantCashbackConfig(tenant);
+  const client = await prisma.client.findFirst({ where: { id: comanda.clientId, tenantId } });
+  if (comanda.cashbackCents > 0) {
+    const allowed = maxRedeemCents(comandaSubtotal(comanda.items), cashback, client?.cashbackCents ?? 0);
+    if (comanda.cashbackCents > allowed) {
+      return { error: `O cashback usado passa do limite (${formatBRL(allowed)}).` };
+    }
+  }
   const total = comandaTotal({
     items: comanda.items,
     discountCents,
@@ -377,15 +394,67 @@ async function finalizeOpenComanda(
     },
   });
 
-  if (comanda.creditCents > 0 || comanda.cashbackCents > 0) {
-    const client = await prisma.client.findFirst({ where: { id: comanda.clientId, tenantId } });
-    if (client) {
-      await prisma.client.update({
-        where: { id: client.id },
-        data: {
-          creditCents: Math.max(0, client.creditCents - comanda.creditCents),
-          cashbackCents: Math.max(0, client.cashbackCents - comanda.cashbackCents),
-        },
+  if (client && (comanda.creditCents > 0 || comanda.cashbackCents > 0 || cashback.enabled)) {
+    let nextCashback = client.cashbackCents;
+    const movements: {
+      type: "EARN" | "REDEEM";
+      amountCents: number;
+      points: number;
+      reason: string;
+      expiresAt: Date | null;
+    }[] = [];
+
+    if (comanda.creditCents > 0 || comanda.cashbackCents > 0) {
+      nextCashback = Math.max(0, nextCashback - comanda.cashbackCents);
+      if (comanda.cashbackCents > 0) {
+        movements.push({
+          type: "REDEEM",
+          amountCents: -comanda.cashbackCents,
+          points: -centsToPoints(comanda.cashbackCents, cashback.centsPerPoint),
+          reason: `Resgate na comanda #${comanda.number}`,
+          expiresAt: null,
+        });
+      }
+    }
+
+    if (cashback.enabled) {
+      const earned = earnCashbackCents(
+        comanda.items.map((item) => ({
+          type: item.type,
+          quantity: item.quantity,
+          priceCents: item.priceCents,
+          discountCents: item.discountCents,
+          cashbackPct: item.type === "PRODUCT" ? item.product?.cashbackPct : item.service?.cashbackPct,
+        })),
+        cashback,
+      );
+      if (earned > 0) {
+        nextCashback += earned;
+        movements.push({
+          type: "EARN",
+          amountCents: earned,
+          points: centsToPoints(earned, cashback.centsPerPoint),
+          reason: `Acúmulo da comanda #${comanda.number}`,
+          expiresAt: cashbackExpiry(cashback.expireDays),
+        });
+      }
+    }
+
+    await prisma.client.update({
+      where: { id: client.id },
+      data: {
+        creditCents: Math.max(0, client.creditCents - comanda.creditCents),
+        cashbackCents: nextCashback,
+      },
+    });
+    if (movements.length) {
+      await prisma.cashbackMovement.createMany({
+        data: movements.map((move) => ({
+          tenantId,
+          clientId: client.id,
+          comandaId: comanda.id,
+          ...move,
+        })),
       });
     }
   }
