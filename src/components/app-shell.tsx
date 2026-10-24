@@ -19,6 +19,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
+import { stopImpersonation } from "@/app/actions/platform";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -43,11 +44,13 @@ export function AppShell({
   salon,
   userName,
   plan,
+  impersonatorName,
 }: {
   children: React.ReactNode;
   salon: string;
   userName: string;
   plan: string;
+  impersonatorName?: string | null;
 }) {
   const pathname = usePathname();
 
@@ -87,7 +90,21 @@ export function AppShell({
           </button>
         </form>
       </aside>
-      <main className="min-w-0 flex-1 p-6 lg:p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-6 lg:p-8">
+        {impersonatorName ? (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-950">
+            <span>
+              Você entrou como suporte no salão <strong>{salon}</strong> ({impersonatorName}).
+            </span>
+            <form action={stopImpersonation}>
+              <button type="submit" className="font-medium underline">
+                Voltar à plataforma
+              </button>
+            </form>
+          </div>
+        ) : null}
+        {children}
+      </main>
     </div>
   );
 }

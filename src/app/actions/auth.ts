@@ -21,12 +21,15 @@ export async function loginAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "/dashboard");
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email }, include: { tenant: true } });
   if (!user || !user.active) {
     return { error: "E-mail ou senha inválidos." };
   }
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) return { error: "E-mail ou senha inválidos." };
+  if (user.tenant.status === "SUSPENDED" && user.role !== "SUPER_ADMIN") {
+    return { error: "Esta conta está suspensa. Fale com o suporte MegaBeauty." };
+  }
 
   await setSessionCookie({
     userId: user.id,
@@ -35,7 +38,8 @@ export async function loginAction(formData: FormData) {
     name: user.name,
     role: user.role as Role,
   });
-  redirect(next.startsWith("/") ? next : "/dashboard");
+  const home = user.role === "SUPER_ADMIN" ? "/plataforma" : "/dashboard";
+  redirect(next.startsWith("/") ? next : home);
 }
 
 export async function registerAction(formData: FormData) {
@@ -62,6 +66,8 @@ export async function registerAction(formData: FormData) {
       name: salon,
       slug,
       email,
+      status: "TRIAL",
+      trialEndsAt: new Date(Date.now() + 14 * 86_400_000),
       users: {
         create: {
           email,

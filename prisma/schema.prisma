@@ -19,6 +19,10 @@ model Tenant {
   city                String?
   timezone            String   @default("America/Sao_Paulo")
   plan                String   @default("profissional")
+  status              String   @default("ACTIVE")
+  isPlatform          Boolean  @default(false)
+  notes               String?
+  trialEndsAt         DateTime?
   accentColor         String   @default("#2563EB")
   openTime            String   @default("08:00")
   closeTime           String   @default("20:00")
