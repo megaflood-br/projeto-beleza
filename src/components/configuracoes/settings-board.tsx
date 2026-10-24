@@ -16,7 +16,6 @@ export type SalonSettingsValue = {
   openTime: string;
   closeTime: string;
   reminderHours: number;
-  openaiApiKey: string | null;
   slug: string;
 };
 
@@ -96,9 +95,6 @@ function SalonForm({ salon }: { salon: SalonSettingsValue }) {
         </div>
         <Field label="Lembrete (horas antes)">
           <Input name="reminderHours" type="number" defaultValue={salon.reminderHours} />
-        </Field>
-        <Field label="Chave OpenAI (por salão)">
-          <Input name="openaiApiKey" type="password" defaultValue={salon.openaiApiKey ?? ""} />
         </Field>
         <p className="text-xs text-ink-soft">
           Link de agendamento online: <code>/agendar/{salon.slug}</code>

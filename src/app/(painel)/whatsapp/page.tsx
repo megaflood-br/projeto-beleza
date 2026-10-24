@@ -1,31 +1,31 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { Button, Card, Field, Input, Textarea } from "@/components/ui";
-import { saveEvolutionSettings, sendWhatsApp } from "@/app/actions/whatsapp";
-import { isEvolutionConfigured } from "@/lib/evolution";
+import { Button, Card, Textarea } from "@/components/ui";
+import { sendWhatsApp } from "@/app/actions/whatsapp";
 import { formatTime } from "@/lib/dates";
 import { formAction } from "@/lib/utils";
+import { readWhatsAppLive } from "@/lib/whatsapp-live";
+import { WhatsAppConnect } from "@/components/whatsapp/whatsapp-connect";
 
 export default async function WhatsAppPage({
   searchParams,
 }: {
   searchParams: Promise<{ c?: string }>;
 }) {
-  const { session, tenant } = await requireTenant();
+  const { session } = await requireTenant();
   const params = await searchParams;
   const selectedId = typeof params.c === "string" ? params.c : null;
 
-  const conversations = await prisma.conversation.findMany({
-    where: { tenantId: session.tenantId },
-    include: { client: true, messages: { orderBy: { createdAt: "asc" } } },
-    orderBy: { lastMessageAt: "desc" },
-  });
+  const [conversations, live] = await Promise.all([
+    prisma.conversation.findMany({
+      where: { tenantId: session.tenantId },
+      include: { client: true, messages: { orderBy: { createdAt: "asc" } } },
+      orderBy: { lastMessageAt: "desc" },
+    }),
+    readWhatsAppLive(session.tenantId),
+  ]);
   const selected = conversations.find((c) => c.id === selectedId) ?? conversations[0];
-  const configured = isEvolutionConfigured({
-    url: tenant.evolutionUrl ?? process.env.EVOLUTION_API_URL ?? "",
-    apiKey: tenant.evolutionApiKey ?? process.env.EVOLUTION_API_KEY ?? "",
-    instance: tenant.evolutionInstance ?? "",
-  });
+  const connected = live.state === "open";
 
   return (
     <div className="space-y-4">
@@ -33,22 +33,26 @@ export default async function WhatsAppPage({
         <div>
           <h1 className="font-display text-3xl">WhatsApp</h1>
           <p className="text-ink-soft">
-            Inbox do salão via Evolution API. {configured ? "Instância conectada." : "Modo demonstração — configure a API para envio real."}
+            Inbox do salão. {connected ? "WhatsApp vinculado." : "Vincule o número pelo QR Code ao lado."}
           </p>
         </div>
       </div>
       <div className="grid gap-4 lg:grid-cols-[280px_1fr_320px]">
         <Card className="p-0">
-          {conversations.map((c) => (
-            <a
-              key={c.id}
-              href={`/whatsapp?c=${c.id}`}
-              className={`block border-b border-line px-4 py-3 ${selected?.id === c.id ? "bg-sand" : ""}`}
-            >
-              <div className="font-medium">{c.client?.name ?? c.phone}</div>
-              <div className="truncate text-xs text-ink-soft">{c.messages.at(-1)?.body}</div>
-            </a>
-          ))}
+          {conversations.length ? (
+            conversations.map((c) => (
+              <a
+                key={c.id}
+                href={`/whatsapp?c=${c.id}`}
+                className={`block border-b border-line px-4 py-3 ${selected?.id === c.id ? "bg-sand" : ""}`}
+              >
+                <div className="font-medium">{c.client?.name ?? c.phone}</div>
+                <div className="truncate text-xs text-ink-soft">{c.messages.at(-1)?.body}</div>
+              </a>
+            ))
+          ) : (
+            <p className="px-4 py-10 text-center text-sm text-ink-soft">Nenhuma conversa ainda.</p>
+          )}
         </Card>
         <Card className="flex min-h-[480px] flex-col">
           <div className="mb-3 font-medium">{selected?.client?.name ?? selected?.phone ?? "Selecione uma conversa"}</div>
@@ -73,22 +77,7 @@ export default async function WhatsAppPage({
           ) : null}
         </Card>
         <Card>
-          <h2 className="font-display text-2xl">Evolution API</h2>
-          <form action={formAction(saveEvolutionSettings)} className="mt-4 grid gap-3">
-            <Field label="URL da API">
-              <Input name="evolutionUrl" defaultValue={tenant.evolutionUrl ?? ""} placeholder="https://evo.seudominio.com" />
-            </Field>
-            <Field label="API Key">
-              <Input name="evolutionApiKey" defaultValue={tenant.evolutionApiKey ?? ""} type="password" />
-            </Field>
-            <Field label="Instância">
-              <Input name="evolutionInstance" defaultValue={tenant.evolutionInstance ?? ""} placeholder="studio-aurora" />
-            </Field>
-            <Button>Salvar conexão</Button>
-          </form>
-          <p className="mt-3 text-xs text-ink-soft">
-            Webhook: <code>/api/webhooks/evolution?tenant={tenant.slug}</code>
-          </p>
+          <WhatsAppConnect initial={live} />
         </Card>
       </div>
     </div>

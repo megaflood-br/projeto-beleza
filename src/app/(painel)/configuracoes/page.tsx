@@ -23,7 +23,6 @@ export default async function ConfigPage({
         openTime: tenant.openTime,
         closeTime: tenant.closeTime,
         reminderHours: tenant.reminderHours,
-        openaiApiKey: tenant.openaiApiKey,
         slug: tenant.slug,
       }}
       cashback={tenantCashbackConfig(tenant)}
