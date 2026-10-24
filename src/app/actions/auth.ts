@@ -13,6 +13,7 @@ import { slugify } from "@/lib/utils";
 import type { Role } from "@/lib/constants";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
 import { ensureAnamnesisForms } from "@/lib/anamnesis";
+import { resolveSignupPlan } from "@/lib/plans";
 
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") ?? "")
@@ -61,13 +62,15 @@ export async function registerAction(formData: FormData) {
   const slugTaken = await prisma.tenant.findUnique({ where: { slug } });
   if (slugTaken) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
+  const signupPlan = await resolveSignupPlan();
   const tenant = await prisma.tenant.create({
     data: {
       name: salon,
       slug,
       email,
+      plan: signupPlan?.slug ?? "profissional",
       status: "TRIAL",
-      trialEndsAt: new Date(Date.now() + 14 * 86_400_000),
+      trialEndsAt: new Date(Date.now() + (signupPlan?.trialDays ?? 14) * 86_400_000),
       users: {
         create: {
           email,

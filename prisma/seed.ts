@@ -5,6 +5,7 @@ import { calendarDate, zonedDateTime } from "../src/lib/dates";
 import { ensureFinanceCatalog } from "../src/lib/finance-catalog";
 import { ensureAnamnesisForms, serializeAnswers } from "../src/lib/anamnesis";
 import { postLedgerEntry } from "../src/lib/ledger";
+import { ensurePlatformPlans } from "../src/lib/plans";
 
 const prisma = new PrismaClient();
 
@@ -13,6 +14,7 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.platformPlan.deleteMany();
   await prisma.supportMessage.deleteMany();
   await prisma.supportCall.deleteMany();
   await prisma.supportTicket.deleteMany();
@@ -46,6 +48,8 @@ async function main() {
   await prisma.professional.deleteMany();
   await prisma.client.deleteMany();
   await prisma.tenant.deleteMany();
+
+  await ensurePlatformPlans();
 
   const passwordHash = await bcrypt.hash("demo1234", 10);
   const adminHash = await bcrypt.hash("admin1234", 10);
@@ -889,7 +893,7 @@ async function main() {
       name: "Barbearia Norte",
       slug: "barbearia-norte",
       city: "Campinas, SP",
-      plan: "starter",
+      plan: "essencial",
     },
   });
   await ensureFinanceCatalog(norte.id);

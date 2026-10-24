@@ -9,7 +9,8 @@ import { requirePlatformAdmin, requireSession } from "@/lib/tenant";
 import { slugify } from "@/lib/utils";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
 import { ensureAnamnesisForms } from "@/lib/anamnesis";
-import { TENANT_PLANS, TENANT_STATUSES, type Role } from "@/lib/constants";
+import { TENANT_STATUSES, type Role } from "@/lib/constants";
+import { listPlatformPlans } from "@/lib/plans";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim() || null;
@@ -38,7 +39,10 @@ export async function saveTenantAccount(formData: FormData) {
   const ownerPassword = String(formData.get("ownerPassword") ?? "");
 
   if (!name) return { error: "Informe o nome do salão." };
-  if (!TENANT_PLANS.includes(plan as (typeof TENANT_PLANS)[number])) return { error: "Plano inválido." };
+  const catalog = await listPlatformPlans();
+  const selectedPlan = catalog.find((item) => item.slug === plan);
+  if (!selectedPlan) return { error: "Plano inválido. Cadastre o tipo em Planos." };
+  if (!selectedPlan.active && !id) return { error: "Este plano está inativo." };
   if (!TENANT_STATUSES.includes(status as (typeof TENANT_STATUSES)[number])) return { error: "Status inválido." };
 
   if (id) {

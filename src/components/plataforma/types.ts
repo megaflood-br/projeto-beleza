@@ -1,10 +1,17 @@
-import type { TenantPlan, TenantStatus } from "@/lib/constants";
+import type { TenantStatus } from "@/lib/constants";
+
+export type PlatformPlanOption = {
+  slug: string;
+  name: string;
+  active: boolean;
+};
 
 export type TenantAccountRow = {
   id: string;
   name: string;
   slug: string;
-  plan: TenantPlan;
+  plan: string;
+  planLabel: string;
   status: TenantStatus;
   email: string | null;
   phone: string | null;

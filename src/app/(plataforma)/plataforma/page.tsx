@@ -1,12 +1,9 @@
 import { prisma } from "@/lib/db";
 import { requirePlatformAdmin } from "@/lib/tenant";
 import { PlatformBoard } from "@/components/plataforma/platform-board";
-import { TENANT_PLANS, TENANT_STATUSES, type TenantPlan, type TenantStatus } from "@/lib/constants";
+import { TENANT_STATUSES, type TenantStatus } from "@/lib/constants";
+import { listPlatformPlans, planLabel } from "@/lib/plans";
 import type { TenantAccountRow } from "@/components/plataforma/types";
-
-function asPlan(value: string): TenantPlan {
-  return TENANT_PLANS.includes(value as TenantPlan) ? (value as TenantPlan) : "profissional";
-}
 
 function asStatus(value: string): TenantStatus {
   return TENANT_STATUSES.includes(value as TenantStatus) ? (value as TenantStatus) : "ACTIVE";
@@ -14,6 +11,7 @@ function asStatus(value: string): TenantStatus {
 
 export default async function PlataformaPage() {
   await requirePlatformAdmin();
+  const catalog = await listPlatformPlans();
   const tenants = await prisma.tenant.findMany({
     where: { isPlatform: false },
     include: {
@@ -29,7 +27,8 @@ export default async function PlataformaPage() {
       id: tenant.id,
       name: tenant.name,
       slug: tenant.slug,
-      plan: asPlan(tenant.plan),
+      plan: tenant.plan,
+      planLabel: planLabel(tenant.plan, catalog),
       status: asStatus(tenant.status),
       email: tenant.email,
       phone: tenant.phone,
@@ -45,5 +44,10 @@ export default async function PlataformaPage() {
     };
   });
 
-  return <PlatformBoard accounts={accounts} />;
+  return (
+    <PlatformBoard
+      accounts={accounts}
+      plans={catalog.map((plan) => ({ slug: plan.slug, name: plan.name, active: plan.active }))}
+    />
+  );
 }

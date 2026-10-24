@@ -723,3 +723,22 @@ model SupportPresence {
   @@index([tenantId])
   @@index([side, lastSeenAt])
 }
+
+model PlatformPlan {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  priceCents  Int      @default(0)
+  interval    String   @default("monthly")
+  trialDays   Int      @default(14)
+  features    String   @default("[]")
+  active      Boolean  @default(true)
+  highlighted Boolean  @default(false)
+  isDefault   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
