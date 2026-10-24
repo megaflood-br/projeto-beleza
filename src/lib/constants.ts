@@ -126,3 +126,59 @@ export const REQUEST_STATUS_LABEL: Record<string, string> = {
   APPROVED: "Aprovada",
   REJECTED: "Recusada",
 };
+
+export const SUPPORT_CATEGORIES = ["ajuda", "tecnico", "financeiro", "comercial", "onboarding"] as const;
+export type SupportCategory = (typeof SUPPORT_CATEGORIES)[number];
+
+export const SUPPORT_CATEGORY_LABEL: Record<SupportCategory, string> = {
+  ajuda: "Ajuda geral",
+  tecnico: "Técnico",
+  financeiro: "Financeiro",
+  comercial: "Comercial",
+  onboarding: "Onboarding",
+};
+
+export const SUPPORT_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
+export type SupportPriority = (typeof SUPPORT_PRIORITIES)[number];
+
+export const SUPPORT_PRIORITY_LABEL: Record<SupportPriority, string> = {
+  LOW: "Baixa",
+  NORMAL: "Normal",
+  HIGH: "Alta",
+  URGENT: "Urgente",
+};
+
+export const SUPPORT_PRIORITY_COLOR: Record<SupportPriority, string> = {
+  LOW: "#64748B",
+  NORMAL: "#2563EB",
+  HIGH: "#EA580C",
+  URGENT: "#DC2626",
+};
+
+export const SUPPORT_TICKET_STATUSES = ["OPEN", "PENDING", "RESOLVED", "CLOSED"] as const;
+export type SupportTicketStatus = (typeof SUPPORT_TICKET_STATUSES)[number];
+
+export const SUPPORT_TICKET_STATUS_LABEL: Record<SupportTicketStatus, string> = {
+  OPEN: "Aberto",
+  PENDING: "Aguardando salão",
+  RESOLVED: "Resolvido",
+  CLOSED: "Fechado",
+};
+
+export const SUPPORT_TICKET_STATUS_COLOR: Record<SupportTicketStatus, string> = {
+  OPEN: "#2563EB",
+  PENDING: "#D97706",
+  RESOLVED: "#059669",
+  CLOSED: "#64748B",
+};
+
+export const SUPPORT_CALL_STATUSES = ["RINGING", "ACTIVE", "ENDED", "MISSED", "DECLINED"] as const;
+export type SupportCallStatus = (typeof SUPPORT_CALL_STATUSES)[number];
+
+export const SUPPORT_CALL_STATUS_LABEL: Record<SupportCallStatus, string> = {
+  RINGING: "Chamando",
+  ACTIVE: "Em atendimento",
+  ENDED: "Encerrada",
+  MISSED: "Perdida",
+  DECLINED: "Recusada",
+};

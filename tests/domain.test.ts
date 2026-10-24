@@ -13,6 +13,15 @@ import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementL
 import { collectAlerts, DEFAULT_ANAMNESIS_FORMS, missingRequired, parseQuestions, serializeQuestions } from "@/lib/anamnesis";
 import { isPlatformAdmin } from "@/lib/auth";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
+import {
+  formatSupportWhen,
+  isPresenceOnline,
+  nextTicketNumberFromLast,
+  reopenOnSalonReply,
+  shouldExpireRinging,
+  supportSide,
+  ticketUnreadFor,
+} from "@/lib/support";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -307,5 +316,27 @@ describe("plataforma", () => {
     expect(isPlatformAdmin("SUPER_ADMIN")).toBe(true);
     expect(isPlatformAdmin("OWNER")).toBe(false);
     expect(TENANT_STATUS_LABEL.SUSPENDED).toBe("Suspensa");
+  });
+});
+
+describe("suporte", () => {
+  it("numera tickets e isola o lado da conversa", () => {
+    expect(nextTicketNumberFromLast(null)).toBe(1);
+    expect(nextTicketNumberFromLast(7)).toBe(8);
+    expect(supportSide("SUPER_ADMIN")).toBe("PLATFORM");
+    expect(supportSide("OWNER")).toBe("SALON");
+    expect(ticketUnreadFor("PLATFORM", { unreadAdmin: 3, unreadSalon: 1 })).toBe(3);
+    expect(ticketUnreadFor("SALON", { unreadAdmin: 3, unreadSalon: 1 })).toBe(1);
+  });
+
+  it("considera presença recente e reabre ticket respondido", () => {
+    const now = new Date("2026-10-24T18:00:00Z");
+    expect(isPresenceOnline(new Date("2026-10-24T17:59:30Z"), now)).toBe(true);
+    expect(isPresenceOnline(new Date("2026-10-24T17:58:00Z"), now)).toBe(false);
+    expect(shouldExpireRinging(new Date("2026-10-24T17:59:30Z"), now)).toBe(false);
+    expect(shouldExpireRinging(new Date("2026-10-24T17:59:00Z"), now)).toBe(true);
+    expect(reopenOnSalonReply("RESOLVED")).toBe(true);
+    expect(reopenOnSalonReply("OPEN")).toBe(false);
+    expect(formatSupportWhen(now, now)).toBe("agora");
   });
 });

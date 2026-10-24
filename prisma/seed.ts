@@ -13,6 +13,10 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.supportMessage.deleteMany();
+  await prisma.supportCall.deleteMany();
+  await prisma.supportTicket.deleteMany();
+  await prisma.supportPresence.deleteMany();
   await prisma.anamnesis.deleteMany();
   await prisma.anamnesisForm.deleteMany();
   await prisma.comandaItem.deleteMany();
@@ -58,7 +62,7 @@ async function main() {
       isPlatform: true,
     },
   });
-  await prisma.user.create({
+  const admin = await prisma.user.create({
     data: {
       tenantId: hq.id,
       email: "nathan.k@example.net",
@@ -101,7 +105,7 @@ async function main() {
       notes: "Conta de demonstração em trial.",
     },
   });
-  await prisma.user.create({
+  const lunaOwner = await prisma.user.create({
     data: {
       tenantId: luna.id,
       email: "walt.e@example.net",
@@ -166,7 +170,7 @@ async function main() {
     },
   });
 
-  await prisma.user.create({
+  const ana = await prisma.user.create({
     data: {
       tenantId: aurora.id,
       email: "iris.p@example.org",
@@ -907,7 +911,97 @@ async function main() {
     },
   });
 
-  console.log("Seed ok. Login: iris.p@example.org / demo1234");
+  const auroraTicket = await prisma.supportTicket.create({
+    data: {
+      tenantId: aurora.id,
+      number: 1,
+      subject: "Dúvida sobre comissões da semana",
+      category: "financeiro",
+      priority: "HIGH",
+      status: "OPEN",
+      createdById: ana.id,
+      lastMessageAt: addMinutes(today, -40),
+      unreadAdmin: 1,
+    },
+  });
+  await prisma.supportMessage.createMany({
+    data: [
+      {
+        ticketId: auroraTicket.id,
+        authorId: ana.id,
+        side: "SALON",
+        body: "As comissões da Camila ficaram diferentes do que combinamos. Podem conferir?",
+        createdAt: addMinutes(today, -40),
+      },
+    ],
+  });
+
+  const lunaTicket = await prisma.supportTicket.create({
+    data: {
+      tenantId: luna.id,
+      number: 1,
+      subject: "Como conectar o WhatsApp?",
+      category: "onboarding",
+      priority: "NORMAL",
+      status: "PENDING",
+      createdById: lunaOwner.id,
+      assignedToId: admin.id,
+      lastMessageAt: addMinutes(today, -120),
+      unreadSalon: 1,
+    },
+  });
+  await prisma.supportMessage.createMany({
+    data: [
+      {
+        ticketId: lunaTicket.id,
+        authorId: lunaOwner.id,
+        side: "SALON",
+        body: "Estou no trial e não sei por onde começar a Evolution API.",
+        createdAt: addMinutes(today, -150),
+      },
+      {
+        ticketId: lunaTicket.id,
+        authorId: admin.id,
+        side: "PLATFORM",
+        body: "Luna, entre em Configurações > WhatsApp e cole a URL, a API key e o nome da instância. Qualquer coisa me chama ao vivo.",
+        createdAt: addMinutes(today, -120),
+      },
+    ],
+  });
+
+  const resolved = await prisma.supportTicket.create({
+    data: {
+      tenantId: aurora.id,
+      number: 2,
+      subject: "Ajuste no horário de abertura",
+      category: "ajuda",
+      priority: "LOW",
+      status: "RESOLVED",
+      createdById: ana.id,
+      assignedToId: admin.id,
+      lastMessageAt: addMinutes(today, -400),
+    },
+  });
+  await prisma.supportMessage.createMany({
+    data: [
+      {
+        ticketId: resolved.id,
+        authorId: ana.id,
+        side: "SALON",
+        body: "Conseguimos mudar o horário de abertura para 8h?",
+        createdAt: addMinutes(today, -420),
+      },
+      {
+        ticketId: resolved.id,
+        authorId: admin.id,
+        side: "PLATFORM",
+        body: "Sim — em Configurações, campo de abertura. Já deixei o caminho.",
+        createdAt: addMinutes(today, -400),
+      },
+    ],
+  });
+
+  console.log("Seed ok. Salão: iris.p@example.org / demo1234 · Plataforma: nathan.k@example.net / admin1234");
 }
 
 main()

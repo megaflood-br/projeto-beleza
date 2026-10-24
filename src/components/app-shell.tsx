@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   ClipboardList,
+  Headphones,
   LayoutDashboard,
   Users,
   Scissors,
@@ -20,6 +21,8 @@ import {
 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { stopImpersonation } from "@/app/actions/platform";
+import { SupportCallOverlay } from "@/components/suporte/call-overlay";
+import { SupportLiveProvider, useSupportLive } from "@/components/suporte/live-context";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -35,9 +38,23 @@ const NAV = [
   { href: "/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/cadastros", label: "Cadastros", icon: Landmark },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
+  { href: "/suporte", label: "Suporte", icon: Headphones },
   { href: "/ia", label: "Assistente IA", icon: Sparkles },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
+
+function SupportNavBadge({ href }: { href: string }) {
+  const { state } = useSupportLive();
+  if (href !== "/suporte") return null;
+  const ringing = state?.ringingCalls.filter((call) => call.startedById !== state.me.id).length ?? 0;
+  const unread = state?.unread ?? 0;
+  if (!ringing && !unread) return null;
+  return (
+    <span className="ml-auto rounded-full bg-white/20 px-1.5 text-[10px] font-semibold">
+      {ringing ? "ao vivo" : unread}
+    </span>
+  );
+}
 
 export function AppShell({
   children,
@@ -55,6 +72,7 @@ export function AppShell({
   const pathname = usePathname();
 
   return (
+    <SupportLiveProvider>
     <div className="flex min-h-screen bg-cream">
       <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-950 text-white">
         <div className="px-5 py-6">
@@ -79,6 +97,7 @@ export function AppShell({
               >
                 <Icon size={18} />
                 {item.label}
+                <SupportNavBadge href={item.href} />
               </Link>
             );
           })}
@@ -106,5 +125,7 @@ export function AppShell({
         {children}
       </main>
     </div>
+    <SupportCallOverlay />
+    </SupportLiveProvider>
   );
 }
