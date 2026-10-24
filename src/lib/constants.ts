@@ -1,4 +1,4 @@
-export const ROLES = ["OWNER", "MANAGER", "RECEPTIONIST", "PROFESSIONAL"] as const;
+export const ROLES = ["OWNER", "MANAGER", "RECEPTIONIST", "PROFESSIONAL", "SUPER_ADMIN"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -6,6 +6,31 @@ export const ROLE_LABEL: Record<Role, string> = {
   MANAGER: "Gerente",
   RECEPTIONIST: "Recepção",
   PROFESSIONAL: "Profissional",
+  SUPER_ADMIN: "Administrador da plataforma",
+};
+
+export const TENANT_STATUSES = ["ACTIVE", "TRIAL", "SUSPENDED"] as const;
+export type TenantStatus = (typeof TENANT_STATUSES)[number];
+
+export const TENANT_STATUS_LABEL: Record<TenantStatus, string> = {
+  ACTIVE: "Ativa",
+  TRIAL: "Trial",
+  SUSPENDED: "Suspensa",
+};
+
+export const TENANT_STATUS_COLOR: Record<TenantStatus, string> = {
+  ACTIVE: "#059669",
+  TRIAL: "#2563EB",
+  SUSPENDED: "#EA580C",
+};
+
+export const TENANT_PLANS = ["essencial", "profissional", "premium"] as const;
+export type TenantPlan = (typeof TENANT_PLANS)[number];
+
+export const TENANT_PLAN_LABEL: Record<TenantPlan, string> = {
+  essencial: "Essencial",
+  profissional: "Profissional",
+  premium: "Premium",
 };
 
 export const APPOINTMENT_STATUSES = [

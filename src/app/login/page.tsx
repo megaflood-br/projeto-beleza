@@ -20,7 +20,11 @@ export default function LoginPage() {
             CRM, comissões, estoque, WhatsApp e IA no mesmo lugar — multi-tenant, em TypeScript.
           </p>
         </div>
-        <p className="text-sm text-slate-400">Demo: iris.p@example.org / demo1234</p>
+        <p className="text-sm text-slate-400">
+          Salão: iris.p@example.org / demo1234
+          <br />
+          Plataforma: nathan.k@example.net / admin1234
+        </p>
       </section>
       <section className="flex items-center justify-center bg-cream p-8">
         <form

@@ -9,7 +9,13 @@ export type SessionUser = {
   email: string;
   name: string;
   role: Role;
+  impersonatorId?: string;
+  impersonatorName?: string;
 };
+
+export function isPlatformAdmin(role: Role | string) {
+  return role === "SUPER_ADMIN";
+}
 
 function secret() {
   const value = process.env.AUTH_SECRET;

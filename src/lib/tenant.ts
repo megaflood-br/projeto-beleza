@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession, type SessionUser } from "@/lib/auth";
+import { getSession, isPlatformAdmin, type SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export async function requireSession(): Promise<SessionUser> {
@@ -14,7 +14,23 @@ export function scopedTenant<T extends { tenantId: string }>(tenantId: string, d
 
 export async function requireTenant() {
   const session = await requireSession();
+  if (isPlatformAdmin(session.role) && !session.impersonatorId) {
+    redirect("/plataforma");
+  }
   const tenant = await prisma.tenant.findUnique({ where: { id: session.tenantId } });
   if (!tenant) redirect("/login");
+  if (tenant.status === "SUSPENDED" && !session.impersonatorId) {
+    redirect("/login?suspended=1");
+  }
+  return { session, tenant };
+}
+
+export async function requirePlatformAdmin() {
+  const session = await requireSession();
+  if (!isPlatformAdmin(session.role) || session.impersonatorId) {
+    redirect("/dashboard");
+  }
+  const tenant = await prisma.tenant.findUnique({ where: { id: session.tenantId } });
+  if (!tenant?.isPlatform) redirect("/dashboard");
   return { session, tenant };
 }

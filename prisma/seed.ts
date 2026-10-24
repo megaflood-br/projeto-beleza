@@ -44,7 +44,29 @@ async function main() {
   await prisma.tenant.deleteMany();
 
   const passwordHash = await bcrypt.hash("demo1234", 10);
+  const adminHash = await bcrypt.hash("admin1234", 10);
   const today = zonedDateTime(calendarDate(), "12:00");
+
+  const hq = await prisma.tenant.create({
+    data: {
+      name: "MegaBeauty Plataforma",
+      slug: "megabeauty",
+      email: "nathan.k@example.net",
+      city: "São Paulo, SP",
+      plan: "premium",
+      status: "ACTIVE",
+      isPlatform: true,
+    },
+  });
+  await prisma.user.create({
+    data: {
+      tenantId: hq.id,
+      email: "nathan.k@example.net",
+      passwordHash: adminHash,
+      name: "Admin MegaBeauty",
+      role: "SUPER_ADMIN",
+    },
+  });
 
   const aurora = await prisma.tenant.create({
     data: {
@@ -57,6 +79,7 @@ async function main() {
       address: "Rua Harmonia, 240",
       city: "São Paulo, SP",
       plan: "profissional",
+      status: "ACTIVE",
       accentColor: "#2563EB",
       openTime: "08:00",
       closeTime: "20:00",
@@ -64,6 +87,31 @@ async function main() {
   });
   await ensureFinanceCatalog(aurora.id);
   await ensureAnamnesisForms(aurora.id);
+
+  const luna = await prisma.tenant.create({
+    data: {
+      name: "Espaço Luna",
+      slug: "espaco-luna",
+      phone: "11955550000",
+      email: "walt.e@example.net",
+      city: "Campinas, SP",
+      plan: "essencial",
+      status: "TRIAL",
+      trialEndsAt: addDays(today, 10),
+      notes: "Conta de demonstração em trial.",
+    },
+  });
+  await prisma.user.create({
+    data: {
+      tenantId: luna.id,
+      email: "walt.e@example.net",
+      passwordHash,
+      name: "Luna Ribeiro",
+      role: "OWNER",
+    },
+  });
+  await ensureFinanceCatalog(luna.id);
+  await ensureAnamnesisForms(luna.id);
 
   const camila = await prisma.professional.create({
     data: {

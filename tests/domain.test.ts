@@ -11,6 +11,8 @@ import { financeOrigin, financeTitular } from "@/lib/finance";
 import { averageTicket, bucketAppointmentStatus, conversionRate, percentDelta, previousPeriod, rankProfessionals } from "@/lib/dashboard";
 import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementLabel, summarizeAccountBalances } from "@/lib/ledger";
 import { collectAlerts, DEFAULT_ANAMNESIS_FORMS, missingRequired, parseQuestions, serializeQuestions } from "@/lib/anamnesis";
+import { isPlatformAdmin } from "@/lib/auth";
+import { TENANT_STATUS_LABEL } from "@/lib/constants";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -297,5 +299,13 @@ describe("anamnese", () => {
     const parsed = parseQuestions(json);
     expect(parsed.find((q) => q.id === "ppd")?.alertOn).toBe("yes");
     expect(parseQuestions("não-é-json")).toEqual([]);
+  });
+});
+
+describe("plataforma", () => {
+  it("reconhece o administrador da operação", () => {
+    expect(isPlatformAdmin("SUPER_ADMIN")).toBe(true);
+    expect(isPlatformAdmin("OWNER")).toBe(false);
+    expect(TENANT_STATUS_LABEL.SUSPENDED).toBe("Suspensa");
   });
 });
