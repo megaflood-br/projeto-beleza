@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, LogIn, Pencil, Plus, Search } from "lucide-react";
+import { Building2, Headphones, LogIn, Pencil, Plus, Search } from "lucide-react";
 import { Badge, Button, Input } from "@/components/ui";
 import { TenantDrawer } from "@/components/plataforma/tenant-drawer";
 import { deleteTenantAccount, impersonateTenant, setTenantStatus } from "@/app/actions/platform";
@@ -142,6 +143,13 @@ export function PlatformBoard({ accounts }: { accounts: TenantAccountRow[] }) {
                         <Pencil size={12} />
                         Editar
                       </Button>
+                      <Link
+                        href="/plataforma/suporte"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-ink hover:bg-sand"
+                      >
+                        <Headphones size={12} />
+                        Suporte
+                      </Link>
                       <form action={formAction(impersonateTenant)}>
                         <input type="hidden" name="id" value={row.id} />
                         <Button type="submit" variant="ghost" className="h-8 px-2 text-xs">

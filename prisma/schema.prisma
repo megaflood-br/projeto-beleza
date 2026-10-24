@@ -58,6 +58,9 @@ model Tenant {
   financeCategories  FinanceCategory[]
   anamnesisForms     AnamnesisForm[]
   anamneses          Anamnesis[]
+  supportTickets     SupportTicket[]
+  supportCalls       SupportCall[]
+  supportPresences   SupportPresence[]
 
   @@index([slug])
 }
@@ -75,6 +78,13 @@ model User {
   professional   Professional? @relation(fields: [professionalId], references: [id])
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  ticketsCreated    SupportTicket[]  @relation("TicketAuthor")
+  ticketsAssigned   SupportTicket[]  @relation("TicketAssignee")
+  supportMessages   SupportMessage[]
+  callsStarted      SupportCall[]    @relation("CallStarter")
+  callsAccepted     SupportCall[]    @relation("CallAcceptor")
+  supportPresence   SupportPresence?
 
   @@index([tenantId])
 }
@@ -641,4 +651,75 @@ model Anamnesis {
 
   @@index([tenantId, occurredAt])
   @@index([clientId])
+}
+
+model SupportTicket {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  number        Int
+  subject       String
+  category      String   @default("ajuda")
+  priority      String   @default("NORMAL")
+  status        String   @default("OPEN")
+  createdById   String
+  createdBy     User     @relation("TicketAuthor", fields: [createdById], references: [id])
+  assignedToId  String?
+  assignedTo    User?    @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  lastMessageAt DateTime @default(now())
+  unreadSalon   Int      @default(0)
+  unreadAdmin   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  messages      SupportMessage[]
+  calls         SupportCall[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, lastMessageAt])
+  @@index([status])
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id])
+  side      String
+  body      String
+  kind      String        @default("TEXT")
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+model SupportCall {
+  id           String         @id @default(cuid())
+  tenantId     String
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticketId     String?
+  ticket       SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  startedById  String
+  startedBy    User           @relation("CallStarter", fields: [startedById], references: [id])
+  acceptedById String?
+  acceptedBy   User?          @relation("CallAcceptor", fields: [acceptedById], references: [id])
+  status       String         @default("RINGING")
+  startedAt    DateTime       @default(now())
+  answeredAt   DateTime?
+  endedAt      DateTime?
+
+  @@index([tenantId, status])
+  @@index([status])
+}
+
+model SupportPresence {
+  userId     String   @id
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  side       String
+  lastSeenAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([side, lastSeenAt])
 }
