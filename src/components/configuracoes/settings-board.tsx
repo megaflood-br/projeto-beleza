@@ -5,6 +5,7 @@ import { saveFiscalSettings } from "@/app/actions/fiscal";
 import { cn, formAction } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
 import { formatCnpj, type FiscalConfig } from "@/lib/fiscal";
+import { parseIssuerAddress } from "@/lib/contora";
 import { SETTINGS_TABS, type SettingsTab } from "@/lib/settings";
 import type { CashbackConfig } from "@/lib/cashback";
 
@@ -30,7 +31,7 @@ export function SettingsBoard({
   tab: SettingsTab;
   salon: SalonSettingsValue;
   cashback: CashbackConfig;
-  fiscal: FiscalConfig & { tokenMasked: string };
+  fiscal: FiscalConfig & { hasPlatformToken: boolean; cscTokenMasked: string };
 }) {
   const current = SETTINGS_TABS.find((item) => item.id === tab) ?? SETTINGS_TABS[0];
 
@@ -164,14 +165,29 @@ function CashbackForm({ cashback }: { cashback: CashbackConfig }) {
   );
 }
 
-function FiscalForm({ fiscal }: { fiscal: FiscalConfig & { tokenMasked: string } }) {
+function FiscalForm({
+  fiscal,
+}: {
+  fiscal: FiscalConfig & { hasPlatformToken: boolean; cscTokenMasked: string };
+}) {
+  const parsed = parseIssuerAddress(fiscal.street || fiscal.address, fiscal.city);
+
   return (
     <Card>
-      <form action={formAction(saveFiscalSettings)} className="grid gap-3">
+      <form action={formAction(saveFiscalSettings)} className="grid gap-3" encType="multipart/form-data">
         <label className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm">
           <input type="checkbox" name="fiscalEnabled" value="1" defaultChecked={fiscal.enabled} />
           Ativar emissão de notas fiscais
         </label>
+        <p className="text-xs text-ink-soft">
+          {fiscal.hasPlatformToken
+            ? "A plataforma já tem o token da Contora. Este salão só precisa do CNPJ e do certificado A1."
+            : "Falta o token da Contora em Plataforma → Integrações. Enquanto isso, a emissão local serve para treinar o fluxo."}
+          {fiscal.companyId ? ` Empresa Contora ${fiscal.companyId}.` : ""}
+          {fiscal.certificateUntil
+            ? ` A1 válido até ${new Date(fiscal.certificateUntil).toLocaleDateString("pt-BR")}.`
+            : ""}
+        </p>
         <div className="grid gap-3 md:grid-cols-2">
           <Field label="CNPJ do emitente" required>
             <Input name="fiscalCnpj" defaultValue={fiscal.cnpj ? formatCnpj(fiscal.cnpj) : ""} placeholder="00.000.000/0001-00" />
@@ -195,6 +211,18 @@ function FiscalForm({ fiscal }: { fiscal: FiscalConfig & { tokenMasked: string }
               <option value="3">Regime normal</option>
             </Select>
           </Field>
+          <Field label="Logradouro">
+            <Input name="fiscalStreet" defaultValue={parsed.street} />
+          </Field>
+          <Field label="Número">
+            <Input name="fiscalNumber" defaultValue={fiscal.number || parsed.number} placeholder="240" />
+          </Field>
+          <Field label="Bairro">
+            <Input name="fiscalDistrict" defaultValue={fiscal.district ?? ""} />
+          </Field>
+          <Field label="CEP">
+            <Input name="fiscalZip" defaultValue={fiscal.zip ?? ""} placeholder="05435-000" />
+          </Field>
           <Field label="ISS padrão (%)">
             <Input name="fiscalIssPct" type="number" min={0} max={100} defaultValue={fiscal.issPct} />
           </Field>
@@ -210,9 +238,9 @@ function FiscalForm({ fiscal }: { fiscal: FiscalConfig & { tokenMasked: string }
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <Field label="Provedor">
-            <Select name="fiscalProvider" defaultValue={fiscal.provider}>
-              <option value="local">Emissão local (homologação MegaBeauty)</option>
-              <option value="focusnfe">Focus NFe</option>
+            <Select name="fiscalProvider" defaultValue={fiscal.provider === "local" ? "local" : "contora"}>
+              <option value="contora">Fiscal Contora</option>
+              <option value="local">Emissão local (treino)</option>
             </Select>
           </Field>
           <Field label="Ambiente">
@@ -221,11 +249,17 @@ function FiscalForm({ fiscal }: { fiscal: FiscalConfig & { tokenMasked: string }
               <option value="prod">Produção</option>
             </Select>
           </Field>
-          <Field label="URL do provedor">
-            <Input name="fiscalProviderUrl" defaultValue={fiscal.providerUrl ?? ""} placeholder="https://homologacao.focusnfe.com.br" />
+          <Field label="CSC NFC-e (id)">
+            <Input name="fiscalCscId" defaultValue={fiscal.cscId ?? ""} />
           </Field>
-          <Field label="Token do provedor">
-            <Input name="fiscalProviderToken" type="password" placeholder={fiscal.tokenMasked || "token da empresa"} />
+          <Field label="CSC NFC-e (token)">
+            <Input name="fiscalCscToken" type="password" placeholder={fiscal.cscTokenMasked || "token do CSC"} />
+          </Field>
+          <Field label="Certificado A1 (.pfx)">
+            <Input name="certificate" type="file" accept=".pfx,.p12" />
+          </Field>
+          <Field label="Senha do certificado">
+            <Input name="certificatePassword" type="password" placeholder="não é armazenada" />
           </Field>
         </div>
         <label className="flex items-center gap-2 text-sm">
@@ -233,8 +267,7 @@ function FiscalForm({ fiscal }: { fiscal: FiscalConfig & { tokenMasked: string }
           Emitir automaticamente ao fechar a comanda
         </label>
         <p className="text-xs text-ink-soft">
-          Salão emite NFS-e para serviços e NFC-e para produtos da comanda. Sem token do provedor, a nota é
-          autorizada em modo local para treinar o fluxo. Produção exige CNPJ válido e certificado no Focus NFe.
+          O A1 vai direto para a Contora. O MegaBeauty guarda só a validade. Sem token, a nota autoriza em modo local.
         </p>
         <Button>Salvar fiscal</Button>
       </form>
