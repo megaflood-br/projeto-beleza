@@ -44,6 +44,7 @@ import {
   isValidUserEmail,
   parseTenantRole,
   wouldRemoveLastOwner,
+  wouldRemoveLastPlatformAdmin,
 } from "@/lib/users";
 import {
   applyCatalogPrice,
@@ -382,6 +383,8 @@ describe("usuários do tenant", () => {
     expect(isValidUserEmail("invalido")).toBe(false);
     expect(wouldRemoveLastOwner({ currentRole: "OWNER", nextActive: false, ownerCount: 1 })).toBe(true);
     expect(wouldRemoveLastOwner({ currentRole: "OWNER", nextRole: "MANAGER", ownerCount: 2 })).toBe(false);
+    expect(wouldRemoveLastPlatformAdmin({ currentRole: "SUPER_ADMIN", nextActive: false, adminCount: 1 })).toBe(true);
+    expect(wouldRemoveLastPlatformAdmin({ currentRole: "SUPER_ADMIN", nextActive: false, adminCount: 2 })).toBe(false);
   });
 });
 
