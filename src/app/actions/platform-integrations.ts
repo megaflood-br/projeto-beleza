@@ -13,6 +13,7 @@ function keep(current: string | null, next: string) {
 export async function savePlatformIntegrations(formData: FormData) {
   const { tenant } = await requirePlatformAdmin();
   const openai = keep(tenant.openaiApiKey, String(formData.get("openaiApiKey") ?? ""));
+  const contora = keep(tenant.contoraApiToken, String(formData.get("contoraApiToken") ?? ""));
   const evolutionUrl = keep(tenant.evolutionUrl, String(formData.get("evolutionUrl") ?? ""));
   const evolutionKey = keep(tenant.evolutionApiKey, String(formData.get("evolutionApiKey") ?? ""));
   const publicAppUrl = String(formData.get("publicAppUrl") ?? "").trim().replace(/\/$/, "") || null;
@@ -21,6 +22,7 @@ export async function savePlatformIntegrations(formData: FormData) {
     where: { id: tenant.id },
     data: {
       openaiApiKey: openai,
+      contoraApiToken: contora,
       evolutionUrl,
       evolutionApiKey: evolutionKey,
       publicAppUrl,
@@ -29,5 +31,7 @@ export async function savePlatformIntegrations(formData: FormData) {
   revalidatePath("/plataforma/integracoes");
   revalidatePath("/whatsapp");
   revalidatePath("/ia");
+  revalidatePath("/configuracoes");
+  revalidatePath("/notas");
   return { ok: true as const };
 }

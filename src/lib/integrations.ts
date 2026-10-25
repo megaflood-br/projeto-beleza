@@ -2,10 +2,12 @@ import { prisma } from "@/lib/db";
 
 export type PlatformIntegrations = {
   openaiApiKey: string;
+  contoraApiToken: string;
   evolutionUrl: string;
   evolutionApiKey: string;
   publicAppUrl: string;
   hasOpenAi: boolean;
+  hasContora: boolean;
   hasEvolution: boolean;
 };
 
@@ -14,21 +16,25 @@ export async function resolvePlatformIntegrations(): Promise<PlatformIntegration
     where: { isPlatform: true },
     select: {
       openaiApiKey: true,
+      contoraApiToken: true,
       evolutionUrl: true,
       evolutionApiKey: true,
       publicAppUrl: true,
     },
   });
   const openaiApiKey = hq?.openaiApiKey || process.env.OPENAI_API_KEY || "";
+  const contoraApiToken = hq?.contoraApiToken || process.env.CONTORA_API_TOKEN || "";
   const evolutionUrl = hq?.evolutionUrl || process.env.EVOLUTION_API_URL || "";
   const evolutionApiKey = hq?.evolutionApiKey || process.env.EVOLUTION_API_KEY || "";
   const publicAppUrl = (hq?.publicAppUrl || process.env.APP_URL || "").replace(/\/$/, "");
   return {
     openaiApiKey,
+    contoraApiToken,
     evolutionUrl,
     evolutionApiKey,
     publicAppUrl,
     hasOpenAi: Boolean(openaiApiKey),
+    hasContora: Boolean(contoraApiToken),
     hasEvolution: Boolean(evolutionUrl && evolutionApiKey),
   };
 }

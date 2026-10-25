@@ -37,6 +37,15 @@ import {
   suggestKinds,
   taxCentsForKind,
 } from "@/lib/fiscal";
+import {
+  companyPayload,
+  mapContoraStatus,
+  nationalTaxCode,
+  nfseDraftPayload,
+  parseIssuerAddress,
+  paymentMethodCode,
+  taxRegimeFromCrt,
+} from "@/lib/contora";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -514,5 +523,65 @@ describe("notas fiscais", () => {
     expect(amountForKind("NFCE", lines)).toBe(4500);
     expect(taxCentsForKind("NFSE", 10000, 5)).toBe(500);
     expect(taxCentsForKind("NFCE", 4500, 5)).toBe(0);
+  });
+});
+
+describe("fiscal contora", () => {
+  it("monta empresa, DPS e status da Contora", () => {
+    expect(taxRegimeFromCrt("1")).toBe("simples");
+    expect(taxRegimeFromCrt("3")).toBe("presumido");
+    expect(nationalTaxCode("6.01")).toBe("0601");
+    expect(paymentMethodCode("PIX")).toBe("17");
+    expect(parseIssuerAddress("Rua Harmonia, 240", "São Paulo, SP")).toEqual({
+      street: "Rua Harmonia",
+      number: "240",
+      city: "São Paulo",
+    });
+    expect(mapContoraStatus("authorized")).toBe("AUTHORIZED");
+    expect(mapContoraStatus("queued")).toBe("PROCESSING");
+    const config = {
+      enabled: true,
+      cnpj: "12345678000195",
+      ie: null,
+      im: "123456",
+      crt: "1",
+      uf: "SP",
+      ibge: "3550308",
+      issPct: 5,
+      serviceCode: "6.01",
+      series: "1",
+      nextNumber: 1,
+      provider: "contora",
+      providerUrl: null,
+      providerToken: null,
+      environment: "homolog",
+      autoIssue: false,
+      issuerName: "Studio Aurora",
+      tradeName: "Aurora",
+      phone: "11999999999",
+      email: null,
+      address: "Rua Harmonia, 240",
+      city: "São Paulo, SP",
+      street: "Rua Harmonia",
+      number: "240",
+      district: "Vila Madalena",
+      zip: "05435000",
+      cscId: null,
+      cscToken: null,
+      companyId: null,
+      certificateUntil: null,
+    };
+    const payload = companyPayload(config);
+    expect(payload.document).toBe("12345678000195");
+    expect(payload.tax_regime).toBe("simples");
+    expect(payload.default_environment).toBe("homologacao");
+    const draft = nfseDraftPayload({
+      config,
+      description: "Corte masculino",
+      amountCents: 8000,
+      recipient: { name: "Lucas", document: "39053344705" },
+    });
+    expect(draft.payload.service.national_tax_code).toBe("0601");
+    expect(draft.payload.amounts.service_amount).toBe(80);
   });
 });

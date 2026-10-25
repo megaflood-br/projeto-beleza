@@ -49,6 +49,14 @@ export type FiscalConfig = {
   email: string | null;
   address: string | null;
   city: string | null;
+  street: string | null;
+  number: string | null;
+  district: string | null;
+  zip: string | null;
+  cscId: string | null;
+  cscToken: string | null;
+  companyId: string | null;
+  certificateUntil: string | null;
 };
 
 export type FiscalLine = {
@@ -103,6 +111,14 @@ export function tenantFiscalConfig(tenant: {
   fiscalProviderToken?: string | null;
   fiscalEnvironment?: string | null;
   fiscalAutoIssue?: boolean | null;
+  fiscalStreet?: string | null;
+  fiscalNumber?: string | null;
+  fiscalDistrict?: string | null;
+  fiscalZip?: string | null;
+  fiscalCscId?: string | null;
+  fiscalCscToken?: string | null;
+  fiscalContoraCompanyId?: string | null;
+  fiscalCertificateUntil?: Date | string | null;
 }): FiscalConfig {
   return {
     enabled: Boolean(tenant.fiscalEnabled),
@@ -116,7 +132,7 @@ export function tenantFiscalConfig(tenant: {
     serviceCode: tenant.fiscalServiceCode || "6.01",
     series: tenant.fiscalSeries || "1",
     nextNumber: Math.max(1, tenant.fiscalNextNumber ?? 1),
-    provider: tenant.fiscalProvider || "local",
+    provider: tenant.fiscalProvider || "contora",
     providerUrl: tenant.fiscalProviderUrl ?? null,
     providerToken: tenant.fiscalProviderToken ?? null,
     environment: tenant.fiscalEnvironment === "prod" ? "prod" : "homolog",
@@ -127,6 +143,14 @@ export function tenantFiscalConfig(tenant: {
     email: tenant.email ?? null,
     address: tenant.address ?? null,
     city: tenant.city ?? null,
+    street: tenant.fiscalStreet ?? null,
+    number: tenant.fiscalNumber ?? null,
+    district: tenant.fiscalDistrict ?? null,
+    zip: tenant.fiscalZip ?? null,
+    cscId: tenant.fiscalCscId ?? null,
+    cscToken: tenant.fiscalCscToken ?? null,
+    companyId: tenant.fiscalContoraCompanyId ?? null,
+    certificateUntil: tenant.fiscalCertificateUntil ? new Date(tenant.fiscalCertificateUntil).toISOString() : null,
   };
 }
 

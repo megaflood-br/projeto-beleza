@@ -11,7 +11,7 @@ export default async function PlataformaIntegracoesPage() {
       <div>
         <h1 className="font-display text-3xl">Integrações</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Chave OpenAI e servidor Evolution são universais. Cada salão só vincula o próprio WhatsApp pelo QR Code.
+          OpenAI, Contora e Evolution são universais. Cada salão só envia o próprio certificado A1 e o QR do WhatsApp.
         </p>
       </div>
       <Card>
@@ -24,6 +24,21 @@ export default async function PlataformaIntegracoesPage() {
               placeholder={tenant.openaiApiKey ? maskSecret(tenant.openaiApiKey) : "sk-..."}
             />
           </Field>
+          <h2 className="mt-2 font-medium">Fiscal Contora</h2>
+          <Field label="Token da API (todos os salões)">
+            <Input
+              name="contoraApiToken"
+              type="password"
+              placeholder={tenant.contoraApiToken ? maskSecret(tenant.contoraApiToken) : "fct_..."}
+            />
+          </Field>
+          <p className="text-xs text-ink-soft">
+            Uma chave da software house cobre os CNPJs. Cadastre em{" "}
+            <a href="https://fiscal.contora.com.br/register" className="text-wine" target="_blank" rel="noreferrer">
+              fiscal.contora.com.br
+            </a>
+            . Cada salão sobe o A1 em Configurações → Fiscal.
+          </p>
           <h2 className="mt-2 font-medium">Evolution API</h2>
           <Field label="URL do servidor">
             <Input name="evolutionUrl" defaultValue={tenant.evolutionUrl ?? ""} placeholder="https://evo.seudominio.com" />

@@ -28,6 +28,7 @@ model Tenant {
   closeTime           String   @default("20:00")
   slotMinutes         Int      @default(15)
   openaiApiKey        String?
+  contoraApiToken     String?
   publicAppUrl        String?
   evolutionUrl        String?
   evolutionApiKey     String?
@@ -55,11 +56,20 @@ model Tenant {
   fiscalServiceCode     String  @default("6.01")
   fiscalSeries          String  @default("1")
   fiscalNextNumber      Int     @default(1)
-  fiscalProvider        String  @default("local")
-  fiscalProviderUrl     String?
-  fiscalProviderToken   String?
-  fiscalEnvironment     String  @default("homolog")
-  fiscalAutoIssue       Boolean @default(false)
+  fiscalProvider           String    @default("contora")
+  fiscalProviderUrl        String?
+  fiscalProviderToken      String?
+  fiscalEnvironment        String    @default("homolog")
+  fiscalAutoIssue          Boolean   @default(false)
+  fiscalStreet             String?
+  fiscalNumber             String?
+  fiscalDistrict           String?
+  fiscalZip                String?
+  fiscalCscId              String?
+  fiscalCscToken           String?
+  fiscalContoraCompanyId   String?
+  fiscalCertificateAt      DateTime?
+  fiscalCertificateUntil   DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

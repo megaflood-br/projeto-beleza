@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { comandaTotal } from "@/lib/comandas";
+import { resolvePlatformIntegrations } from "@/lib/integrations";
+import { cancelContoraDocument, emitContoraDocument } from "@/lib/contora";
 import {
   amountForKind,
   buildAccessKey,
@@ -23,77 +25,60 @@ export type IssueResult = {
   error?: string;
 };
 
-function providerUrl(config: FiscalConfig) {
-  if (config.providerUrl) return config.providerUrl.replace(/\/$/, "");
-  return config.environment === "prod" ? "https://api.focusnfe.com.br" : "https://homologacao.focusnfe.com.br";
-}
-
 async function emitOnProvider(
   config: FiscalConfig,
   payload: {
-    ref: string;
     kind: FiscalKind;
     number: number;
-    series: string;
     amountCents: number;
-    taxCents: number;
-    accessKey: string;
     description: string;
-    recipient: { name: string; document: string };
+    lines: FiscalLine[];
+    recipient: { name: string; document: string; email?: string | null };
+    paymentMethod?: string | null;
+    idempotency: string;
   },
 ) {
-  if (config.provider !== "focusnfe" || !config.providerToken) {
-    return { status: "AUTHORIZED" as const, protocol: `LOCAL${payload.number}`, error: null as string | null };
+  const integrations = await resolvePlatformIntegrations();
+  const token = integrations.contoraApiToken || config.providerToken || "";
+  const useContora = config.provider === "contora" && Boolean(token);
+
+  if (!useContora) {
+    return {
+      status: "AUTHORIZED" as const,
+      protocol: `LOCAL${payload.number}`,
+      accessKey: null as string | null,
+      providerRef: payload.idempotency,
+      error: null as string | null,
+    };
   }
 
-  const path = payload.kind === "NFSE" ? "/v2/nfse" : payload.kind === "NFCE" ? "/v2/nfce" : "/v2/nfe";
-  const token = Buffer.from(`${config.providerToken}:`).toString("base64");
   try {
-    const response = await fetch(`${providerUrl(config)}${path}?ref=${encodeURIComponent(payload.ref)}`, {
-      method: "POST",
-      signal: AbortSignal.timeout(8000),
-      headers: {
-        Authorization: `Basic ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        data_emissao: new Date().toISOString(),
-        prestador: {
-          cnpj: config.cnpj,
-          inscricao_municipal: config.im,
-          codigo_municipio: config.ibge,
-        },
-        tomador: {
-          razao_social: payload.recipient.name,
-          cpf: payload.recipient.document.length === 11 ? payload.recipient.document : undefined,
-          cnpj: payload.recipient.document.length === 14 ? payload.recipient.document : undefined,
-        },
-        servico:
-          payload.kind === "NFSE"
-            ? {
-                descricao: payload.description,
-                valor_servicos: (payload.amountCents / 100).toFixed(2),
-                aliquota: config.issPct,
-                item_lista_servico: config.serviceCode,
-              }
-            : undefined,
-      }),
+    const emitted = await emitContoraDocument({
+      token,
+      kind: payload.kind,
+      config,
+      number: payload.number,
+      amountCents: payload.amountCents,
+      description: payload.description,
+      lines: payload.lines,
+      recipient: payload.recipient,
+      paymentMethod: payload.paymentMethod,
+      idempotency: payload.idempotency,
     });
-    const body = (await response.json().catch(() => ({}))) as { status?: string; mensagem?: string; protocol?: string };
-    if (!response.ok) {
-      return { status: "REJECTED" as const, protocol: null, error: body.mensagem || `Provedor ${response.status}` };
-    }
-    const authorized = String(body.status ?? "").toLowerCase().includes("autoriz") || response.status === 202 || response.status === 201;
     return {
-      status: authorized ? ("AUTHORIZED" as const) : ("PROCESSING" as const),
-      protocol: body.protocol ?? null,
-      error: null,
+      status: emitted.status,
+      protocol: emitted.protocol,
+      accessKey: emitted.accessKey,
+      providerRef: emitted.id,
+      error: emitted.error,
     };
   } catch (error) {
     return {
       status: "REJECTED" as const,
       protocol: null,
-      error: error instanceof Error ? error.message : "Falha ao falar com o provedor.",
+      accessKey: null,
+      providerRef: null,
+      error: error instanceof Error ? error.message : "Falha ao emitir na Contora.",
     };
   }
 }
@@ -152,7 +137,7 @@ export async function issueComandaInvoices(tenantId: string, comandaId: string, 
     const issuedAt = new Date();
     const number = nextNumber;
     nextNumber += 1;
-    const accessKey = buildAccessKey({
+    const fallbackKey = buildAccessKey({
       uf: config.uf,
       issuedAt,
       cnpj: config.cnpj,
@@ -161,7 +146,7 @@ export async function issueComandaInvoices(tenantId: string, comandaId: string, 
       number,
     });
     const taxCents = taxCentsForKind(kind, amountCents, config.issPct);
-    const ref = `mb-${tenant.slug}-${kind}-${number}`;
+    const idempotency = `mb-${tenant.slug}-${kind}-${comanda.number}`;
     const created = await prisma.fiscalInvoice.create({
       data: {
         tenantId,
@@ -171,10 +156,10 @@ export async function issueComandaInvoices(tenantId: string, comandaId: string, 
         status: "PROCESSING",
         number,
         series: config.series,
-        accessKey,
+        accessKey: fallbackKey,
         environment: config.environment,
         provider: config.provider,
-        providerRef: ref,
+        providerRef: idempotency,
         amountCents,
         taxCents,
         notes: `Comanda #${comanda.number}`,
@@ -182,15 +167,14 @@ export async function issueComandaInvoices(tenantId: string, comandaId: string, 
     });
 
     const emitted = await emitOnProvider(config, {
-      ref,
       kind,
       number,
-      series: config.series,
       amountCents,
-      taxCents,
-      accessKey,
       description: comanda.items.map((item) => item.description).join(", ").slice(0, 180),
-      recipient: { name: comanda.client.name, document: recipient.value },
+      lines,
+      recipient: { name: comanda.client.name, document: recipient.value, email: comanda.client.email },
+      paymentMethod: comanda.paymentMethod,
+      idempotency,
     });
 
     const updated = await prisma.fiscalInvoice.update({
@@ -198,6 +182,8 @@ export async function issueComandaInvoices(tenantId: string, comandaId: string, 
       data: {
         status: emitted.status,
         protocol: emitted.protocol,
+        accessKey: emitted.accessKey || fallbackKey,
+        providerRef: emitted.providerRef ?? created.providerRef,
         issuedAt: emitted.status === "AUTHORIZED" ? issuedAt : null,
         errorMessage: emitted.error,
       },
@@ -228,6 +214,20 @@ export async function cancelFiscalInvoice(tenantId: string, invoiceId: string) {
   if (invoice.status !== "AUTHORIZED" && invoice.status !== "REJECTED") {
     return { error: "Só é possível cancelar nota autorizada ou rejeitada." };
   }
+
+  if (invoice.provider === "contora" && invoice.providerRef) {
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    const integrations = await resolvePlatformIntegrations();
+    const token = integrations.contoraApiToken || tenant?.fiscalProviderToken || "";
+    if (token && tenant) {
+      try {
+        await cancelContoraDocument(token, invoice.kind, invoice.providerRef, tenantFiscalConfig(tenant).cnpj);
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : "A Contora não cancelou a nota." };
+      }
+    }
+  }
+
   await prisma.fiscalInvoice.update({
     where: { id: invoice.id },
     data: { status: "CANCELLED", cancelledAt: new Date() },
