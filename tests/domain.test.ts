@@ -7,7 +7,7 @@ import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
 import { parseSettingsTab } from "@/lib/settings";
-import { calendarDate, daysBetween, eachCalendarDate, formatTime, minutesInTz, minutesToLabel, parseHHmm, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
+import { calendarDate, calendarMonth, daysBetween, eachCalendarDate, formatMonthLabel, formatTime, minutesInTz, minutesToLabel, monthStartEnd, parseHHmm, shiftCalendarDate, shiftCalendarMonth, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
 import { averageTicket, bucketAppointmentStatus, conversionRate, percentDelta, previousPeriod, rankProfessionals } from "@/lib/dashboard";
@@ -27,6 +27,7 @@ import {
 } from "@/lib/support";
 import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEvolutionState } from "@/lib/evolution";
 import { evolutionWebhookUrl, instanceNameForTenant, maskSecret } from "@/lib/integrations";
+import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -402,5 +403,74 @@ describe("integrações da plataforma", () => {
     expect(parseEvolutionState({ status: "qrcode" })).toBe("connecting");
     expect(parseEvolutionState({})).toBe("close");
     expect(extractEvolutionNumber({ instance: { owner: "5511999999999@s.whatsapp.net" } })).toBe("5511999999999");
+  });
+});
+
+describe("metas de profissionais", () => {
+  it("navega o mês civil", () => {
+    expect(calendarMonth("2026-10-24")).toBe("2026-10");
+    expect(monthStartEnd("2026-02")).toEqual({ from: "2026-02-01", to: "2026-02-28" });
+    expect(monthStartEnd("2026-10")).toEqual({ from: "2026-10-01", to: "2026-10-31" });
+    expect(shiftCalendarMonth("2026-01", -1)).toBe("2025-12");
+    expect(formatMonthLabel("2026-10")).toBe("Outubro de 2026");
+  });
+
+  it("atribui faturamento e atendimentos da comanda ao profissional do item", () => {
+    const facts = professionalFacts(
+      [
+        {
+          professionalId: "camila",
+          comandaProfessionalId: "camila",
+          comandaId: "c1",
+          clientId: "ju",
+          type: "SERVICE",
+          quantity: 1,
+          priceCents: 18000,
+        },
+        {
+          professionalId: "bruno",
+          comandaProfessionalId: "camila",
+          comandaId: "c1",
+          clientId: "ju",
+          type: "PRODUCT",
+          quantity: 1,
+          priceCents: 4500,
+        },
+        {
+          professionalId: null,
+          comandaProfessionalId: "camila",
+          comandaId: "c2",
+          clientId: "ana",
+          type: "SERVICE",
+          quantity: 1,
+          priceCents: 12000,
+        },
+      ],
+      [
+        { professionalId: "camila", amountCents: 5400 },
+        { professionalId: "bruno", amountCents: 900 },
+      ],
+      "camila",
+    );
+    expect(facts.revenueCents).toBe(30000);
+    expect(facts.productCents).toBe(0);
+    expect(facts.serviceCount).toBe(2);
+    expect(facts.clientCount).toBe(2);
+    expect(facts.commissionCents).toBe(5400);
+    expect(currentForMetric("REVENUE", facts)).toBe(30000);
+    expect(currentForMetric("SERVICES", facts)).toBe(2);
+  });
+
+  it("classifica ritmo da meta no mês", () => {
+    expect(expectedPacePct("2026-10-01", "2026-10-31", "2026-10-01")).toBe(3);
+    expect(goalProgress(10000, 10000, 50)).toMatchObject({ status: "hit", pct: 100, remaining: 0 });
+    expect(goalProgress(10000, 4000, 30)).toMatchObject({ status: "on_track", pct: 40 });
+    expect(goalProgress(10000, 2000, 50)).toMatchObject({ status: "behind", pct: 20 });
+    expect(summarizeGoalStatuses(["hit", "on_track", "behind", "behind"])).toEqual({
+      total: 4,
+      hit: 1,
+      onTrack: 1,
+      behind: 2,
+    });
   });
 });

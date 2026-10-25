@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Sparkles,
   Settings,
+  Target,
   LogOut,
 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
@@ -35,6 +36,7 @@ const NAV = [
   { href: "/estoque", label: "Estoque", icon: Boxes },
   { href: "/comandas", label: "Comandas", icon: Receipt },
   { href: "/comissoes", label: "Comissões", icon: Percent },
+  { href: "/metas", label: "Metas", icon: Target },
   { href: "/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/cadastros", label: "Cadastros", icon: Landmark },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },

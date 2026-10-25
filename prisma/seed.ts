@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, addMinutes } from "date-fns";
-import { calendarDate, zonedDateTime } from "../src/lib/dates";
+import { calendarDate, calendarMonth, monthStartEnd, zonedDateTime } from "../src/lib/dates";
 import { ensureFinanceCatalog } from "../src/lib/finance-catalog";
 import { ensureAnamnesisForms, serializeAnswers } from "../src/lib/anamnesis";
 import { postLedgerEntry } from "../src/lib/ledger";
@@ -14,6 +14,7 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.professionalGoal.deleteMany();
   await prisma.cashbackMovement.deleteMany();
   await prisma.platformPlan.deleteMany();
   await prisma.supportMessage.deleteMany();
@@ -1025,6 +1026,18 @@ async function main() {
         body: "Sim — em Configurações, campo de abertura. Já deixei o caminho.",
         createdAt: addMinutes(today, -400),
       },
+    ],
+  });
+
+  const month = monthStartEnd(calendarMonth(today));
+  await prisma.professionalGoal.createMany({
+    data: [
+      { tenantId: aurora.id, professionalId: camila.id, metric: "REVENUE", targetValue: 200000, startDate: month.from, endDate: month.to, notes: "Coloração e hidratação" },
+      { tenantId: aurora.id, professionalId: camila.id, metric: "SERVICES", targetValue: 14, startDate: month.from, endDate: month.to },
+      { tenantId: aurora.id, professionalId: rafaela.id, metric: "REVENUE", targetValue: 180000, startDate: month.from, endDate: month.to },
+      { tenantId: aurora.id, professionalId: bruno.id, metric: "REVENUE", targetValue: 200000, startDate: month.from, endDate: month.to, notes: "Barba e corte masculino" },
+      { tenantId: aurora.id, professionalId: leticia.id, metric: "REVENUE", targetValue: 150000, startDate: month.from, endDate: month.to },
+      { tenantId: aurora.id, professionalId: leticia.id, metric: "CLIENTS", targetValue: 8, startDate: month.from, endDate: month.to },
     ],
   });
 
