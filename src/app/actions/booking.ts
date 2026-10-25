@@ -6,6 +6,7 @@ import { hasConflict } from "@/lib/appointments";
 import { calendarDate } from "@/lib/dates";
 import { applyCatalogPrice } from "@/lib/promotions";
 import { loadPromoRules } from "@/lib/promo-load";
+import { appointmentCampaignVars, safeDispatch } from "@/lib/dispatch-whatsapp-campaign";
 
 export async function publicBook(formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
@@ -38,8 +39,9 @@ export async function publicBook(formData: FormData) {
     update: { name },
     create: { tenantId: tenant.id, name, phone, source: "online" },
   });
+  const isNew = Date.now() - client.createdAt.getTime() < 8000;
 
-  await prisma.appointment.create({
+  const appointment = await prisma.appointment.create({
     data: {
       tenantId: tenant.id,
       professionalId,
@@ -56,7 +58,17 @@ export async function publicBook(formData: FormData) {
         },
       },
     },
+    include: {
+      professional: { select: { name: true } },
+      items: { include: { service: { select: { name: true } } } },
+    },
   });
+
+  const vars = appointmentCampaignVars(appointment);
+  const clientRef = { id: client.id, name: client.name, phone: client.phone };
+  if (isNew) safeDispatch({ tenantId: tenant.id, trigger: "WELCOME", client: clientRef, sentOn: client.id });
+  safeDispatch({ tenantId: tenant.id, trigger: "INFORMED", client: clientRef, sentOn: appointment.id, vars });
+  safeDispatch({ tenantId: tenant.id, trigger: "PIN", client: clientRef, sentOn: appointment.id, vars });
 
   return { ok: true };
 }

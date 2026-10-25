@@ -90,6 +90,7 @@ model Tenant {
   clientPackages ClientPackage[]
   conversations  Conversation[]
   automations    Automation[]
+  campaignSends  CampaignSend[]
   comandas       Comanda[]
   financeAccounts    FinanceAccount[]
   paymentMethods     PaymentMethodConfig[]
@@ -739,6 +740,19 @@ model Automation {
   trigger   String
   template  String
   active    Boolean @default(true)
+}
+
+model CampaignSend {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  trigger   String
+  clientId  String
+  sentOn    String
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, trigger, clientId, sentOn])
+  @@index([tenantId, trigger])
 }
 
 model AnamnesisForm {

@@ -6,6 +6,7 @@ import { requireTenant } from "@/lib/tenant";
 import { digitsOnly } from "@/lib/utils";
 import { zonedDateTime } from "@/lib/dates";
 import { cashbackExpiry, pointsToCents } from "@/lib/cashback";
+import { safeDispatch } from "@/lib/dispatch-whatsapp-campaign";
 
 function flag(formData: FormData, key: string, fallback = true) {
   const raw = formData.get(key);
@@ -84,7 +85,7 @@ export async function upsertClient(formData: FormData) {
       if (duplicate) return { error: "Já existe cliente com este telefone." };
       const imageUrl = String(formData.get("imageUrl") ?? "").trim();
       if (imageUrl.length > 400_000) return { error: "Imagem muito grande. Use uma foto menor." };
-      await prisma.client.create({
+      const created = await prisma.client.create({
         data: {
           tenantId: session.tenantId,
           name,
@@ -116,6 +117,12 @@ export async function upsertClient(formData: FormData) {
           notifications: flag(formData, "notifications"),
           blockAccess: flag(formData, "blockAccess", false),
         },
+      });
+      safeDispatch({
+        tenantId: session.tenantId,
+        trigger: "WELCOME",
+        client: { id: created.id, name: created.name, phone: created.phone },
+        sentOn: created.id,
       });
     }
   } catch (err) {
