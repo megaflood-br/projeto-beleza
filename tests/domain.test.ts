@@ -7,6 +7,7 @@ import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
 import { parseSettingsTab } from "@/lib/settings";
+import { CAMPAIGN_CATALOG, normalizeCampaignTrigger, parseWhatsAppTab, renderCampaignTemplate } from "@/lib/whatsapp-campaigns";
 import { CLIENT_IMPORT_HEADERS, compactImportTable, mapClientImportRows, normalizeImportPhone, parseImportDate } from "@/lib/client-import";
 import { parseImportResponse } from "@/lib/client-import-response";
 import { matchesClientSearch } from "@/lib/client-search";
@@ -209,6 +210,13 @@ describe("comandas", () => {
     expect(parseSettingsTab("fiscal")).toBe("fiscal");
     expect(parseSettingsTab("importar")).toBe("importar");
     expect(parseSettingsTab("outro")).toBe("salao");
+    expect(parseWhatsAppTab("campanhas")).toBe("campanhas");
+    expect(parseWhatsAppTab("outro")).toBe("inbox");
+    expect(normalizeCampaignTrigger("APPOINTMENT_CREATED")).toBe("INFORMED");
+    expect(CAMPAIGN_CATALOG).toHaveLength(13);
+    expect(renderCampaignTemplate("Oi {{nome}} no {{salao}}{{profissional}}", { nome: "Ana", salao: "Aurora", profissional: "Bruno" })).toBe(
+      "Oi Ana no Aurora com Bruno",
+    );
     expect(parseIntegrationTab("contora")).toBe("contora");
     expect(parseIntegrationTab("evolution")).toBe("evolution");
     expect(parseIntegrationTab("outro")).toBe("openai");

@@ -11,6 +11,7 @@ import { atTime, calendarDate, formatTime } from "@/lib/dates";
 import { postLedgerEntry } from "@/lib/ledger";
 import { applyCatalogPrice } from "@/lib/promotions";
 import { loadPromoRules } from "@/lib/promo-load";
+import { appointmentCampaignVars, safeDispatch } from "@/lib/dispatch-whatsapp-campaign";
 
 export type AppointmentItemInput = {
   serviceId: string;
@@ -127,6 +128,25 @@ export async function saveAppointment(payload: {
 
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
+
+  const appointment = await prisma.appointment.findFirst({
+    where: { id, tenantId: session.tenantId },
+    include: {
+      client: { select: { id: true, name: true, phone: true } },
+      professional: { select: { name: true } },
+      items: { include: { service: { select: { name: true } } } },
+    },
+  });
+  if (appointment?.client) {
+    safeDispatch({
+      tenantId: session.tenantId,
+      trigger: "INFORMED",
+      client: appointment.client,
+      sentOn: appointment.id,
+      vars: appointmentCampaignVars(appointment),
+    });
+  }
+
   return { ok: true as const, id };
 }
 

@@ -20,6 +20,7 @@ import {
 } from "@/lib/cashback";
 import { applyCatalogPrice } from "@/lib/promotions";
 import { loadPromoRules } from "@/lib/promo-load";
+import { moneyVar, safeDispatch } from "@/lib/dispatch-whatsapp-campaign";
 
 async function nextNumber(tenantId: string) {
   const last = await prisma.comanda.findFirst({
@@ -448,6 +449,13 @@ async function finalizeOpenComanda(
           reason: `Acúmulo da comanda #${comanda.number}`,
           expiresAt: cashbackExpiry(cashback.expireDays),
         });
+        safeDispatch({
+          tenantId,
+          trigger: "CASHBACK",
+          client,
+          sentOn: comanda.id,
+          vars: { valor: moneyVar(earned) },
+        });
       }
     }
 
@@ -569,6 +577,15 @@ async function finalizeOpenComanda(
     } catch {
       // fechamento não depende da nota
     }
+  }
+
+  if (client) {
+    safeDispatch({
+      tenantId,
+      trigger: "REVIEW",
+      client,
+      sentOn: comanda.id,
+    });
   }
 
   revalidateComandas();
