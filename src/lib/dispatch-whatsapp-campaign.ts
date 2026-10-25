@@ -7,8 +7,11 @@ import {
   appointmentPin,
   bookingLink,
   campaignByTrigger,
+  evolutionSendFailure,
   normalizeCampaignTrigger,
+  normalizeWhatsAppPhone,
   renderCampaignTemplate,
+  toEvolutionNumber,
   type CampaignTrigger,
 } from "@/lib/whatsapp-campaigns";
 
@@ -37,11 +40,12 @@ export async function dispatchCampaign(input: {
   sentOn: string;
   vars?: CampaignVars;
   force?: boolean;
+  templateOverride?: string;
 }) {
   const trigger = normalizeCampaignTrigger(String(input.trigger));
   if (!trigger) return { skipped: true as const, reason: "Campanha desconhecida." };
-  const phone = String(input.client.phone ?? "").replace(/\D/g, "");
-  if (phone.length < 10) return { skipped: true as const, reason: "Cliente sem celular válido." };
+  const phone = normalizeWhatsAppPhone(input.client.phone ?? "");
+  if (phone.length < 10) return { skipped: true as const, reason: "Informe um celular com DDD." };
 
   const [tenant, automation, server] = await Promise.all([
     prisma.tenant.findUnique({
@@ -59,7 +63,7 @@ export async function dispatchCampaign(input: {
   }
 
   const catalog = campaignByTrigger(trigger);
-  const body = renderCampaignTemplate(automation.template || catalog?.template || "", {
+  const body = renderCampaignTemplate(input.templateOverride || automation.template || catalog?.template || "", {
     nome: input.client.name,
     salao: tenant.name,
     data: input.vars?.data,
@@ -83,8 +87,14 @@ export async function dispatchCampaign(input: {
     apiKey: server.evolutionApiKey,
     instance: tenant.evolutionInstance ?? "",
   };
+  let mocked = true;
   if (isEvolutionConfigured(config) && tenant.evolutionStatus === "open") {
-    await sendTextMessage(config, phone, body);
+    try {
+      await sendTextMessage(config, toEvolutionNumber(phone), body);
+      mocked = false;
+    } catch (error) {
+      return { skipped: true as const, reason: evolutionSendFailure(error) };
+    }
   }
 
   await prisma.message.create({
@@ -102,7 +112,7 @@ export async function dispatchCampaign(input: {
     update: {},
     create: { tenantId: input.tenantId, trigger, clientId: input.client.id, sentOn: input.sentOn },
   });
-  return { ok: true as const, mocked: !(isEvolutionConfigured(config) && tenant.evolutionStatus === "open") };
+  return { ok: true as const, mocked };
 }
 
 export function safeDispatch(input: Parameters<typeof dispatchCampaign>[0]) {

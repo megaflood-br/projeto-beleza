@@ -7,7 +7,16 @@ import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
 import { parseSettingsTab } from "@/lib/settings";
-import { CAMPAIGN_CATALOG, normalizeCampaignTrigger, parseWhatsAppTab, renderCampaignTemplate } from "@/lib/whatsapp-campaigns";
+import {
+  CAMPAIGN_CATALOG,
+  normalizeCampaignTrigger,
+  normalizeWhatsAppPhone,
+  parseWhatsAppTab,
+  renderCampaignTemplate,
+  toEvolutionNumber,
+  whatsappPhoneCandidates,
+  evolutionSendFailure,
+} from "@/lib/whatsapp-campaigns";
 import { CLIENT_IMPORT_HEADERS, compactImportTable, mapClientImportRows, normalizeImportPhone, parseImportDate } from "@/lib/client-import";
 import { parseImportResponse } from "@/lib/client-import-response";
 import { matchesClientSearch } from "@/lib/client-search";
@@ -217,6 +226,14 @@ describe("comandas", () => {
     expect(renderCampaignTemplate("Oi {{nome}} no {{salao}}{{profissional}}", { nome: "Ana", salao: "Aurora", profissional: "Bruno" })).toBe(
       "Oi Ana no Aurora com Bruno",
     );
+    expect(normalizeWhatsAppPhone("55 11 98552-1672")).toBe("11985521672");
+    expect(normalizeWhatsAppPhone("11985521672")).toBe("11985521672");
+    expect(whatsappPhoneCandidates("11985521672")).toEqual(["11985521672", "5511985521672"]);
+    expect(toEvolutionNumber("11 98552-1672")).toBe("5511985521672");
+    expect(evolutionSendFailure(new Error('Evolution API 404: {"message":"not found"}'))).toMatch(
+      /não encontrou a conexão/,
+    );
+    expect(evolutionSendFailure(new Error("timeout"))).toMatch(/timeout/);
     expect(parseIntegrationTab("contora")).toBe("contora");
     expect(parseIntegrationTab("evolution")).toBe("evolution");
     expect(parseIntegrationTab("outro")).toBe("openai");

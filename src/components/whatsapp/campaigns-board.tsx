@@ -118,6 +118,7 @@ export function CampaignsBoard({
           key={editing.id}
           campaign={editing}
           canManage={canManage}
+          connected={connected}
           onClose={() => setEditing(null)}
         />
       ) : null}
@@ -128,10 +129,12 @@ export function CampaignsBoard({
 function CampaignDrawer({
   campaign,
   canManage,
+  connected,
   onClose,
 }: {
   campaign: CampaignRow;
   canManage: boolean;
+  connected: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -139,7 +142,8 @@ function CampaignDrawer({
   const [template, setTemplate] = useState(campaign.template);
   const [active, setActive] = useState(campaign.active);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [pending, setPending] = useState<"test" | "save" | null>(null);
   const [testPhone, setTestPhone] = useState("");
 
   return (
@@ -169,15 +173,22 @@ function CampaignDrawer({
             <input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} />
             Envio automático
           </label>
-          <Field label="Celular para teste">
+          <Field label="Celular para teste" required>
             <input
               value={testPhone}
               onChange={(event) => setTestPhone(event.target.value)}
-              placeholder="Opcional. Usa o último cliente se ficar vazio."
+              placeholder="DDD + número, ex. 11985521672"
+              inputMode="tel"
               className="h-11 w-full rounded-lg border border-line px-3 text-sm"
             />
           </Field>
+          {!connected ? (
+            <p className="text-sm text-amber-700">
+              Conecte o WhatsApp na aba Conexão para o teste sair no celular. Sem conexão, a mensagem só aparece no Inbox.
+            </p>
+          ) : null}
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
         </div>
         <div className="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-4">
           <Button type="button" variant="ghost" onClick={onClose}>
@@ -188,29 +199,39 @@ function CampaignDrawer({
               <Button
                 type="button"
                 variant="outline"
-                disabled={pending}
+                disabled={pending !== null}
                 onClick={() => {
-                  setPending(true);
+                  setPending("test");
                   setError(null);
+                  setSuccess(null);
                   const form = new FormData();
                   form.set("id", campaign.id);
                   form.set("phone", testPhone);
+                  form.set("template", template);
                   void sendCampaignTest(form)
                     .then((result) => {
-                      if (result && "error" in result && result.error) setError(result.error);
-                      else router.refresh();
+                      if (result && "error" in result && result.error) {
+                        setError(result.error);
+                        return;
+                      }
+                      if (result && "message" in result && result.message) {
+                        setSuccess(result.message);
+                      }
+                      router.refresh();
                     })
-                    .finally(() => setPending(false));
+                    .catch(() => setError("Não foi possível enviar o teste."))
+                    .finally(() => setPending(null));
                 }}
               >
-                Enviar teste
+                {pending === "test" ? "Enviando..." : "Enviar teste"}
               </Button>
               <Button
                 type="button"
-                disabled={pending}
+                disabled={pending !== null}
                 onClick={() => {
-                  setPending(true);
+                  setPending("save");
                   setError(null);
+                  setSuccess(null);
                   const form = new FormData();
                   form.set("id", campaign.id);
                   form.set("template", template);
@@ -224,10 +245,10 @@ function CampaignDrawer({
                       onClose();
                       router.refresh();
                     })
-                    .finally(() => setPending(false));
+                    .finally(() => setPending(null));
                 }}
               >
-                Salvar
+                {pending === "save" ? "Salvando..." : "Salvar"}
               </Button>
             </>
           ) : null}

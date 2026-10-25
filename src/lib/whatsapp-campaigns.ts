@@ -195,3 +195,35 @@ export function bookingLink(publicAppUrl: string, slug: string) {
 export function appointmentPin(appointmentId: string) {
   return appointmentId.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase() || "0000";
 }
+
+export function normalizeWhatsAppPhone(value: string) {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("55") && digits.length >= 12) digits = digits.slice(2);
+  return digits;
+}
+
+export function whatsappPhoneCandidates(value: string) {
+  const local = normalizeWhatsAppPhone(value);
+  const out = new Set<string>();
+  if (local) out.add(local);
+  if (local && !local.startsWith("55")) out.add(`55${local}`);
+  return [...out];
+}
+
+export function toEvolutionNumber(value: string) {
+  const local = normalizeWhatsAppPhone(value);
+  if (!local) return "";
+  return local.startsWith("55") ? local : `55${local}`;
+}
+
+export function evolutionSendFailure(error: unknown) {
+  const raw = error instanceof Error ? error.message : "";
+  if (/404/i.test(raw) || /not found/i.test(raw)) {
+    return "WhatsApp não encontrou a conexão do salão. Abra a aba Conexão e leia o QR de novo.";
+  }
+  if (/401|403|unauthorized|forbidden/i.test(raw)) {
+    return "A API do WhatsApp recusou a chave. Confira a integração Evolution na plataforma.";
+  }
+  if (raw) return `WhatsApp recusou o envio: ${raw}`;
+  return "WhatsApp recusou o envio.";
+}
