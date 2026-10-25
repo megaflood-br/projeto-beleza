@@ -10,7 +10,7 @@ export default function CadastroPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-8">
       <h1 className="font-display text-4xl">Abra seu salão no MegaBeauty</h1>
-      <p className="mt-2 text-ink-soft">Cada conta vira um tenant isolado, com agenda e CRM próprios.</p>
+      <p className="mt-2 text-ink-soft">Crie sua conta e organize agenda, clientes e caixa em poucos minutos.</p>
       <form
         className="mt-8 grid gap-3"
         action={async (formData) => {
@@ -31,7 +31,7 @@ export default function CadastroPage() {
           <Input name="password" type="password" minLength={6} required />
         </Field>
         {error ? <p className="text-sm text-warn">{error}</p> : null}
-        <Button>Criar workspace</Button>
+        <Button>Criar minha conta</Button>
       </form>
       <Link href="/login" className="mt-4 text-sm font-medium text-wine">
         Já tenho conta

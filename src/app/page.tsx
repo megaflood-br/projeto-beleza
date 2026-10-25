@@ -1,12 +1,12 @@
 import Link from "next/link";
 
 const FEATURES = [
-  { title: "Agenda por profissional", text: "Colunas por colaborador, status coloridos, conflito de horário e agendamento online 24h." },
-  { title: "CRM de beleza", text: "Histórico, tags, LTV, origem (balcão, WhatsApp, link) e fichas prontas para a recepção." },
-  { title: "WhatsApp + Evolution API", text: "Inbox do salão, confirmações, lembretes e webhook por tenant." },
-  { title: "IA OpenAI", text: "Assistente que lê agenda, ocupação, no-show e estoque. Chave por salão." },
-  { title: "Estoque e comissões", text: "Baixa automática no término do serviço, regras por profissional ou serviço, pagamento em lote." },
-  { title: "Multi-tenant", text: "Cada salão é um workspace isolado. TypeScript, Next.js e Prisma de ponta a ponta." },
+  { title: "Agenda lotada, sem conflito", text: "Colunas por profissional, horários livres e agendamento online 24h para a cliente marcar sozinha." },
+  { title: "Clientes que voltam", text: "Histórico, anamnese, pacotes e lembretes no WhatsApp para reduzir falta e aumentar o retorno." },
+  { title: "WhatsApp do salão", text: "Confirmação, cobrança e conversa no mesmo inbox. Sem planilha e sem celular pessoal da recepção." },
+  { title: "Comissões e financeiro", text: "Comanda, comissão por serviço, metas e caixa no mesmo lugar — o dono vê o dia em segundos." },
+  { title: "Estoque sob controle", text: "Baixa automática no atendimento, alerta de mínimo e custo real de cada serviço." },
+  { title: "Promoções que enchem o dia fraco", text: "Desconto por dia da semana, preço certo na comanda e no agendamento online." },
 ];
 
 function Logo({ className = "text-xl" }: { className?: string }) {
@@ -27,30 +27,30 @@ export default function HomePage() {
             Entrar
           </Link>
           <Link href="/cadastro" className="rounded-lg bg-wine px-4 py-2 text-sm font-medium text-white">
-            Criar conta
+            Começar agora
           </Link>
         </div>
       </header>
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 lg:grid-cols-2">
         <div>
-          <p className="text-sm font-medium text-ink-soft">CRM para salões, barbearias e clínicas</p>
+          <p className="text-sm font-medium text-ink-soft">Para salões, barbearias e clínicas de estética</p>
           <h1 className="mt-4 font-display text-5xl leading-[1.1] md:text-6xl">
-            Menos tempo na gestão. Mais tempo com o cliente.
+            Sua agenda, seu caixa e suas clientes em um só sistema.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-ink-soft">
-            MegaBeauty é o sistema multi-tenant com agenda visual, financeiro, equipe, estoque, comissões, WhatsApp e inteligência artificial — feito em TypeScript para o mercado da beleza.
+            Pare de gerir o salão no papel e no WhatsApp pessoal. O MegaBeauty organiza horários, comandas, equipe e fidelização — para você faturar mais com menos retrabalho.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/login" className="rounded-lg bg-wine px-6 py-3 text-sm font-medium text-white">
-              Ver demo (Studio Aurora)
+            <Link href="/cadastro" className="rounded-lg bg-wine px-6 py-3 text-sm font-medium text-white">
+              Criar minha conta
             </Link>
-            <Link href="/agendar/studio-aurora" className="rounded-lg border border-line bg-paper px-6 py-3 text-sm font-medium">
-              Agendar como cliente
+            <Link href="/login" className="rounded-lg border border-line bg-paper px-6 py-3 text-sm font-medium">
+              Já sou cliente
             </Link>
           </div>
         </div>
         <div className="rounded-2xl border border-line bg-paper p-6 shadow-sm">
-          <div className="mb-4 text-sm text-ink-soft">Hoje · Studio Aurora</div>
+          <div className="mb-4 text-sm text-ink-soft">Agenda do dia</div>
           <div className="grid grid-cols-3 gap-2">
             {["Camila", "Rafaela", "Bruno"].map((name, i) => (
               <div key={name} className="rounded-xl bg-sand p-3">
