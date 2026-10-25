@@ -7,6 +7,7 @@ import { formatBRL } from "@/lib/money";
 import { formatCnpj, type FiscalConfig } from "@/lib/fiscal";
 import { parseIssuerAddress } from "@/lib/contora";
 import { SETTINGS_TABS, type SettingsTab } from "@/lib/settings";
+import { ImportClientsForm } from "@/components/configuracoes/import-clients";
 import type { CashbackConfig } from "@/lib/cashback";
 
 export type SalonSettingsValue = {
@@ -27,11 +28,13 @@ export function SettingsBoard({
   salon,
   cashback,
   fiscal,
+  canImport,
 }: {
   tab: SettingsTab;
   salon: SalonSettingsValue;
   cashback: CashbackConfig;
   fiscal: FiscalConfig & { hasPlatformToken: boolean; cscTokenMasked: string };
+  canImport: boolean;
 }) {
   const current = SETTINGS_TABS.find((item) => item.id === tab) ?? SETTINGS_TABS[0];
 
@@ -67,6 +70,8 @@ export function SettingsBoard({
         <CashbackForm cashback={cashback} />
       ) : tab === "fiscal" ? (
         <FiscalForm fiscal={fiscal} />
+      ) : tab === "importar" ? (
+        <ImportClientsForm canImport={canImport} />
       ) : (
         <SalonForm salon={salon} />
       )}

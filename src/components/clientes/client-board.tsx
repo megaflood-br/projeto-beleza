@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { CirclePlay, Plus } from "lucide-react";
-import { Button } from "@/components/ui";
+import { CirclePlay, Plus, Search } from "lucide-react";
+import { Button, Input } from "@/components/ui";
 import { ClientDrawer } from "@/components/clientes/client-drawer";
-import { cn, formatPhoneBR, initials } from "@/lib/utils";
+import { matchesClientSearch } from "@/lib/client-search";
+import { formatPhoneBR, initials } from "@/lib/utils";
 import type { ClientFormValue } from "@/components/clientes/types";
 
 export function ClientBoard({
@@ -22,11 +23,13 @@ export function ClientBoard({
   const [withoutDebt, setWithoutDebt] = useState(true);
   const [tagFilters, setTagFilters] = useState<string[]>(tags);
   const [includeUntagged, setIncludeUntagged] = useState(true);
+  const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<ClientFormValue | null | undefined>(undefined);
 
   const visible = useMemo(
     () =>
       clients.filter((c) => {
+        if (!matchesClientSearch(c, query)) return false;
         if (c.active && !showActive) return false;
         if (!c.active && !showInactive) return false;
         if (c.phone && !withPhone) return false;
@@ -40,15 +43,23 @@ export function ClientBoard({
         if (clientTags.length === 0) return includeUntagged;
         return clientTags.some((tag) => tagFilters.includes(tag));
       }),
-    [clients, showActive, showInactive, withPhone, withoutPhone, withDebt, withoutDebt, tagFilters, includeUntagged],
+    [clients, query, showActive, showInactive, withPhone, withoutPhone, withDebt, withoutDebt, tagFilters, includeUntagged],
   );
+
+  const countLabel =
+    visible.length === clients.length
+      ? `${clients.length.toLocaleString("pt-BR")} cliente${clients.length === 1 ? "" : "s"}`
+      : `${visible.length.toLocaleString("pt-BR")} de ${clients.length.toLocaleString("pt-BR")} clientes`;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h1 className="font-display text-3xl">Clientes</h1>
-          <CirclePlay size={16} className="text-ink-soft" />
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-3xl">Clientes</h1>
+            <CirclePlay size={16} className="text-ink-soft" />
+          </div>
+          <p className="mt-1 text-sm text-ink-soft">{countLabel}</p>
         </div>
         <Button type="button" onClick={() => setEditing(null)}>
           <Plus size={16} />
@@ -84,8 +95,22 @@ export function ClientBoard({
         </aside>
 
         <div className="overflow-hidden rounded-2xl border border-line bg-white">
+          <div className="border-b border-line p-3">
+            <div className="relative">
+              <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-soft" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar nome, celular, e-mail ou hashtag"
+                className="pl-9"
+                type="search"
+              />
+            </div>
+          </div>
           {visible.length === 0 ? (
-            <p className="px-4 py-12 text-center text-sm text-ink-soft">Nenhum cliente neste filtro.</p>
+            <p className="px-4 py-12 text-center text-sm text-ink-soft">
+              {query.trim() ? "Nenhum cliente encontrado nessa busca." : "Nenhum cliente neste filtro."}
+            </p>
           ) : (
             <>
               <div className="grid grid-cols-[1fr_180px] items-center gap-2 border-b border-line px-4 py-2.5 text-sm font-medium text-ink-soft">

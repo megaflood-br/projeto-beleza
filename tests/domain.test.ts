@@ -7,6 +7,9 @@ import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
 import { parseSettingsTab } from "@/lib/settings";
+import { CLIENT_IMPORT_HEADERS, compactImportTable, mapClientImportRows, normalizeImportPhone, parseImportDate } from "@/lib/client-import";
+import { parseImportResponse } from "@/lib/client-import-response";
+import { matchesClientSearch } from "@/lib/client-search";
 import { calendarDate, calendarMonth, daysBetween, eachCalendarDate, formatMonthLabel, formatTime, minutesInTz, minutesToLabel, monthStartEnd, parseHHmm, shiftCalendarDate, shiftCalendarMonth, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
@@ -204,6 +207,7 @@ describe("comandas", () => {
     expect(centsToPoints(1990, 100)).toBe(19);
     expect(parseSettingsTab("cashback")).toBe("cashback");
     expect(parseSettingsTab("fiscal")).toBe("fiscal");
+    expect(parseSettingsTab("importar")).toBe("importar");
     expect(parseSettingsTab("outro")).toBe("salao");
     expect(parseIntegrationTab("contora")).toBe("contora");
     expect(parseIntegrationTab("evolution")).toBe("evolution");
@@ -385,6 +389,75 @@ describe("usuários do tenant", () => {
     expect(wouldRemoveLastOwner({ currentRole: "OWNER", nextRole: "MANAGER", ownerCount: 2 })).toBe(false);
     expect(wouldRemoveLastPlatformAdmin({ currentRole: "SUPER_ADMIN", nextActive: false, adminCount: 1 })).toBe(true);
     expect(wouldRemoveLastPlatformAdmin({ currentRole: "SUPER_ADMIN", nextActive: false, adminCount: 2 })).toBe(false);
+  });
+});
+
+describe("importação de clientes", () => {
+  it("lê o formato da planilha do salão", () => {
+    expect(normalizeImportPhone("5511961938720")).toBe("11961938720");
+    expect(parseImportDate("09/05/2022")).toBe("2022-05-09");
+    expect(parseImportDate(44690)).toBe("2022-05-09");
+    const { drafts, errors } = mapClientImportRows([
+      [...CLIENT_IMPORT_HEADERS],
+      [
+        "Ana Camila",
+        "Cliente fiel",
+        "",
+        "5511961938720",
+        "ana@example.com",
+        "123.456.789-00",
+        "",
+        "12/01/1977",
+        "Alameda C",
+        "208",
+        "Jardim Est",
+        "Atibaia",
+        "São Paulo",
+        "60",
+        "09/05/2022",
+        "vip",
+      ],
+      ["Sem telefone", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ]);
+    expect(drafts[0]).toMatchObject({
+      name: "Ana Camila",
+      phone: "11961938720",
+      city: "Atibaia",
+      state: "São Paulo",
+      district: "Jardim Est",
+      addressNumber: "208",
+      creditCents: 6000,
+      birthDate: "1977-01-12",
+      createdAt: "2022-05-09",
+      tags: "vip",
+    });
+    expect(errors.some((item) => item.message.includes("Celular"))).toBe(true);
+  });
+
+  it("ignora o intervalo vazio que o Excel costuma marcar", () => {
+    const blanks = Array.from({ length: 4000 }, () => ["", "", "", "", ""]);
+    const compacted = compactImportTable([[...CLIENT_IMPORT_HEADERS], ...blanks, ["Maria", "", "", "11988887777"]]);
+    expect(compacted).toHaveLength(2);
+    const { drafts, errors } = mapClientImportRows(compacted);
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]?.name).toBe("Maria");
+    expect(errors).toEqual([]);
+  });
+
+  it("explica resposta HTML ou vazia da importação", () => {
+    expect(parseImportResponse(200, "").error).toMatch(/confira o total/i);
+    expect(parseImportResponse(500, "<html>erro</html>").error).toMatch(/interrompeu/i);
+    expect(parseImportResponse(200, '{"ok":true,"created":3,"updated":1,"skipped":0}').created).toBe(3);
+  });
+});
+
+describe("busca de clientes", () => {
+  it("filtra por nome e pedaço do celular", () => {
+    const client = { name: "Ana Camila", nickname: null, phone: "11961938720", landline: null, email: "ana@example.com", tags: "vip", cpf: null, rg: null, city: "Atibaia" };
+    expect(matchesClientSearch(client, "camila")).toBe(true);
+    expect(matchesClientSearch(client, "96193")).toBe(true);
+    expect(matchesClientSearch(client, "vip")).toBe(true);
+    expect(matchesClientSearch(client, "pedro")).toBe(false);
   });
 });
 
