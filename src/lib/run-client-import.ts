@@ -77,7 +77,13 @@ export async function runClientImport(file: File, tenantId: string): Promise<Cli
   const toUpdate: { id: string; data: Omit<ReturnType<typeof toClientCreateData>, "tenantId" | "source" | "createdAt"> }[] = [];
 
   for (const draft of drafts) {
-    const data = toClientCreateData(draft, tenantId);
+    let data: ReturnType<typeof toClientCreateData>;
+    try {
+      data = toClientCreateData(draft, tenantId);
+    } catch {
+      errors.push({ row: 0, message: `Data inválida em ${draft.name}.` });
+      continue;
+    }
     const id = byPhone.get(draft.phone);
     if (id) {
       toUpdate.push({
@@ -110,7 +116,11 @@ export async function runClientImport(file: File, tenantId: string): Promise<Cli
 
   for (const group of chunkItems(toCreate, WRITE_CHUNK)) {
     try {
-      const written = await prisma.client.createMany({ data: group });
+      const written = await prisma.client.createMany({
+        data: group.map((row) =>
+          Object.fromEntries(Object.entries(row).filter(([, value]) => value !== undefined)),
+        ) as typeof group,
+      });
       created += written.count;
     } catch {
       for (const data of group) {
@@ -140,8 +150,12 @@ export async function runClientImport(file: File, tenantId: string): Promise<Cli
     }
   }
 
-  revalidatePath("/clientes");
-  revalidatePath("/configuracoes");
+  try {
+    revalidatePath("/clientes");
+    revalidatePath("/configuracoes");
+  } catch {
+    // Route handlers can miss the Next cache store; the rows are already saved.
+  }
   return {
     ok: true,
     created,

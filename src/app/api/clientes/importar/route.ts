@@ -33,7 +33,16 @@ export async function POST(request: Request) {
 
     const result = await runClientImport(file, session.tenantId);
     return json(result, "error" in result ? 400 : 200);
-  } catch {
-    return json({ error: "Falha interna ao importar. Abra Clientes e confira o total, depois tente de novo." }, 500);
+  } catch (cause) {
+    const detail = cause instanceof Error ? cause.message.replace(/\s+/g, " ").slice(0, 180) : "";
+    console.error("import clients failed", cause);
+    return json(
+      {
+        error: detail.includes("revalidatePath")
+          ? "Os clientes foram gravados, mas a lista não atualizou. Abra Clientes e confira o total."
+          : "Falha interna ao importar. Abra Clientes e confira o total, depois tente de novo.",
+      },
+      500,
+    );
   }
 }
