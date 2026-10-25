@@ -10,7 +10,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "MegaBeauty — CRM e agenda para salões de beleza",
   description:
-    "Agenda, CRM, estoque, comissões, WhatsApp (Evolution API) e assistente de IA. Multi-tenant em TypeScript.",
+    "Sistema para salões de beleza: agenda, comandas, comissões, estoque e WhatsApp. Menos planilha, mais faturamento.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

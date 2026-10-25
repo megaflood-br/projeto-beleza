@@ -15,16 +15,12 @@ export default function LoginPage() {
           Mega<span className="text-blue-400">Beauty</span>
         </div>
         <div>
-          <h1 className="font-display text-5xl leading-tight">A agenda do salão, sem planilha e sem caos.</h1>
+          <h1 className="font-display text-5xl leading-tight">O sistema do seu salão, do horário ao caixa.</h1>
           <p className="mt-4 max-w-md text-slate-300">
-            CRM, comissões, estoque, WhatsApp e IA no mesmo lugar — multi-tenant, em TypeScript.
+            Agenda, comandas, comissões, estoque e WhatsApp no mesmo lugar — feito para donos de salão, não para planilha.
           </p>
         </div>
-        <p className="text-sm text-slate-400">
-          Salão: iris.p@example.org / demo1234
-          <br />
-          Plataforma: nathan.k@example.net / admin1234
-        </p>
+        <p className="text-sm text-slate-400">Ainda não é cliente? Abra sua conta e comece hoje.</p>
       </section>
       <section className="flex items-center justify-center bg-cream p-8">
         <form
@@ -36,10 +32,10 @@ export default function LoginPage() {
         >
           <h2 className="font-display text-3xl">Entrar</h2>
           <Field label="E-mail">
-            <Input name="email" type="email" defaultValue="iris.p@example.org" required />
+            <Input name="email" type="email" autoComplete="email" required />
           </Field>
           <Field label="Senha">
-            <Input name="password" type="password" defaultValue="demo1234" required />
+            <Input name="password" type="password" autoComplete="current-password" required />
           </Field>
           {error ? <p className="text-sm text-warn">{error}</p> : null}
           <Button className="w-full">Acessar painel</Button>
