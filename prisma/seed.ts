@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, addMinutes } from "date-fns";
 import { calendarDate, calendarMonth, monthStartEnd, zonedDateTime } from "../src/lib/dates";
+import { buildAccessKey, taxCentsForKind } from "../src/lib/fiscal";
+import { comandaTotal } from "../src/lib/comandas";
 import { ensureFinanceCatalog } from "../src/lib/finance-catalog";
 import { ensureAnamnesisForms, serializeAnswers } from "../src/lib/anamnesis";
 import { postLedgerEntry } from "../src/lib/ledger";
@@ -14,6 +16,7 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.fiscalInvoice.deleteMany();
   await prisma.professionalGoal.deleteMany();
   await prisma.cashbackMovement.deleteMany();
   await prisma.platformPlan.deleteMany();
@@ -93,6 +96,17 @@ async function main() {
       accentColor: "#2563EB",
       openTime: "08:00",
       closeTime: "20:00",
+      fiscalEnabled: true,
+      fiscalCnpj: "12345678000195",
+      fiscalIm: "123456",
+      fiscalUf: "SP",
+      fiscalIbge: "3550308",
+      fiscalIssPct: 5,
+      fiscalServiceCode: "6.01",
+      fiscalSeries: "1",
+      fiscalNextNumber: 3,
+      fiscalProvider: "local",
+      fiscalEnvironment: "homolog",
       cashbackEnabled: true,
       cashbackEarnPct: 5,
       cashbackUseItemPct: true,
@@ -1040,6 +1054,46 @@ async function main() {
       { tenantId: aurora.id, professionalId: leticia.id, metric: "CLIENTS", targetValue: 8, startDate: month.from, endDate: month.to },
     ],
   });
+
+  const closedComanda = await prisma.comanda.findFirst({
+    where: { tenantId: aurora.id, status: "CLOSED" },
+    include: { items: true, client: true },
+    orderBy: { occurredAt: "desc" },
+  });
+  if (closedComanda) {
+    const amountCents = comandaTotal({
+      items: closedComanda.items,
+      discountCents: closedComanda.discountCents,
+      creditCents: closedComanda.creditCents,
+      cashbackCents: closedComanda.cashbackCents,
+    });
+    await prisma.fiscalInvoice.create({
+      data: {
+        tenantId: aurora.id,
+        comandaId: closedComanda.id,
+        clientId: closedComanda.clientId,
+        kind: "NFSE",
+        status: "AUTHORIZED",
+        number: 1,
+        series: "1",
+        accessKey: buildAccessKey({
+          uf: "SP",
+          issuedAt: closedComanda.closedAt ?? today,
+          cnpj: "12345678000195",
+          kind: "NFSE",
+          series: "1",
+          number: 1,
+        }),
+        protocol: "LOCAL1",
+        environment: "homolog",
+        provider: "local",
+        amountCents,
+        taxCents: taxCentsForKind("NFSE", amountCents, 5),
+        issuedAt: closedComanda.closedAt ?? today,
+        notes: `Comanda #${closedComanda.number}`,
+      },
+    });
+  }
 
   console.log("Seed ok. Salão: iris.p@example.org / demo1234 · Plataforma: nathan.k@example.net / admin1234");
 }

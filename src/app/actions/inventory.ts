@@ -83,6 +83,8 @@ export async function upsertProduct(formData: FormData) {
     notes,
     requestAvailable,
     active,
+    ncm: String(formData.get("ncm") ?? "").replace(/\D/g, "") || null,
+    cfop: String(formData.get("cfop") ?? "").replace(/\D/g, "") || null,
   };
 
   try {

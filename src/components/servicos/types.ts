@@ -18,4 +18,6 @@ export type ServiceFormValue = {
   color: string;
   onlineBooking: boolean;
   products: { productId: string; quantity: number; name: string }[];
+  fiscalCode: string | null;
+  issPct: number | null;
 };

@@ -64,6 +64,8 @@ export default async function EstoquePage() {
         notes: p.notes,
         requestAvailable: p.requestAvailable,
         active: p.active,
+        ncm: p.ncm,
+        cfop: p.cfop,
         services: p.services.map((row) => ({
           serviceId: row.serviceId,
           quantity: row.quantity,

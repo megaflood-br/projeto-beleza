@@ -44,6 +44,22 @@ model Tenant {
   cashbackMaxRedeemPct Int      @default(100)
   cashbackExpireDays   Int      @default(0)
   cashbackCentsPerPoint Int     @default(100)
+  fiscalEnabled         Boolean @default(false)
+  fiscalCnpj            String?
+  fiscalIe              String?
+  fiscalIm              String?
+  fiscalCrt             String  @default("1")
+  fiscalUf              String  @default("SP")
+  fiscalIbge            String?
+  fiscalIssPct          Int     @default(5)
+  fiscalServiceCode     String  @default("6.01")
+  fiscalSeries          String  @default("1")
+  fiscalNextNumber      Int     @default(1)
+  fiscalProvider        String  @default("local")
+  fiscalProviderUrl     String?
+  fiscalProviderToken   String?
+  fiscalEnvironment     String  @default("homolog")
+  fiscalAutoIssue       Boolean @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -75,6 +91,7 @@ model Tenant {
   supportCalls       SupportCall[]
   supportPresences   SupportPresence[]
   professionalGoals  ProfessionalGoal[]
+  fiscalInvoices     FiscalInvoice[]
 
   @@index([slug])
 }
@@ -171,6 +188,37 @@ model ProfessionalGoal {
   @@index([professionalId])
 }
 
+model FiscalInvoice {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  comandaId    String?
+  comanda      Comanda?  @relation(fields: [comandaId], references: [id], onDelete: SetNull)
+  clientId     String?
+  client       Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  kind         String
+  status       String    @default("DRAFT")
+  number       Int?
+  series       String?
+  accessKey    String?
+  protocol     String?
+  environment  String    @default("homolog")
+  provider     String    @default("local")
+  providerRef  String?
+  amountCents  Int
+  taxCents     Int       @default(0)
+  issuedAt     DateTime?
+  cancelledAt  DateTime?
+  errorMessage String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([tenantId, issuedAt])
+  @@index([tenantId, status])
+  @@index([comandaId])
+}
+
 model ServiceCategory {
   id        String    @id @default(cuid())
   tenantId  String
@@ -203,6 +251,8 @@ model Service {
   imageUrl      String?
   onlineBooking Boolean  @default(true)
   description   String?
+  fiscalCode    String?
+  issPct        Int?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -278,6 +328,7 @@ model Client {
   comandas       Comanda[]
   anamneses      Anamnesis[]
   cashbackMoves  CashbackMovement[]
+  fiscalInvoices FiscalInvoice[]
 
   @@unique([tenantId, phone])
   @@index([tenantId, name])
@@ -348,6 +399,7 @@ model Comanda {
   transactions Transaction[]
   commissions  Commission[]
   stockMoves   StockMovement[]
+  invoices     FiscalInvoice[]
 
   @@unique([tenantId, number])
   @@index([tenantId, status])
@@ -407,6 +459,8 @@ model Product {
   notes                  String?
   requestAvailable       Boolean  @default(true)
   active                 Boolean  @default(true)
+  ncm                    String?
+  cfop                   String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 

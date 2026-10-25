@@ -22,6 +22,8 @@ export type ProductFormValue = {
   requestAvailable: boolean;
   active: boolean;
   services: { serviceId: string; quantity: number; name: string }[];
+  ncm: string | null;
+  cfop: string | null;
 };
 
 export type ProductLotValue = {

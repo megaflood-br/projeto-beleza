@@ -20,7 +20,7 @@ const TABS = [
   { id: "comissoes", label: "Comissões e Auxiliares" },
   { id: "personalizar", label: "Personalizar" },
   { id: "produtos", label: "Produtos consumidos" },
-  { id: "nota", label: "Configurar nota fiscal", disabled: true },
+  { id: "nota", label: "Configurar nota fiscal" },
 ] as const;
 
 function centsToInput(cents: number) {
@@ -100,11 +100,11 @@ export function ServiceDrawer({
                 <button
                   key={item.id}
                   type="button"
-                  disabled={"disabled" in item && item.disabled}
+                  disabled={"disabled" in item && (item as { disabled?: boolean }).disabled === true}
                   onClick={() => setTab(item.id)}
                   className={cn(
                     "flex w-full shrink-0 rounded-lg px-3 py-2 text-left text-sm whitespace-nowrap lg:rounded-none lg:border-l-2",
-                    "disabled" in item && item.disabled
+                    "disabled" in item && (item as { disabled?: boolean }).disabled === true
                       ? "cursor-not-allowed border-transparent text-slate-400"
                       : tab === item.id
                         ? "border-blue-600 bg-blue-50 font-medium text-blue-600 lg:bg-transparent"
@@ -270,6 +270,18 @@ export function ServiceDrawer({
                 <Field label="Cor na agenda">
                   <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
                 </Field>
+              </div>
+
+              <div className={tab === "nota" ? "grid max-w-lg gap-3" : "hidden"}>
+                <Field label="Item da lista (LC 116)">
+                  <Input name="fiscalCode" defaultValue={service?.fiscalCode ?? ""} placeholder="6.01" />
+                </Field>
+                <Field label="ISS deste serviço (%)">
+                  <Input name="issPct" type="number" min={0} max={100} defaultValue={service?.issPct ?? ""} placeholder="Padrão do salão" />
+                </Field>
+                <p className="text-sm text-ink-soft">
+                  Se vazio, a emissão usa o código e o ISS de Configurações → Fiscal.
+                </p>
               </div>
 
               <div className={tab === "produtos" ? "grid gap-3" : "hidden"}>

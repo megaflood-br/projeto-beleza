@@ -46,6 +46,8 @@ export default async function ServicosPage() {
           quantity: p.quantity,
           name: p.product.name,
         })),
+        fiscalCode: s.fiscalCode,
+        issPct: s.issPct,
       }))}
     />
   );

@@ -28,6 +28,15 @@ import {
 import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEvolutionState } from "@/lib/evolution";
 import { evolutionWebhookUrl, instanceNameForTenant, maskSecret } from "@/lib/integrations";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
+import {
+  accessKeyCheckDigit,
+  amountForKind,
+  buildAccessKey,
+  formatCnpj,
+  isValidCnpj,
+  suggestKinds,
+  taxCentsForKind,
+} from "@/lib/fiscal";
 
 describe("comissões", () => {
   it("usa percentual do serviço quando existe", () => {
@@ -157,6 +166,7 @@ describe("comandas", () => {
     expect(pointsToCents(10, 100)).toBe(1000);
     expect(centsToPoints(1990, 100)).toBe(19);
     expect(parseSettingsTab("cashback")).toBe("cashback");
+    expect(parseSettingsTab("fiscal")).toBe("fiscal");
     expect(parseSettingsTab("outro")).toBe("salao");
   });
 
@@ -472,5 +482,37 @@ describe("metas de profissionais", () => {
       onTrack: 1,
       behind: 2,
     });
+  });
+});
+
+describe("notas fiscais", () => {
+  it("valida CNPJ e monta chave de acesso", () => {
+    expect(isValidCnpj("12.345.678/0001-95")).toBe(true);
+    expect(isValidCnpj("12.345.678/0001-90")).toBe(false);
+    expect(formatCnpj("12345678000195")).toBe("12.345.678/0001-95");
+    const key = buildAccessKey({
+      uf: "SP",
+      issuedAt: new Date("2026-10-24T15:00:00Z"),
+      cnpj: "12345678000195",
+      kind: "NFCE",
+      series: "1",
+      number: 17,
+      code: "12345678",
+    });
+    expect(key).toHaveLength(44);
+    expect(key.startsWith("35")).toBe(true);
+    expect(accessKeyCheckDigit(key.slice(0, 43))).toBe(key.slice(-1));
+  });
+
+  it("separa serviço e produto e calcula ISS", () => {
+    const lines = [
+      { type: "SERVICE", description: "Corte", quantity: 1, priceCents: 10000 },
+      { type: "PRODUCT", description: "Máscara", quantity: 1, priceCents: 4500 },
+    ];
+    expect(suggestKinds(lines)).toEqual(["NFSE", "NFCE"]);
+    expect(amountForKind("NFSE", lines)).toBe(10000);
+    expect(amountForKind("NFCE", lines)).toBe(4500);
+    expect(taxCentsForKind("NFSE", 10000, 5)).toBe(500);
+    expect(taxCentsForKind("NFCE", 4500, 5)).toBe(0);
   });
 });
