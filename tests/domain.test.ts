@@ -7,6 +7,7 @@ import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
 import { parseSettingsTab } from "@/lib/settings";
+import { CLIENT_IMPORT_HEADERS, mapClientImportRows, normalizeImportPhone, parseImportDate } from "@/lib/client-import";
 import { calendarDate, calendarMonth, daysBetween, eachCalendarDate, formatMonthLabel, formatTime, minutesInTz, minutesToLabel, monthStartEnd, parseHHmm, shiftCalendarDate, shiftCalendarMonth, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
@@ -204,6 +205,7 @@ describe("comandas", () => {
     expect(centsToPoints(1990, 100)).toBe(19);
     expect(parseSettingsTab("cashback")).toBe("cashback");
     expect(parseSettingsTab("fiscal")).toBe("fiscal");
+    expect(parseSettingsTab("importar")).toBe("importar");
     expect(parseSettingsTab("outro")).toBe("salao");
     expect(parseIntegrationTab("contora")).toBe("contora");
     expect(parseIntegrationTab("evolution")).toBe("evolution");
@@ -385,6 +387,49 @@ describe("usuários do tenant", () => {
     expect(wouldRemoveLastOwner({ currentRole: "OWNER", nextRole: "MANAGER", ownerCount: 2 })).toBe(false);
     expect(wouldRemoveLastPlatformAdmin({ currentRole: "SUPER_ADMIN", nextActive: false, adminCount: 1 })).toBe(true);
     expect(wouldRemoveLastPlatformAdmin({ currentRole: "SUPER_ADMIN", nextActive: false, adminCount: 2 })).toBe(false);
+  });
+});
+
+describe("importação de clientes", () => {
+  it("lê o formato da planilha do salão", () => {
+    expect(normalizeImportPhone("5511961938720")).toBe("11961938720");
+    expect(parseImportDate("09/05/2022")).toBe("2022-05-09");
+    expect(parseImportDate(44690)).toBe("2022-05-09");
+    const { drafts, errors } = mapClientImportRows([
+      [...CLIENT_IMPORT_HEADERS],
+      [
+        "Ana Camila",
+        "Cliente fiel",
+        "",
+        "5511961938720",
+        "ana@example.com",
+        "123.456.789-00",
+        "",
+        "12/01/1977",
+        "Alameda C",
+        "208",
+        "Jardim Est",
+        "Atibaia",
+        "São Paulo",
+        "60",
+        "09/05/2022",
+        "vip",
+      ],
+      ["Sem telefone", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ]);
+    expect(drafts[0]).toMatchObject({
+      name: "Ana Camila",
+      phone: "11961938720",
+      city: "Atibaia",
+      state: "São Paulo",
+      district: "Jardim Est",
+      addressNumber: "208",
+      creditCents: 6000,
+      birthDate: "1977-01-12",
+      createdAt: "2022-05-09",
+      tags: "vip",
+    });
+    expect(errors.some((item) => item.message.includes("Celular"))).toBe(true);
   });
 });
 

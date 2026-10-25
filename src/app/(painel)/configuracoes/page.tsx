@@ -1,4 +1,5 @@
 import { requireTenant } from "@/lib/tenant";
+import { canManageTeam } from "@/lib/auth";
 import { tenantCashbackConfig } from "@/lib/cashback";
 import { parseSettingsTab } from "@/lib/settings";
 import { SettingsBoard } from "@/components/configuracoes/settings-board";
@@ -10,7 +11,7 @@ export default async function ConfigPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const { tenant } = await requireTenant();
+  const { session, tenant } = await requireTenant();
   const params = await searchParams;
   const fiscal = tenantFiscalConfig(tenant);
   const integrations = await resolvePlatformIntegrations();
@@ -35,6 +36,7 @@ export default async function ConfigPage({
         hasPlatformToken: integrations.hasContora,
         cscTokenMasked: tenant.fiscalCscToken ? maskSecret(tenant.fiscalCscToken) : "",
       }}
+      canImport={canManageTeam(session.role)}
     />
   );
 }
