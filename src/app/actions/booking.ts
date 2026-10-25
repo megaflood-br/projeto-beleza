@@ -3,6 +3,9 @@
 import { addMinutes } from "date-fns";
 import { prisma } from "@/lib/db";
 import { hasConflict } from "@/lib/appointments";
+import { calendarDate } from "@/lib/dates";
+import { applyCatalogPrice } from "@/lib/promotions";
+import { loadPromoRules } from "@/lib/promo-load";
 
 export async function publicBook(formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
@@ -48,7 +51,7 @@ export async function publicBook(formData: FormData) {
       items: {
         create: {
           serviceId: service.id,
-          priceCents: service.priceCents,
+          priceCents: applyCatalogPrice(await loadPromoRules(tenant.id), calendarDate(startAt), "SERVICE", service.id, service.priceCents).priceCents,
           durationMin: service.durationMin,
         },
       },

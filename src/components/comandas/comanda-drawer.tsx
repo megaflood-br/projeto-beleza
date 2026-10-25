@@ -62,8 +62,8 @@ export function ComandaDrawer({
   nextNumber: number;
   clients: { id: string; name: string; phone: string; creditCents: number; cashbackCents: number }[];
   professionals: { id: string; name: string }[];
-  services: { id: string; name: string; priceCents: number }[];
-  products: { id: string; name: string; priceCents: number }[];
+  services: { id: string; name: string; priceCents: number; promoPriceCents?: number | null; promoName?: string | null }[];
+  products: { id: string; name: string; priceCents: number; promoPriceCents?: number | null; promoName?: string | null }[];
   paymentMethods?: PaymentMethodOption[];
   onClose: () => void;
 }) {
@@ -87,15 +87,15 @@ export function ComandaDrawer({
       ...services.map((s) => ({
         value: `SERVICE:${s.id}`,
         label: s.name,
-        hint: formatBRL(s.priceCents),
-        priceCents: s.priceCents,
+        hint: s.promoPriceCents != null ? `${formatBRL(s.promoPriceCents)} na ${s.promoName}` : formatBRL(s.priceCents),
+        priceCents: s.promoPriceCents ?? s.priceCents,
         type: "SERVICE" as const,
       })),
       ...products.map((p) => ({
         value: `PRODUCT:${p.id}`,
         label: p.name,
-        hint: `Produto · ${formatBRL(p.priceCents)}`,
-        priceCents: p.priceCents,
+        hint: p.promoPriceCents != null ? `Produto · ${formatBRL(p.promoPriceCents)} na ${p.promoName}` : `Produto · ${formatBRL(p.priceCents)}`,
+        priceCents: p.promoPriceCents ?? p.priceCents,
         type: "PRODUCT" as const,
       })),
     ],

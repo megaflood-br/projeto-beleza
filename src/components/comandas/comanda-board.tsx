@@ -23,8 +23,8 @@ export function ComandaBoard({
   nextNumber: number;
   clients: { id: string; name: string; phone: string; creditCents: number; cashbackCents: number }[];
   professionals: { id: string; name: string }[];
-  services: { id: string; name: string; priceCents: number }[];
-  products: { id: string; name: string; priceCents: number }[];
+  services: { id: string; name: string; priceCents: number; promoPriceCents?: number | null; promoName?: string | null }[];
+  products: { id: string; name: string; priceCents: number; promoPriceCents?: number | null; promoName?: string | null }[];
   paymentMethods?: PaymentMethodOption[];
 }) {
   const [editing, setEditing] = useState<ComandaFormValue | null | undefined>(undefined);

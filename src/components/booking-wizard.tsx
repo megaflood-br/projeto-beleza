@@ -6,6 +6,7 @@ import { Button, Field, Input, Select } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
 import { formatBRL } from "@/lib/money";
 import { buildSlots, calendarDate, zonedDateTime } from "@/lib/dates";
+import { bestPromotion, type PromoRule } from "@/lib/promotions";
 
 type Service = { id: string; name: string; durationMin: number; priceCents: number };
 type Professional = { id: string; name: string; color: string; serviceIds: string[] };
@@ -20,6 +21,7 @@ export function BookingWizard({
   openTime,
   closeTime,
   slotMinutes,
+  promotions = [],
 }: {
   slug: string;
   salon: string;
@@ -29,6 +31,7 @@ export function BookingWizard({
   openTime: string;
   closeTime: string;
   slotMinutes: number;
+  promotions?: PromoRule[];
 }) {
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [professionalId, setProfessionalId] = useState("");
@@ -39,6 +42,15 @@ export function BookingWizard({
   const [pending, startTransition] = useTransition();
 
   const service = services.find((s) => s.id === serviceId);
+  const servicePromo = service ? bestPromotion(promotions, date, "SERVICE", service.id, service.priceCents) : null;
+  const dayOffers = useMemo(
+    () =>
+      services.flatMap((item) => {
+        const promo = bestPromotion(promotions, date, "SERVICE", item.id, item.priceCents);
+        return promo ? [{ service: item, promo }] : [];
+      }),
+    [services, promotions, date],
+  );
   const pros = professionals.filter((p) => !serviceId || p.serviceIds.includes(serviceId) || p.serviceIds.length === 0);
   const slots = useMemo(() => buildSlots(openTime, closeTime, slotMinutes), [openTime, closeTime, slotMinutes]);
 
@@ -77,6 +89,18 @@ export function BookingWizard({
     >
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="startAt" value={time ? zonedDateTime(date, time).toISOString() : ""} />
+      {dayOffers.length ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <p className="font-medium">Ofertas neste dia</p>
+          <ul className="mt-1 space-y-1">
+            {dayOffers.map(({ service: offer, promo }) => (
+              <li key={offer.id}>
+                {offer.name}: {formatBRL(promo.priceCents)} na {promo.promo.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <Field label="Serviço">
         <SearchSelect
           name="serviceId"
@@ -84,11 +108,16 @@ export function BookingWizard({
           placeholder="Buscar serviço..."
           value={serviceId}
           onChange={setServiceId}
-          options={services.map((s) => ({
-            value: s.id,
-            label: s.name,
-            hint: `${s.durationMin} min · ${formatBRL(s.priceCents)}`,
-          }))}
+          options={services.map((s) => {
+            const promo = bestPromotion(promotions, date, "SERVICE", s.id, s.priceCents);
+            return {
+              value: s.id,
+              label: s.name,
+              hint: promo
+                ? `${s.durationMin} min · ${formatBRL(promo.priceCents)} na ${promo.promo.name}`
+                : `${s.durationMin} min · ${formatBRL(s.priceCents)}`,
+            };
+          })}
         />
       </Field>
       <Field label="Profissional">
@@ -120,6 +149,11 @@ export function BookingWizard({
       <Field label="WhatsApp">
         <Input name="phone" required placeholder="11999999999" />
       </Field>
+      {servicePromo ? (
+        <p className="text-sm text-emerald-700">
+          Oferta válida neste dia: {servicePromo.promo.name} por {formatBRL(servicePromo.priceCents)}.
+        </p>
+      ) : null}
       {error ? <p className="text-sm text-warn">{error}</p> : null}
       <Button disabled={pending || !time}>{pending ? "Reservando..." : "Confirmar agendamento"}</Button>
     </form>

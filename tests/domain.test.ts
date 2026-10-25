@@ -29,6 +29,14 @@ import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEv
 import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, parseIntegrationTab } from "@/lib/integrations";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
+  applyCatalogPrice,
+  bestPromotion,
+  parseWeekdays,
+  promoPriceCents,
+  weekdayFromCalendarDate,
+  weekdayHeat,
+} from "@/lib/promotions";
+import {
   accessKeyCheckDigit,
   amountForKind,
   buildAccessKey,
@@ -596,5 +604,33 @@ describe("fiscal contora", () => {
     expect(contoraArtifactPath("NFCE", "doc-2", "xml")).toBe("/nfe/drafts/doc-2/artifacts/xml_authorized");
     expect(hasContoraArtifacts({ provider: "contora", providerRef: "abc", status: "AUTHORIZED" })).toBe(true);
     expect(hasContoraArtifacts({ provider: "local", providerRef: "abc", status: "AUTHORIZED" })).toBe(false);
+  });
+});
+
+describe("promoções", () => {
+  const promo = {
+    id: "p1",
+    name: "Fim de semana do corte",
+    startsOn: "2026-10-01",
+    endsOn: "2026-10-31",
+    weekdays: [0, 6],
+    discountType: "PERCENT" as const,
+    discountValue: 20,
+    active: true,
+    items: [{ type: "SERVICE", serviceId: "corte", productId: null }],
+  };
+
+  it("aplica desconto só no dia e no item da promoção", () => {
+    expect(promoPriceCents(8000, "PERCENT", 20)).toBe(6400);
+    expect(promoPriceCents(8000, "CENTS", 1500)).toBe(6500);
+    expect(parseWeekdays("0,6")).toEqual([0, 6]);
+    expect(weekdayFromCalendarDate("2026-10-24")).toBe(6);
+    expect(bestPromotion([promo], "2026-10-24", "SERVICE", "corte", 8000)?.priceCents).toBe(6400);
+    expect(bestPromotion([promo], "2026-10-23", "SERVICE", "corte", 8000)).toBeNull();
+    expect(applyCatalogPrice([promo], "2026-10-24", "SERVICE", "corte", 8000).priceCents).toBe(6400);
+    expect(applyCatalogPrice([promo], "2026-10-24", "SERVICE", "corte", 8000, 8000).priceCents).toBe(6400);
+    expect(applyCatalogPrice([promo], "2026-10-24", "SERVICE", "corte", 8000, 6400).promoName).toBe("Fim de semana do corte");
+    expect(applyCatalogPrice([promo], "2026-10-24", "SERVICE", "corte", 8000, 7000).priceCents).toBe(7000);
+    expect(weekdayHeat([10, 4, 2, 8, 9, 12, 3]).find((day) => day.id === 2)?.weak).toBe(true);
   });
 });

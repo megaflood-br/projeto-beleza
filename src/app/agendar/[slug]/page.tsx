@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { BookingWizard } from "@/components/booking-wizard";
 import { addDays } from "date-fns";
+import { loadPromoRules } from "@/lib/promo-load";
 
 export default async function PublicBookingPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -17,6 +18,7 @@ export default async function PublicBookingPage({ params }: { params: Promise<{ 
   });
   if (!tenant) notFound();
 
+  const promotions = await loadPromoRules(tenant.id);
   const busy = await prisma.appointment.findMany({
     where: {
       tenantId: tenant.id,
@@ -38,6 +40,7 @@ export default async function PublicBookingPage({ params }: { params: Promise<{ 
           openTime={tenant.openTime}
           closeTime={tenant.closeTime}
           slotMinutes={tenant.slotMinutes}
+          promotions={promotions}
           services={tenant.services}
           professionals={tenant.professionals.map((p) => ({
             id: p.id,

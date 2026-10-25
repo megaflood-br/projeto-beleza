@@ -19,6 +19,7 @@ import {
   Settings,
   Target,
   FileText,
+  Tag,
   LogOut,
 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
@@ -36,6 +37,7 @@ const NAV = [
   { href: "/equipe", label: "Equipe", icon: Users },
   { href: "/estoque", label: "Estoque", icon: Boxes },
   { href: "/comandas", label: "Comandas", icon: Receipt },
+  { href: "/promocoes", label: "Promoções", icon: Tag },
   { href: "/notas", label: "Notas fiscais", icon: FileText },
   { href: "/comissoes", label: "Comissões", icon: Percent },
   { href: "/metas", label: "Metas", icon: Target },

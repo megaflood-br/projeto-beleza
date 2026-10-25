@@ -8,7 +8,7 @@ import { calculateCommission } from "@/lib/commissions";
 import { nextStock } from "@/lib/stock";
 import { allocatePayments, comandaSubtotal, comandaTotal } from "@/lib/comandas";
 import { parseBRLToCents, formatBRL } from "@/lib/money";
-import { zonedDateTime } from "@/lib/dates";
+import { calendarDate, zonedDateTime } from "@/lib/dates";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { postLedgerEntry } from "@/lib/ledger";
 import {
@@ -18,6 +18,8 @@ import {
   maxRedeemCents,
   tenantCashbackConfig,
 } from "@/lib/cashback";
+import { applyCatalogPrice } from "@/lib/promotions";
+import { loadPromoRules } from "@/lib/promo-load";
 
 async function nextNumber(tenantId: string) {
   const last = await prisma.comanda.findFirst({
@@ -100,6 +102,8 @@ export async function upsertComanda(formData: FormData) {
   const discountTypes = formData.getAll("itemDiscountType").map(String);
   const itemProfessionals = formData.getAll("itemProfessionalId").map(String);
 
+  const promos = await loadPromoRules(session.tenantId);
+
   const parsedItems: {
     type: string;
     serviceId: string | null;
@@ -128,29 +132,31 @@ export async function upsertComanda(formData: FormData) {
     if (kind === "SERVICE") {
       const service = await prisma.service.findFirst({ where: { id: entityId, tenantId: session.tenantId } });
       if (!service) continue;
+      const priced = applyCatalogPrice(promos, dateRaw && /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : calendarDate(), "SERVICE", service.id, service.priceCents, priceCents || undefined);
       parsedItems.push({
         type: "SERVICE",
         serviceId: service.id,
         productId: null,
         professionalId: itemProfessionals[i] || professionalId,
-        description: service.name,
+        description: priced.promoName ? `${service.name} (${priced.promoName})` : service.name,
         quantity,
-        priceCents: priceCents || service.priceCents,
-        discountCents: Math.min(gross, Math.max(0, discountCentsItem)),
+        priceCents: priced.priceCents,
+        discountCents: Math.min(Math.round(quantity * priced.priceCents), Math.max(0, discountCentsItem)),
         durationMin: service.durationMin,
       });
     } else if (kind === "PRODUCT") {
       const product = await prisma.product.findFirst({ where: { id: entityId, tenantId: session.tenantId } });
       if (!product) continue;
+      const priced = applyCatalogPrice(promos, dateRaw && /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : calendarDate(), "PRODUCT", product.id, product.saleCents, priceCents || undefined);
       parsedItems.push({
         type: "PRODUCT",
         serviceId: null,
         productId: product.id,
         professionalId: itemProfessionals[i] || professionalId,
-        description: product.name,
+        description: priced.promoName ? `${product.name} (${priced.promoName})` : product.name,
         quantity,
-        priceCents: priceCents || product.saleCents,
-        discountCents: Math.min(gross, Math.max(0, discountCentsItem)),
+        priceCents: priced.priceCents,
+        discountCents: Math.min(Math.round(quantity * priced.priceCents), Math.max(0, discountCentsItem)),
         durationMin: 0,
       });
     }
@@ -257,20 +263,24 @@ export async function addComandaItem(formData: FormData) {
   });
   if (!comanda) return { error: "Comanda não encontrada ou já fechada." };
 
+  const promos = await loadPromoRules(session.tenantId);
+  const onDate = calendarDate(comanda.occurredAt);
+
   if (type === "SERVICE") {
     const service = await prisma.service.findFirst({
       where: { id: serviceId ?? "", tenantId: session.tenantId },
     });
     if (!service) return { error: "Selecione um serviço." };
+    const priced = applyCatalogPrice(promos, onDate, "SERVICE", service.id, service.priceCents);
     await prisma.comandaItem.create({
       data: {
         comandaId,
         type: "SERVICE",
         serviceId: service.id,
         professionalId: professionalId ?? comanda.professionalId,
-        description: service.name,
+        description: priced.promoName ? `${service.name} (${priced.promoName})` : service.name,
         quantity,
-        priceCents: service.priceCents,
+        priceCents: priced.priceCents,
         durationMin: service.durationMin,
       },
     });
@@ -279,14 +289,15 @@ export async function addComandaItem(formData: FormData) {
       where: { id: productId ?? "", tenantId: session.tenantId },
     });
     if (!product) return { error: "Selecione um produto." };
+    const priced = applyCatalogPrice(promos, onDate, "PRODUCT", product.id, product.saleCents);
     await prisma.comandaItem.create({
       data: {
         comandaId,
         type: "PRODUCT",
         productId: product.id,
-        description: product.name,
+        description: priced.promoName ? `${product.name} (${priced.promoName})` : product.name,
         quantity,
-        priceCents: product.saleCents,
+        priceCents: priced.priceCents,
       },
     });
   }
