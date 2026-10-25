@@ -37,3 +37,12 @@ export function wouldRemoveLastOwner(input: {
 export function isValidUserEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
+
+export function wouldRemoveLastPlatformAdmin(input: {
+  currentRole: string;
+  nextActive?: boolean;
+  adminCount: number;
+}) {
+  if (input.currentRole !== "SUPER_ADMIN") return false;
+  return input.adminCount <= 1 && input.nextActive === false;
+}
