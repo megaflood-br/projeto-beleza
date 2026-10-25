@@ -7,6 +7,7 @@ import { formatBRL } from "@/lib/money";
 import { formatMediumDate, zonedDateTime } from "@/lib/dates";
 import { firstName, type DashboardMetrics } from "@/lib/dashboard";
 import { BarChart, CompareBars, DonutChart, Sparkline } from "@/components/painel/charts";
+import { MovementHeat } from "@/components/painel/movement-heat";
 import { cn } from "@/lib/utils";
 
 function dateLabel(date: string) {
@@ -109,6 +110,10 @@ export function DashboardBoard({
           <TrendBadge value={metrics.conversionPct} label="taxa de conversão" tone="purple" />
         </Card>
       </div>
+
+      <Card>
+        <MovementHeat movement={metrics.movement} />
+      </Card>
 
       <Card className="p-0">
         <div className="flex gap-6 border-b border-line px-5">

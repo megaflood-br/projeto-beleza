@@ -1,4 +1,71 @@
-import { calendarDate, eachCalendarDate, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
+import { calendarDate, eachCalendarDate, parseHHmm, shiftCalendarDate, tzParts, zonedDateTime } from "@/lib/dates";
+
+export const HEAT_WEEKDAYS = [
+  { id: 0, label: "Dom" },
+  { id: 1, label: "Seg" },
+  { id: 2, label: "Ter" },
+  { id: 3, label: "Qua" },
+  { id: 4, label: "Qui" },
+  { id: 5, label: "Sex" },
+  { id: 6, label: "Sáb" },
+] as const;
+
+export function weekdayInSalon(date: Date) {
+  return zonedDateTime(calendarDate(date), "12:00").getDay();
+}
+
+export function hourInSalon(date: Date) {
+  return tzParts(date).hour;
+}
+
+export function heatHours(openTime: string, closeTime: string) {
+  const start = Math.floor(parseHHmm(openTime) / 60);
+  const close = parseHHmm(closeTime);
+  const end = Math.max(start + 1, Math.ceil(close / 60));
+  return Array.from({ length: end - start }, (_, index) => start + index);
+}
+
+export function movementEventParts(date: Date) {
+  return { weekday: weekdayInSalon(date), hour: hourInSalon(date) };
+}
+
+export function buildMovementHeat(
+  events: { weekday: number; hour: number }[],
+  hours: number[],
+) {
+  const cols = hours.length ? hours : heatHours("08:00", "20:00");
+  const counts = HEAT_WEEKDAYS.map(() => cols.map(() => 0));
+  for (const event of events) {
+    const column = cols.indexOf(event.hour);
+    if (column < 0 || event.weekday < 0 || event.weekday > 6) continue;
+    counts[event.weekday][column] += 1;
+  }
+  const max = Math.max(0, ...counts.flat());
+  const days = HEAT_WEEKDAYS.map((day, index) => ({
+    ...day,
+    total: counts[index].reduce((sum, value) => sum + value, 0),
+    hours: cols.map((hour, column) => ({
+      hour,
+      count: counts[index][column],
+      intensity: max ? counts[index][column] / max : 0,
+    })),
+  }));
+  let peak: { weekday: number; hour: number; count: number; label: string } | null = null;
+  for (const day of days) {
+    for (const cell of day.hours) {
+      if (!cell.count) continue;
+      if (!peak || cell.count > peak.count) {
+        peak = {
+          weekday: day.id,
+          hour: cell.hour,
+          count: cell.count,
+          label: `${day.label} ${String(cell.hour).padStart(2, "0")}h`,
+        };
+      }
+    }
+  }
+  return { hours: cols, days, max, peak, total: events.length };
+}
 
 export function firstName(name: string) {
   return name.trim().split(/\s+/)[0] || name;
@@ -118,6 +185,9 @@ export function buildDashboardMetrics(input: {
   attendances: { date: string; professionalId: string; professionalName: string; priceCents: number }[];
   prevAttendanceCount: number;
   prevTicketCents: number;
+  movement?: { weekday: number; hour: number }[];
+  openTime?: string;
+  closeTime?: string;
 }) {
   const dates = eachCalendarDate(input.from, input.to);
   const salesCents = input.income.reduce((sum, row) => sum + row.amountCents, 0);
@@ -158,6 +228,7 @@ export function buildDashboardMetrics(input: {
         priceCents: row.priceCents,
       })),
     ),
+    movement: buildMovementHeat(input.movement ?? [], heatHours(input.openTime ?? "08:00", input.closeTime ?? "20:00")),
   };
 }
 

@@ -5,6 +5,7 @@ import {
   averageTicket,
   buildDashboardMetrics,
   defaultDashboardRange,
+  movementEventParts,
   previousPeriod,
   rangeBounds,
 } from "@/lib/dashboard";
@@ -22,7 +23,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const { session } = await requireTenant();
+  const { session, tenant } = await requireTenant();
   const params = await searchParams;
   const { from, to } = parseRange(params.from, params.to);
   const today = calendarDate();
@@ -53,7 +54,7 @@ export default async function DashboardPage({
     }),
     prisma.comanda.findMany({
       where: { tenantId: session.tenantId, occurredAt: { gte: current.start, lt: current.end } },
-      select: { status: true, occurredAt: true },
+      select: { status: true, occurredAt: true, appointmentId: true },
     }),
     prisma.comanda.findMany({
       where: { tenantId: session.tenantId, occurredAt: { gte: prevRange.start, lt: prevRange.end } },
@@ -82,6 +83,15 @@ export default async function DashboardPage({
   const prevIncomeCents = prevIncome._sum.amountCents ?? 0;
   const prevClosed = prevComandas.filter((c) => c.status === "CLOSED").length;
 
+  const movement = [
+    ...appointments
+      .filter((row) => !["CANCELLED", "NO_SHOW"].includes(row.status))
+      .map((row) => movementEventParts(row.startAt)),
+    ...comandas
+      .filter((row) => row.status !== "CANCELLED" && !row.appointmentId)
+      .map((row) => movementEventParts(row.occurredAt)),
+  ];
+
   const metrics = buildDashboardMetrics({
     from,
     to,
@@ -96,6 +106,9 @@ export default async function DashboardPage({
     attendances,
     prevAttendanceCount: prevAttendances.length,
     prevTicketCents: averageTicket(prevIncomeCents, prevClosed || prevAttendances.length),
+    movement,
+    openTime: tenant.openTime,
+    closeTime: tenant.closeTime,
   });
 
   return <DashboardBoard userName={session.name} metrics={metrics} />;

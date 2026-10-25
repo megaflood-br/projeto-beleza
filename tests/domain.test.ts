@@ -10,7 +10,17 @@ import { parseSettingsTab } from "@/lib/settings";
 import { calendarDate, calendarMonth, daysBetween, eachCalendarDate, formatMonthLabel, formatTime, minutesInTz, minutesToLabel, monthStartEnd, parseHHmm, shiftCalendarDate, shiftCalendarMonth, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
-import { averageTicket, bucketAppointmentStatus, conversionRate, percentDelta, previousPeriod, rankProfessionals } from "@/lib/dashboard";
+import {
+  averageTicket,
+  bucketAppointmentStatus,
+  buildMovementHeat,
+  conversionRate,
+  heatHours,
+  movementEventParts,
+  percentDelta,
+  previousPeriod,
+  rankProfessionals,
+} from "@/lib/dashboard";
 import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementLabel, summarizeAccountBalances } from "@/lib/ledger";
 import { collectAlerts, DEFAULT_ANAMNESIS_FORMS, missingRequired, parseQuestions, serializeQuestions } from "@/lib/anamnesis";
 import { isPlatformAdmin } from "@/lib/auth";
@@ -334,6 +344,22 @@ describe("painel", () => {
     ]);
     expect(ranking[0]).toMatchObject({ name: "Camila", services: 2, place: 1, avgCents: 23000 });
     expect(previousPeriod("2026-08-12", "2026-08-26")).toEqual({ from: "2026-07-28", to: "2026-08-11" });
+  });
+
+  it("monta o mapa de calor por dia e hora", () => {
+    expect(heatHours("08:00", "20:00")).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+    expect(movementEventParts(zonedDateTime("2026-10-24", "10:00"))).toEqual({ weekday: 6, hour: 10 });
+    const heat = buildMovementHeat(
+      [
+        { weekday: 6, hour: 10 },
+        { weekday: 6, hour: 10 },
+        { weekday: 5, hour: 15 },
+      ],
+      heatHours("08:00", "20:00"),
+    );
+    expect(heat.days[6].hours.find((cell) => cell.hour === 10)?.count).toBe(2);
+    expect(heat.days[5].hours.find((cell) => cell.hour === 15)?.count).toBe(1);
+    expect(heat.peak).toMatchObject({ label: "Sáb 10h", count: 2 });
   });
 });
 
