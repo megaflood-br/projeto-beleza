@@ -8,6 +8,8 @@ import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
 import { parseSettingsTab } from "@/lib/settings";
 import { CLIENT_IMPORT_HEADERS, compactImportTable, mapClientImportRows, normalizeImportPhone, parseImportDate } from "@/lib/client-import";
+import { parseImportResponse } from "@/lib/client-import-response";
+import { matchesClientSearch } from "@/lib/client-search";
 import { calendarDate, calendarMonth, daysBetween, eachCalendarDate, formatMonthLabel, formatTime, minutesInTz, minutesToLabel, monthStartEnd, parseHHmm, shiftCalendarDate, shiftCalendarMonth, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
@@ -440,6 +442,22 @@ describe("importação de clientes", () => {
     expect(drafts).toHaveLength(1);
     expect(drafts[0]?.name).toBe("Maria");
     expect(errors).toEqual([]);
+  });
+
+  it("explica resposta HTML ou vazia da importação", () => {
+    expect(parseImportResponse(200, "").error).toMatch(/confira o total/i);
+    expect(parseImportResponse(500, "<html>erro</html>").error).toMatch(/interrompeu/i);
+    expect(parseImportResponse(200, '{"ok":true,"created":3,"updated":1,"skipped":0}').created).toBe(3);
+  });
+});
+
+describe("busca de clientes", () => {
+  it("filtra por nome e pedaço do celular", () => {
+    const client = { name: "Ana Camila", nickname: null, phone: "11961938720", landline: null, email: "ana@example.com", tags: "vip", cpf: null, rg: null, city: "Atibaia" };
+    expect(matchesClientSearch(client, "camila")).toBe(true);
+    expect(matchesClientSearch(client, "96193")).toBe(true);
+    expect(matchesClientSearch(client, "vip")).toBe(true);
+    expect(matchesClientSearch(client, "pedro")).toBe(false);
   });
 });
 

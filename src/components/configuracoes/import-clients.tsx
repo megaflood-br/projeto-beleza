@@ -1,30 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Download, Upload } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { clientImportTemplate } from "@/app/actions/import-clients";
 import { CLIENT_IMPORT_HEADERS } from "@/lib/client-import";
+import { parseImportResponse } from "@/lib/client-import-response";
 
-type ImportResult = { created: number; updated: number; skipped: number; errors: { row: number; message: string }[] };
+type ImportResult = { created: number; updated: number; skipped: number; total: number; errors: { row: number; message: string }[] };
 
 function uploadSpreadsheet(form: FormData, onProgress: (percent: number) => void) {
   return new Promise<ImportResult & { error?: string }>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/clientes/importar");
     xhr.withCredentials = true;
+    xhr.responseType = "text";
+    xhr.timeout = 5 * 60 * 1000;
     xhr.upload.onprogress = (event) => {
       if (!event.lengthComputable) return;
       onProgress(Math.max(8, Math.min(80, Math.round((event.loaded / event.total) * 70) + 8)));
     };
-    xhr.onload = () => {
-      try {
-        resolve(JSON.parse(xhr.responseText) as ImportResult & { error?: string });
-      } catch {
-        reject(new Error("Não foi possível ler a resposta da importação."));
-      }
-    };
-    xhr.onerror = () => reject(new Error("Falha de rede ao enviar a planilha."));
+    xhr.onload = () => resolve(parseImportResponse(xhr.status, xhr.responseText ?? "") as ImportResult & { error?: string });
+    xhr.onerror = () =>
+      reject(new Error("Falha de rede ao enviar a planilha. Abra Clientes e confira o total."));
+    xhr.ontimeout = () =>
+      reject(new Error("A importação demorou demais. Abra Clientes e confira quantos já entraram."));
     xhr.send(form);
   });
 }
@@ -103,9 +104,10 @@ export function ImportClientsForm({ canImport }: { canImport: boolean }) {
                   }
                   setProgress(100);
                   setResult({
-                    created: outcome.created,
-                    updated: outcome.updated,
-                    skipped: outcome.skipped,
+                    created: outcome.created ?? 0,
+                    updated: outcome.updated ?? 0,
+                    skipped: outcome.skipped ?? 0,
+                    total: outcome.total ?? (outcome.created ?? 0) + (outcome.updated ?? 0),
                     errors: outcome.errors ?? [],
                   });
                 })
@@ -159,6 +161,9 @@ export function ImportClientsForm({ canImport }: { canImport: boolean }) {
           <p className="mt-2 text-sm text-ink-soft">
             {result.created} novos · {result.updated} atualizados · {result.skipped} ignorados
           </p>
+          <p className="mt-1 text-sm text-ink-soft">
+            {result.created + result.updated} de {result.total} clientes da planilha foram gravados.
+          </p>
           {result.errors.length ? (
             <ul className="mt-3 space-y-1 text-sm text-red-700">
               {result.errors.map((item, index) => (
@@ -169,6 +174,9 @@ export function ImportClientsForm({ canImport }: { canImport: boolean }) {
               ))}
             </ul>
           ) : null}
+          <Link href="/clientes" className="mt-3 inline-block text-sm font-medium text-blue-700 hover:underline">
+            Ver lista de clientes
+          </Link>
         </Card>
       ) : null}
     </div>
