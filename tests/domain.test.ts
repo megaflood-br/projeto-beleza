@@ -39,6 +39,13 @@ import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEv
 import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, parseIntegrationTab } from "@/lib/integrations";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
+  canAssignTenantRole,
+  canEditTenantUser,
+  isValidUserEmail,
+  parseTenantRole,
+  wouldRemoveLastOwner,
+} from "@/lib/users";
+import {
   applyCatalogPrice,
   bestPromotion,
   parseWeekdays,
@@ -360,6 +367,21 @@ describe("painel", () => {
     expect(heat.days[6].hours.find((cell) => cell.hour === 10)?.count).toBe(2);
     expect(heat.days[5].hours.find((cell) => cell.hour === 15)?.count).toBe(1);
     expect(heat.peak).toMatchObject({ label: "Sáb 10h", count: 2 });
+  });
+});
+
+describe("usuários do tenant", () => {
+  it("valida perfil, e-mail e o último proprietário", () => {
+    expect(parseTenantRole("MANAGER")).toBe("MANAGER");
+    expect(parseTenantRole("SUPER_ADMIN")).toBeNull();
+    expect(canAssignTenantRole("OWNER", "MANAGER")).toBe(true);
+    expect(canAssignTenantRole("MANAGER", "OWNER")).toBe(false);
+    expect(canEditTenantUser({ role: "MANAGER", userId: "m" }, { id: "o", role: "OWNER" })).toBe(false);
+    expect(canEditTenantUser({ role: "OWNER", userId: "o" }, { id: "m", role: "MANAGER" })).toBe(true);
+    expect(isValidUserEmail("yuki.t@example.com")).toBe(true);
+    expect(isValidUserEmail("invalido")).toBe(false);
+    expect(wouldRemoveLastOwner({ currentRole: "OWNER", nextActive: false, ownerCount: 1 })).toBe(true);
+    expect(wouldRemoveLastOwner({ currentRole: "OWNER", nextRole: "MANAGER", ownerCount: 2 })).toBe(false);
   });
 });
 
