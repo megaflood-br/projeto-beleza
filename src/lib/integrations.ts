@@ -1,5 +1,21 @@
 import { prisma } from "@/lib/db";
 
+export const INTEGRATION_TABS = [
+  { id: "openai", label: "OpenAI", description: "Chave usada pelo assistente de todos os salões." },
+  { id: "contora", label: "Contora", description: "Token fiscal da software house para NFS-e e NFC-e." },
+  { id: "evolution", label: "WhatsApp", description: "Servidor Evolution e webhook usados por todos os salões." },
+] as const;
+
+export type IntegrationTab = (typeof INTEGRATION_TABS)[number]["id"];
+
+export function isIntegrationTab(value: string | undefined): value is IntegrationTab {
+  return INTEGRATION_TABS.some((tab) => tab.id === value);
+}
+
+export function parseIntegrationTab(value?: string | null): IntegrationTab {
+  return value && isIntegrationTab(value) ? value : "openai";
+}
+
 export type PlatformIntegrations = {
   openaiApiKey: string;
   contoraApiToken: string;

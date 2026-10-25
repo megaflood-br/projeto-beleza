@@ -10,28 +10,44 @@ function keep(current: string | null, next: string) {
   return value;
 }
 
-export async function savePlatformIntegrations(formData: FormData) {
-  const { tenant } = await requirePlatformAdmin();
-  const openai = keep(tenant.openaiApiKey, String(formData.get("openaiApiKey") ?? ""));
-  const contora = keep(tenant.contoraApiToken, String(formData.get("contoraApiToken") ?? ""));
-  const evolutionUrl = keep(tenant.evolutionUrl, String(formData.get("evolutionUrl") ?? ""));
-  const evolutionKey = keep(tenant.evolutionApiKey, String(formData.get("evolutionApiKey") ?? ""));
-  const publicAppUrl = String(formData.get("publicAppUrl") ?? "").trim().replace(/\/$/, "") || null;
-
-  await prisma.tenant.update({
-    where: { id: tenant.id },
-    data: {
-      openaiApiKey: openai,
-      contoraApiToken: contora,
-      evolutionUrl,
-      evolutionApiKey: evolutionKey,
-      publicAppUrl,
-    },
-  });
+function revalidateIntegrations() {
   revalidatePath("/plataforma/integracoes");
   revalidatePath("/whatsapp");
   revalidatePath("/ia");
   revalidatePath("/configuracoes");
   revalidatePath("/notas");
+}
+
+export async function saveOpenAiIntegration(formData: FormData) {
+  const { tenant } = await requirePlatformAdmin();
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: { openaiApiKey: keep(tenant.openaiApiKey, String(formData.get("openaiApiKey") ?? "")) },
+  });
+  revalidateIntegrations();
+  return { ok: true as const };
+}
+
+export async function saveContoraIntegration(formData: FormData) {
+  const { tenant } = await requirePlatformAdmin();
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: { contoraApiToken: keep(tenant.contoraApiToken, String(formData.get("contoraApiToken") ?? "")) },
+  });
+  revalidateIntegrations();
+  return { ok: true as const };
+}
+
+export async function saveEvolutionIntegration(formData: FormData) {
+  const { tenant } = await requirePlatformAdmin();
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: {
+      evolutionUrl: keep(tenant.evolutionUrl, String(formData.get("evolutionUrl") ?? "")),
+      evolutionApiKey: keep(tenant.evolutionApiKey, String(formData.get("evolutionApiKey") ?? "")),
+      publicAppUrl: String(formData.get("publicAppUrl") ?? "").trim().replace(/\/$/, "") || null,
+    },
+  });
+  revalidateIntegrations();
   return { ok: true as const };
 }

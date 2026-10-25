@@ -26,7 +26,7 @@ import {
   ticketUnreadFor,
 } from "@/lib/support";
 import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEvolutionState } from "@/lib/evolution";
-import { evolutionWebhookUrl, instanceNameForTenant, maskSecret } from "@/lib/integrations";
+import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, parseIntegrationTab } from "@/lib/integrations";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
   accessKeyCheckDigit,
@@ -177,6 +177,9 @@ describe("comandas", () => {
     expect(parseSettingsTab("cashback")).toBe("cashback");
     expect(parseSettingsTab("fiscal")).toBe("fiscal");
     expect(parseSettingsTab("outro")).toBe("salao");
+    expect(parseIntegrationTab("contora")).toBe("contora");
+    expect(parseIntegrationTab("evolution")).toBe("evolution");
+    expect(parseIntegrationTab("outro")).toBe("openai");
   });
 
   it("calcula troco e rateia pagamentos no total", () => {
@@ -414,6 +417,9 @@ describe("integrações da plataforma", () => {
   it("mascara segredos e lê QR/estado da Evolution", () => {
     expect(maskSecret("sk-abcdefghij")).toBe("sk-••••ij");
     expect(maskSecret("abc")).toBe("••••");
+    expect(parseIntegrationTab("contora")).toBe("contora");
+    expect(parseIntegrationTab("evolution")).toBe("evolution");
+    expect(parseIntegrationTab("outro")).toBe("openai");
     expect(isEvolutionConfigured({ url: "https://evo", apiKey: "k", instance: "mb-x" })).toBe(true);
     expect(isEvolutionConfigured({ url: "https://evo", apiKey: "k", instance: "" })).toBe(false);
     expect(extractQrBase64({ base64: "data:image/png;base64,AAAA" })).toBe("data:image/png;base64,AAAA");
