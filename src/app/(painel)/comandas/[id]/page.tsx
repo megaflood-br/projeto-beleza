@@ -11,13 +11,16 @@ import { formatBRL } from "@/lib/money";
 import { comandaSubtotal, comandaTotal, itemLineTotal } from "@/lib/comandas";
 import { COMANDA_STATUS_COLOR, COMANDA_STATUS_LABEL, type ComandaStatus } from "@/lib/constants";
 import { loadFinanceCatalog } from "@/lib/finance-catalog";
+import { calendarDate } from "@/lib/dates";
+import { decorateCatalogItem } from "@/lib/promotions";
+import { loadPromoRules } from "@/lib/promo-load";
 import { financeMethodLabel } from "@/lib/finance";
 import { Trash2 } from "lucide-react";
 
 export default async function ComandaPage({ params }: { params: Promise<{ id: string }> }) {
   const { session } = await requireTenant();
   const { id } = await params;
-  const [comanda, services, products, professionals, catalog] = await Promise.all([
+  const [comanda, services, products, professionals, catalog, promos] = await Promise.all([
     prisma.comanda.findFirst({
       where: { id, tenantId: session.tenantId },
       include: { client: true, professional: true, appointment: true, items: { include: { professional: true } } },
@@ -26,8 +29,14 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
     prisma.product.findMany({ where: { tenantId: session.tenantId, active: true }, orderBy: { name: "asc" } }),
     prisma.professional.findMany({ where: { tenantId: session.tenantId, active: true }, orderBy: { name: "asc" } }),
     loadFinanceCatalog(session.tenantId),
+    loadPromoRules(session.tenantId),
   ]);
   if (!comanda) notFound();
+  const onDate = calendarDate(comanda.occurredAt);
+  const pricedServices = services.map((service) => decorateCatalogItem(promos, onDate, "SERVICE", service));
+  const pricedProducts = products.map((product) =>
+    decorateCatalogItem(promos, onDate, "PRODUCT", { id: product.id, name: product.name, priceCents: product.saleCents }),
+  );
 
   const open = comanda.status === "OPEN";
   const subtotal = comandaSubtotal(comanda.items);
@@ -106,10 +115,10 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
                   name="serviceId"
                   required
                   placeholder="Buscar serviço..."
-                  options={services.map((s) => ({
+                  options={pricedServices.map((s) => ({
                     value: s.id,
                     label: s.name,
-                    hint: formatBRL(s.priceCents),
+                    hint: s.promoPriceCents != null ? `${formatBRL(s.promoPriceCents)} na ${s.promoName}` : formatBRL(s.priceCents),
                   }))}
                 />
               </Field>
@@ -134,10 +143,10 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
                   name="productId"
                   required
                   placeholder="Buscar produto..."
-                  options={products.map((p) => ({
+                  options={pricedProducts.map((p) => ({
                     value: p.id,
                     label: p.name,
-                    hint: formatBRL(p.saleCents),
+                    hint: p.promoPriceCents != null ? `${formatBRL(p.promoPriceCents)} na ${p.promoName}` : formatBRL(p.priceCents),
                   }))}
                 />
               </Field>

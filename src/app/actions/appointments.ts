@@ -9,6 +9,8 @@ import { calculateCommission } from "@/lib/commissions";
 import { nextStock } from "@/lib/stock";
 import { atTime, calendarDate, formatTime } from "@/lib/dates";
 import { postLedgerEntry } from "@/lib/ledger";
+import { applyCatalogPrice } from "@/lib/promotions";
+import { loadPromoRules } from "@/lib/promo-load";
 
 export type AppointmentItemInput = {
   serviceId: string;
@@ -111,6 +113,7 @@ export async function saveAppointment(payload: {
     id = created.id;
   }
 
+  const promos = await loadPromoRules(session.tenantId);
   await prisma.appointmentItem.createMany({
     data: resolved.map((item) => ({
       appointmentId: id!,
@@ -118,7 +121,7 @@ export async function saveAppointment(payload: {
       professionalId: item.professionalId,
       startAt: item.start,
       durationMin: item.durationMin,
-      priceCents: item.service!.priceCents,
+      priceCents: applyCatalogPrice(promos, payload.date, "SERVICE", item.serviceId, item.service!.priceCents).priceCents,
     })),
   });
 

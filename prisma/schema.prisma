@@ -102,6 +102,7 @@ model Tenant {
   supportPresences   SupportPresence[]
   professionalGoals  ProfessionalGoal[]
   fiscalInvoices     FiscalInvoice[]
+  promotions         Promotion[]
 
   @@index([slug])
 }
@@ -229,6 +230,35 @@ model FiscalInvoice {
   @@index([comandaId])
 }
 
+model Promotion {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name          String
+  startsOn      DateTime
+  endsOn        DateTime
+  weekdays      String   @default("0,1,2,3,4,5,6")
+  discountType  String   @default("PERCENT")
+  discountValue Int
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  items         PromotionItem[]
+
+  @@index([tenantId, active, startsOn, endsOn])
+}
+
+model PromotionItem {
+  id          String     @id @default(cuid())
+  promotionId String
+  promotion   Promotion  @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  type        String
+  serviceId   String?
+  service     Service?   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product?   @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
 model ServiceCategory {
   id        String    @id @default(cuid())
   tenantId  String
@@ -271,6 +301,7 @@ model Service {
   professionals  ProfessionalService[]
   packages       Package[]
   comandaItems   ComandaItem[]
+  promotions     PromotionItem[]
 
   @@index([tenantId])
 }
@@ -479,6 +510,7 @@ model Product {
   comandaItems ComandaItem[]
   lots         ProductLot[]
   requests     ProductRequest[]
+  promotions   PromotionItem[]
 
   @@index([tenantId])
 }

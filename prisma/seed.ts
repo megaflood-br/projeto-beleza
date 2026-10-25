@@ -16,6 +16,8 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.promotionItem.deleteMany();
+  await prisma.promotion.deleteMany();
   await prisma.fiscalInvoice.deleteMany();
   await prisma.professionalGoal.deleteMany();
   await prisma.cashbackMovement.deleteMany();
@@ -1098,6 +1100,20 @@ async function main() {
       },
     });
   }
+
+  await prisma.promotion.create({
+    data: {
+      tenantId: aurora.id,
+      name: "Fim de semana do corte",
+      startsOn: zonedDateTime(calendarMonth(today) + "-01", "12:00"),
+      endsOn: month.to,
+      weekdays: "0,6",
+      discountType: "PERCENT",
+      discountValue: 20,
+      active: true,
+      items: { create: [{ type: "SERVICE", serviceId: corteMasc.id }] },
+    },
+  });
 
   console.log("Seed ok. Salão: iris.p@example.org / demo1234 · Plataforma: nathan.k@example.net / admin1234");
 }
