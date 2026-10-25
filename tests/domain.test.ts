@@ -39,6 +39,8 @@ import {
 } from "@/lib/fiscal";
 import {
   companyPayload,
+  contoraArtifactPath,
+  hasContoraArtifacts,
   mapContoraStatus,
   nationalTaxCode,
   nfseDraftPayload,
@@ -589,5 +591,10 @@ describe("fiscal contora", () => {
     });
     expect(draft.payload.service.national_tax_code).toBe("0601");
     expect(draft.payload.amounts.service_amount).toBe(80);
+    expect(contoraArtifactPath("NFSE", "doc-1", "pdf")).toBe("/nfse/drafts/doc-1/artifacts/pdf_nfse");
+    expect(contoraArtifactPath("NFSE", "doc-1", "xml")).toBe("/nfse/drafts/doc-1/artifacts/xml_nfse");
+    expect(contoraArtifactPath("NFCE", "doc-2", "xml")).toBe("/nfe/drafts/doc-2/artifacts/xml_authorized");
+    expect(hasContoraArtifacts({ provider: "contora", providerRef: "abc", status: "AUTHORIZED" })).toBe(true);
+    expect(hasContoraArtifacts({ provider: "local", providerRef: "abc", status: "AUTHORIZED" })).toBe(false);
   });
 });

@@ -69,6 +69,8 @@ export default async function NotasPage() {
         comandaId: invoice.comandaId,
         environment: invoice.environment,
         errorMessage: invoice.errorMessage,
+        provider: invoice.provider,
+        providerRef: invoice.providerRef,
       }))}
     />
   );
