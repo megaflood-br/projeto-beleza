@@ -69,6 +69,8 @@ export async function upsertService(formData: FormData) {
     active,
     onlineBooking,
     favorite,
+    fiscalCode: String(formData.get("fiscalCode") ?? "").trim() || null,
+    issPct: toNullableInt(formData.get("issPct")),
   };
 
   try {

@@ -17,7 +17,7 @@ const TABS = [
   { id: "cashback", label: "Cashback" },
   { id: "retorno", label: "Retorno" },
   { id: "servicos", label: "Serviços vinculados" },
-  { id: "nota", label: "Configurar nota fiscal", disabled: true },
+  { id: "nota", label: "Configurar nota fiscal" },
 ] as const;
 
 function centsToInput(cents: number) {
@@ -95,11 +95,11 @@ export function ProductDrawer({
                 <button
                   key={item.id}
                   type="button"
-                  disabled={"disabled" in item && item.disabled}
+                  disabled={"disabled" in item && (item as { disabled?: boolean }).disabled === true}
                   onClick={() => setTab(item.id)}
                   className={cn(
                     "flex w-full shrink-0 rounded-lg px-3 py-2 text-left text-sm whitespace-nowrap lg:rounded-none lg:border-l-2",
-                    "disabled" in item && item.disabled
+                    "disabled" in item && (item as { disabled?: boolean }).disabled === true
                       ? "cursor-not-allowed border-transparent text-slate-400"
                       : tab === item.id
                         ? "border-blue-600 bg-blue-50 font-medium text-blue-600 lg:bg-transparent"
@@ -276,6 +276,16 @@ export function ProductDrawer({
                   <Input name="returnAfterDays" type="number" min={0} placeholder="30" defaultValue={product?.returnAfterDays ?? ""} />
                 </Field>
                 <p className="text-sm text-ink-soft">Usado para lembrar a reposição ou a próxima compra do cliente.</p>
+              </div>
+
+              <div className={tab === "nota" ? "grid max-w-lg gap-3" : "hidden"}>
+                <Field label="NCM">
+                  <Input name="ncm" defaultValue={product?.ncm ?? ""} placeholder="33049990" />
+                </Field>
+                <Field label="CFOP">
+                  <Input name="cfop" defaultValue={product?.cfop ?? ""} placeholder="5102" />
+                </Field>
+                <p className="text-sm text-ink-soft">Usados na NFC-e / NF-e quando o produto entra na comanda.</p>
               </div>
 
               <div className={tab === "servicos" ? "grid gap-3" : "hidden"}>

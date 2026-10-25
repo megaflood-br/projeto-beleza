@@ -5,6 +5,7 @@ import { requireTenant } from "@/lib/tenant";
 import { Badge, Button, Card, Field, Input, Select } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
 import { addComandaItem, closeComanda, removeComandaItemForm } from "@/app/actions/comandas";
+import { emitComandaInvoice } from "@/app/actions/fiscal";
 import { formAction } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
 import { comandaSubtotal, comandaTotal, itemLineTotal } from "@/lib/comandas";
@@ -178,9 +179,20 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
               <Button variant="success">Fechar comanda</Button>
             </form>
           ) : (
-            <p className="text-sm text-ink-soft">
-              Paga via {financeMethodLabel(comanda.paymentMethod ?? "", catalog.methods.find((m) => m.code === comanda.paymentMethod)?.name)}
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-ink-soft">
+                Paga via {financeMethodLabel(comanda.paymentMethod ?? "", catalog.methods.find((m) => m.code === comanda.paymentMethod)?.name)}
+              </p>
+              <form action={formAction(emitComandaInvoice)}>
+                <input type="hidden" name="comandaId" value={comanda.id} />
+                <Button type="submit" variant="outline">
+                  Emitir nota
+                </Button>
+              </form>
+              <Link href="/notas" className="text-sm font-medium text-wine">
+                Ver notas
+              </Link>
+            </div>
           )}
         </div>
       </Card>

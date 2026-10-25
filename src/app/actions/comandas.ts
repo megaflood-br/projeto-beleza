@@ -551,8 +551,18 @@ async function finalizeOpenComanda(
     });
   }
 
+  if (tenant.fiscalEnabled && tenant.fiscalAutoIssue) {
+    try {
+      const { issueComandaInvoices } = await import("@/lib/fiscal-issue");
+      await issueComandaInvoices(tenantId, comanda.id);
+    } catch {
+      // fechamento não depende da nota
+    }
+  }
+
   revalidateComandas();
   revalidatePath(`/comandas/${comanda.id}`);
+  revalidatePath("/notas");
   return { ok: true as const, id: comanda.id };
 }
 
