@@ -3,23 +3,43 @@
 import { useEffect, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { Button, Card } from "@/components/ui";
-import { clientImportTemplate, importClientsFromXls } from "@/app/actions/import-clients";
+import { clientImportTemplate } from "@/app/actions/import-clients";
 import { CLIENT_IMPORT_HEADERS } from "@/lib/client-import";
+
+type ImportResult = { created: number; updated: number; skipped: number; errors: { row: number; message: string }[] };
+
+function uploadSpreadsheet(form: FormData, onProgress: (percent: number) => void) {
+  return new Promise<ImportResult & { error?: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/clientes/importar");
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      onProgress(Math.max(8, Math.min(80, Math.round((event.loaded / event.total) * 70) + 8)));
+    };
+    xhr.onload = () => {
+      try {
+        resolve(JSON.parse(xhr.responseText) as ImportResult & { error?: string });
+      } catch {
+        reject(new Error("Não foi possível ler a resposta da importação."));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Falha de rede ao enviar a planilha."));
+    xhr.send(form);
+  });
+}
 
 export function ImportClientsForm({ canImport }: { canImport: boolean }) {
   const [pending, setPending] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ created: number; updated: number; skipped: number; errors: { row: number; message: string }[] } | null>(
-    null,
-  );
+  const [result, setResult] = useState<ImportResult | null>(null);
 
   useEffect(() => {
     if (!pending) return;
-    setProgress(8);
     const timer = window.setInterval(() => {
-      setProgress((current) => (current >= 90 ? current : current + Math.max(1, Math.round((90 - current) / 12))));
-    }, 250);
+      setProgress((current) => (current >= 92 ? current : current + Math.max(1, Math.round((92 - current) / 10))));
+    }, 220);
     return () => window.clearInterval(timer);
   }, [pending]);
 
@@ -69,33 +89,36 @@ export function ImportClientsForm({ canImport }: { canImport: boolean }) {
             className="grid gap-3"
             onSubmit={(event) => {
               event.preventDefault();
+              const started = Date.now();
               const form = new FormData(event.currentTarget);
               setError(null);
               setResult(null);
               setPending(true);
               setProgress(8);
-              void importClientsFromXls(form)
+              void uploadSpreadsheet(form, setProgress)
                 .then((outcome) => {
-                  if (outcome && "error" in outcome && outcome.error) {
+                  if (outcome.error) {
                     setError(outcome.error);
                     return;
                   }
-                  if (outcome && "ok" in outcome && outcome.ok) {
-                    setProgress(100);
-                    setResult({
-                      created: outcome.created,
-                      updated: outcome.updated,
-                      skipped: outcome.skipped,
-                      errors: outcome.errors,
-                    });
-                  }
+                  setProgress(100);
+                  setResult({
+                    created: outcome.created,
+                    updated: outcome.updated,
+                    skipped: outcome.skipped,
+                    errors: outcome.errors ?? [],
+                  });
+                })
+                .catch((cause: unknown) => {
+                  setError(cause instanceof Error ? cause.message : "Não foi possível importar a planilha.");
                 })
                 .finally(() => {
                   setProgress(100);
+                  const wait = Math.max(700, 1100 - (Date.now() - started));
                   window.setTimeout(() => {
                     setPending(false);
                     setProgress(0);
-                  }, 400);
+                  }, wait);
                 });
             }}
           >
@@ -116,7 +139,7 @@ export function ImportClientsForm({ canImport }: { canImport: boolean }) {
                 <div className="h-3 overflow-hidden rounded-full bg-white">
                   <div className="h-full rounded-full bg-blue-600 transition-all duration-200" style={{ width: `${progress}%` }} />
                 </div>
-                <p className="mt-2 text-xs text-ink-soft">Lendo o arquivo e gravando os clientes. Pode levar alguns segundos.</p>
+                <p className="mt-2 text-xs text-ink-soft">Enviando o arquivo e gravando os clientes. Aguarde.</p>
               </div>
             ) : null}
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
