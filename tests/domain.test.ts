@@ -7,7 +7,7 @@ import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
 import { parseSettingsTab } from "@/lib/settings";
-import { CLIENT_IMPORT_HEADERS, mapClientImportRows, normalizeImportPhone, parseImportDate } from "@/lib/client-import";
+import { CLIENT_IMPORT_HEADERS, compactImportTable, mapClientImportRows, normalizeImportPhone, parseImportDate } from "@/lib/client-import";
 import { calendarDate, calendarMonth, daysBetween, eachCalendarDate, formatMonthLabel, formatTime, minutesInTz, minutesToLabel, monthStartEnd, parseHHmm, shiftCalendarDate, shiftCalendarMonth, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
@@ -430,6 +430,16 @@ describe("importação de clientes", () => {
       tags: "vip",
     });
     expect(errors.some((item) => item.message.includes("Celular"))).toBe(true);
+  });
+
+  it("ignora o intervalo vazio que o Excel costuma marcar", () => {
+    const blanks = Array.from({ length: 4000 }, () => ["", "", "", "", ""]);
+    const compacted = compactImportTable([[...CLIENT_IMPORT_HEADERS], ...blanks, ["Maria", "", "", "11988887777"]]);
+    expect(compacted).toHaveLength(2);
+    const { drafts, errors } = mapClientImportRows(compacted);
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]?.name).toBe("Maria");
+    expect(errors).toEqual([]);
   });
 });
 

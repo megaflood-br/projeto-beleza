@@ -137,7 +137,18 @@ function headerMap(headers: unknown[]) {
   return CLIENT_IMPORT_HEADERS.map((header) => HEADER_ALIASES[normalizeHeader(header)] ?? null);
 }
 
+export function rowHasContent(row: unknown[] | undefined) {
+  return Boolean(row?.some((cell) => String(cell ?? "").trim()));
+}
+
+export function compactImportTable(table: unknown[][]) {
+  if (!table.length) return table;
+  const [header, ...rows] = table;
+  return [header, ...rows.filter(rowHasContent)];
+}
+
 export function mapClientImportRows(table: unknown[][]) {
+  table = compactImportTable(table);
   const drafts: ClientImportDraft[] = [];
   const errors: ClientImportIssue[] = [];
   if (!table.length) return { drafts, errors: [{ row: 1, message: "Planilha vazia." }] };

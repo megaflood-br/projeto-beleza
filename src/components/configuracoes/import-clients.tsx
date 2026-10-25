@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { clientImportTemplate, importClientsFromXls } from "@/app/actions/import-clients";
@@ -8,10 +8,20 @@ import { CLIENT_IMPORT_HEADERS } from "@/lib/client-import";
 
 export function ImportClientsForm({ canImport }: { canImport: boolean }) {
   const [pending, setPending] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ created: number; updated: number; skipped: number; errors: { row: number; message: string }[] } | null>(
     null,
   );
+
+  useEffect(() => {
+    if (!pending) return;
+    setProgress(8);
+    const timer = window.setInterval(() => {
+      setProgress((current) => (current >= 90 ? current : current + Math.max(1, Math.round((90 - current) / 12))));
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [pending]);
 
   async function downloadTemplate() {
     const file = await clientImportTemplate();
@@ -63,6 +73,7 @@ export function ImportClientsForm({ canImport }: { canImport: boolean }) {
               setError(null);
               setResult(null);
               setPending(true);
+              setProgress(8);
               void importClientsFromXls(form)
                 .then((outcome) => {
                   if (outcome && "error" in outcome && outcome.error) {
@@ -70,6 +81,7 @@ export function ImportClientsForm({ canImport }: { canImport: boolean }) {
                     return;
                   }
                   if (outcome && "ok" in outcome && outcome.ok) {
+                    setProgress(100);
                     setResult({
                       created: outcome.created,
                       updated: outcome.updated,
@@ -78,7 +90,13 @@ export function ImportClientsForm({ canImport }: { canImport: boolean }) {
                     });
                   }
                 })
-                .finally(() => setPending(false));
+                .finally(() => {
+                  setProgress(100);
+                  window.setTimeout(() => {
+                    setPending(false);
+                    setProgress(0);
+                  }, 400);
+                });
             }}
           >
             <input
@@ -86,8 +104,21 @@ export function ImportClientsForm({ canImport }: { canImport: boolean }) {
               type="file"
               accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               required
+              disabled={pending}
               className="text-sm"
             />
+            {pending ? (
+              <div className="rounded-xl border border-line bg-sand/60 p-3" aria-live="polite">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="font-medium">Importando planilha…</span>
+                  <span className="tabular-nums text-ink-soft">{progress}%</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-white">
+                  <div className="h-full rounded-full bg-blue-600 transition-all duration-200" style={{ width: `${progress}%` }} />
+                </div>
+                <p className="mt-2 text-xs text-ink-soft">Lendo o arquivo e gravando os clientes. Pode levar alguns segundos.</p>
+              </div>
+            ) : null}
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
             <Button type="submit" disabled={pending}>
               <Upload size={16} />
