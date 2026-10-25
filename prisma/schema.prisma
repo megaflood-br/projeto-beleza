@@ -74,6 +74,7 @@ model Tenant {
   supportTickets     SupportTicket[]
   supportCalls       SupportCall[]
   supportPresences   SupportPresence[]
+  professionalGoals  ProfessionalGoal[]
 
   @@index([slug])
 }
@@ -146,8 +147,28 @@ model Professional {
   transactions     Transaction[]
   productRequests  ProductRequest[]
   anamneses        Anamnesis[]
+  goals            ProfessionalGoal[]
 
   @@index([tenantId])
+}
+
+model ProfessionalGoal {
+  id             String       @id @default(cuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  metric         String
+  targetValue    Int
+  startDate      String
+  endDate        String
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([tenantId, professionalId, metric, startDate, endDate])
+  @@index([tenantId, startDate, endDate])
+  @@index([professionalId])
 }
 
 model ServiceCategory {

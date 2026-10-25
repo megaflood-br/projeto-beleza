@@ -146,4 +146,38 @@ export function monthRange(day: Date) {
   return { start: startOfMonth(day), end: endOfMonth(day) };
 }
 
+export function calendarMonth(date: Date | string = new Date()) {
+  if (typeof date === "string" && /^\d{4}-\d{2}$/.test(date)) return date;
+  const dateStr = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : calendarDate(typeof date === "string" ? new Date(date) : date);
+  return dateStr.slice(0, 7);
+}
+
+export function parseMonthParam(value?: string | null) {
+  if (value && /^\d{4}-\d{2}$/.test(value)) return value;
+  return calendarMonth();
+}
+
+export function monthStartEnd(month: string) {
+  const safe = parseMonthParam(month);
+  const [year, monthNum] = safe.split("-").map(Number);
+  const from = `${safe}-01`;
+  const nextMonth = monthNum === 12 ? `${year + 1}-01` : `${year}-${pad(monthNum + 1)}`;
+  return { from, to: shiftCalendarDate(`${nextMonth}-01`, -1) };
+}
+
+export function shiftCalendarMonth(month: string, delta: number) {
+  const safe = parseMonthParam(month);
+  const [year, monthNum] = safe.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, monthNum - 1 + delta, 1));
+  return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}`;
+}
+
+export function formatMonthLabel(month: string) {
+  const safe = parseMonthParam(month);
+  const [year, monthNum] = safe.split("-").map(Number);
+  const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const name = months[(monthNum || 1) - 1];
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} de ${year}`;
+}
+
 export { addDays, addMinutes, isSameDay, startOfDay, format };
