@@ -353,9 +353,15 @@ export async function cancelContoraDocument(token: string, kind: string, documen
   });
 }
 
-export function contoraArtifactPath(kind: string, documentId: string) {
-  if (kind === "NFSE") return `/nfse/drafts/${documentId}/artifacts/pdf_nfse`;
-  return `/nfe/drafts/${documentId}/artifacts/pdf_danfe`;
+export function contoraArtifactPath(kind: string, documentId: string, artifact: "pdf" | "xml" = "pdf") {
+  if (kind === "NFSE") {
+    return artifact === "xml" ? `/nfse/drafts/${documentId}/artifacts/xml_nfse` : `/nfse/drafts/${documentId}/artifacts/pdf_nfse`;
+  }
+  return artifact === "xml" ? `/nfe/drafts/${documentId}/artifacts/xml_authorized` : `/nfe/drafts/${documentId}/artifacts/pdf_danfe`;
+}
+
+export function hasContoraArtifacts(invoice: { provider?: string | null; providerRef?: string | null; status?: string | null }) {
+  return invoice.provider === "contora" && Boolean(invoice.providerRef) && invoice.status === "AUTHORIZED";
 }
 
 export function amountFromLines(kind: FiscalKind, lines: FiscalLine[], fallbackCents: number) {

@@ -14,6 +14,8 @@ export type InvoiceRow = {
   comandaId: string | null;
   environment: string;
   errorMessage: string | null;
+  provider: string;
+  providerRef: string | null;
 };
 
 export type EmitComandaOption = {

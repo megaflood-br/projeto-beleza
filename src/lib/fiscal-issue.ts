@@ -48,6 +48,7 @@ async function emitOnProvider(
       protocol: `LOCAL${payload.number}`,
       accessKey: null as string | null,
       providerRef: payload.idempotency,
+      provider: "local",
       error: null as string | null,
     };
   }
@@ -70,6 +71,7 @@ async function emitOnProvider(
       protocol: emitted.protocol,
       accessKey: emitted.accessKey,
       providerRef: emitted.id,
+      provider: "contora",
       error: emitted.error,
     };
   } catch (error) {
@@ -78,6 +80,7 @@ async function emitOnProvider(
       protocol: null,
       accessKey: null,
       providerRef: null,
+      provider: "contora",
       error: error instanceof Error ? error.message : "Falha ao emitir na Contora.",
     };
   }
@@ -183,6 +186,7 @@ export async function issueComandaInvoices(tenantId: string, comandaId: string, 
         status: emitted.status,
         protocol: emitted.protocol,
         accessKey: emitted.accessKey || fallbackKey,
+        provider: emitted.provider,
         providerRef: emitted.providerRef ?? created.providerRef,
         issuedAt: emitted.status === "AUTHORIZED" ? issuedAt : null,
         errorMessage: emitted.error,

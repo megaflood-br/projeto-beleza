@@ -15,6 +15,7 @@ import {
   isFiscalStatus,
   tenantFiscalConfig,
 } from "@/lib/fiscal";
+import { hasContoraArtifacts } from "@/lib/contora";
 
 export default async function NotaPage({ params }: { params: Promise<{ id: string }> }) {
   const { session, tenant } = await requireTenant();
@@ -101,10 +102,17 @@ export default async function NotaPage({ params }: { params: Promise<{ id: strin
         <p className="break-all font-mono text-xs text-ink-soft">{formatAccessKey(invoice.accessKey)}</p>
         {invoice.notes ? <p className="text-sm text-ink-soft">{invoice.notes}</p> : null}
         {invoice.errorMessage ? <p className="text-sm text-red-600">{invoice.errorMessage}</p> : null}
-        {invoice.provider === "contora" && invoice.providerRef ? (
-          <Link href={`/notas/${invoice.id}/pdf`} className="text-sm font-medium text-wine">
-            Baixar PDF da Contora
-          </Link>
+        {hasContoraArtifacts(invoice) ? (
+          <div className="flex flex-wrap gap-3">
+            <a href={`/notas/${invoice.id}/arquivo?tipo=pdf`} className="text-sm font-medium text-wine">
+              Baixar PDF
+            </a>
+            <a href={`/notas/${invoice.id}/arquivo?tipo=xml`} className="text-sm font-medium text-wine">
+              Baixar XML
+            </a>
+          </div>
+        ) : invoice.provider === "local" ? (
+          <p className="text-xs text-ink-soft">Nota local de treino: use a impressão do navegador. XML e PDF oficiais saem depois da autorização na Contora.</p>
         ) : null}
       </Card>
 

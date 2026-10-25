@@ -18,6 +18,7 @@ import {
   formatCnpj,
   isFiscalStatus,
 } from "@/lib/fiscal";
+import { hasContoraArtifacts } from "@/lib/contora";
 import type { EmitComandaOption, InvoiceRow } from "@/components/notas/types";
 
 export function InvoiceBoard({
@@ -202,6 +203,16 @@ export function InvoiceBoard({
                   </td>
                   <td className="px-4 text-right">
                     <div className="flex justify-end gap-2">
+                      {hasContoraArtifacts(row) ? (
+                        <>
+                          <a href={`/notas/${row.id}/arquivo?tipo=pdf`} className="text-sm font-medium text-wine">
+                            PDF
+                          </a>
+                          <a href={`/notas/${row.id}/arquivo?tipo=xml`} className="text-sm font-medium text-wine">
+                            XML
+                          </a>
+                        </>
+                      ) : null}
                       <Link href={`/notas/${row.id}`} className="text-sm font-medium text-wine">
                         Ver
                       </Link>
