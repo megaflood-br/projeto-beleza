@@ -17,10 +17,11 @@ const ConfirmContext = createContext<ConfirmFn | null>(null);
 
 export function useConfirm() {
   const confirm = useContext(ConfirmContext);
-  if (!confirm) {
-    throw new Error("useConfirm precisa do ConfirmProvider");
-  }
-  return confirm;
+  return (
+    confirm ??
+    ((options: ConfirmOptions) =>
+      Promise.resolve(window.confirm([options.title, options.description].filter(Boolean).join("\n\n"))))
+  );
 }
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
