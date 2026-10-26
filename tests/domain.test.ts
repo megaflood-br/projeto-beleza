@@ -36,7 +36,15 @@ import {
   rankProfessionals,
 } from "@/lib/dashboard";
 import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementLabel, summarizeAccountBalances } from "@/lib/ledger";
-import { collectAlerts, DEFAULT_ANAMNESIS_FORMS, missingRequired, parseQuestions, serializeQuestions } from "@/lib/anamnesis";
+import {
+  anamnesisDocumentItems,
+  collectAlerts,
+  DEFAULT_ANAMNESIS_FORMS,
+  formatAnamnesisAnswer,
+  missingRequired,
+  parseQuestions,
+  serializeQuestions,
+} from "@/lib/anamnesis";
 import { isPlatformAdmin } from "@/lib/auth";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
 import { featuresFromText, formatPlanPrice, nextPlanSlug, parsePlanFeatures, planLabel, serializePlanFeatures } from "@/lib/plans";
@@ -512,6 +520,16 @@ describe("anamnese", () => {
         Object.fromEntries(questions.filter((q) => q.required).map((q) => [q.id, { value: "no" }])),
       ),
     ).toEqual([]);
+  });
+
+  it("formata respostas da ficha para o documento", () => {
+    const questions = DEFAULT_ANAMNESIS_FORMS[0].questions;
+    expect(formatAnamnesisAnswer(questions[0], { value: "yes", detail: "Látex" })).toBe("Sim — Látex");
+    expect(formatAnamnesisAnswer(questions[0], { value: "no" })).toBe("Não");
+    expect(formatAnamnesisAnswer(questions[0])).toBe("—");
+    const items = anamnesisDocumentItems(questions, { alergia: { value: "yes", detail: "Látex" } });
+    expect(items[0]?.alert).toBe(true);
+    expect(items[0]?.value).toBe("Sim — Látex");
   });
 
   it("serializa e lê perguntas da ficha", () => {
