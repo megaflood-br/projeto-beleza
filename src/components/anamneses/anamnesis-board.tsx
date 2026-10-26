@@ -8,6 +8,7 @@ import { Badge, Button, Input } from "@/components/ui";
 import { AnamnesisDrawer } from "@/components/anamneses/anamnesis-drawer";
 import { AnamnesisFormDrawer } from "@/components/anamneses/form-drawer";
 import { deleteAnamnesisForm } from "@/app/actions/anamnesis";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   ANAMNESIS_AREA_LABEL,
   ANAMNESIS_STATUS_COLOR,
@@ -32,6 +33,7 @@ export function AnamnesisBoard({
   professionals: { id: string; name: string }[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [tab, setTab] = useState<Tab>("registros");
   const [query, setQuery] = useState("");
   const [showDraft, setShowDraft] = useState(true);
@@ -56,7 +58,10 @@ export function AnamnesisBoard({
     [q, records, showDone, showDraft],
   );
 
-  async function removeForm(id: string) {
+  async function removeForm(id: string, name: string) {
+    if (!(await confirm({ title: `Excluir a ficha ${name}?`, description: "Só é possível excluir fichas que ainda não têm anamneses preenchidas." }))) {
+      return;
+    }
     setError(null);
     const fd = new FormData();
     fd.set("id", id);
@@ -193,7 +198,7 @@ export function AnamnesisBoard({
                   <Pencil size={14} />
                   Editar
                 </Button>
-                <Button type="button" variant="ghost" className="text-red-600" onClick={() => removeForm(form.id)}>
+                <Button type="button" variant="ghost" className="text-red-600" onClick={() => removeForm(form.id, form.name)}>
                   Excluir
                 </Button>
               </div>

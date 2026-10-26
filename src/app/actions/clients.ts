@@ -7,6 +7,8 @@ import { digitsOnly } from "@/lib/utils";
 import { zonedDateTime } from "@/lib/dates";
 import { cashbackExpiry, pointsToCents } from "@/lib/cashback";
 import { safeDispatch } from "@/lib/dispatch-whatsapp-campaign";
+import { parseClientIds } from "@/lib/client-delete";
+import { deleteTenantClients } from "@/lib/run-client-delete";
 
 function flag(formData: FormData, key: string, fallback = true) {
   const raw = formData.get(key);
@@ -174,4 +176,36 @@ export async function addManualCashback(formData: FormData) {
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${client.id}`);
   return { ok: true as const };
+}
+
+export async function deleteClients(formData: FormData) {
+  const { session } = await requireTenant();
+  const scope = String(formData.get("scope") ?? "ids");
+  const requested = parseClientIds(String(formData.get("ids") ?? ""));
+
+  const rows = await prisma.client.findMany({
+    where: scope === "all" ? { tenantId: session.tenantId } : { tenantId: session.tenantId, id: { in: requested } },
+    select: { id: true },
+  });
+  const ids = rows.map((row) => row.id);
+  if (ids.length === 0) return { error: "Nenhum cliente para excluir." };
+
+  try {
+    const deleted = await deleteTenantClients(session.tenantId, ids);
+    try {
+      revalidatePath("/clientes");
+      revalidatePath("/agenda");
+      revalidatePath("/comandas");
+    } catch {
+      /* cache miss after a successful delete should not hide the result */
+    }
+    return { ok: true as const, deleted };
+  } catch (error) {
+    console.error("deleteClients", error);
+    const detail = error instanceof Error ? error.message : "";
+    if (/FOREIGN KEY|foreign key/i.test(detail)) {
+      return { error: "Este cliente tem histórico que impede a exclusão. Feche comandas ligadas e tente de novo." };
+    }
+    return { error: detail ? `Não foi possível excluir: ${detail}` : "Não foi possível excluir os clientes. Tente de novo." };
+  }
 }

@@ -20,6 +20,7 @@ import {
 import { CLIENT_IMPORT_HEADERS, compactImportTable, mapClientImportRows, normalizeImportPhone, parseImportDate } from "@/lib/client-import";
 import { parseImportResponse } from "@/lib/client-import-response";
 import { matchesClientSearch } from "@/lib/client-search";
+import { clientDeleteCopy, parseClientIds } from "@/lib/client-delete";
 import { calendarDate, calendarMonth, daysBetween, eachCalendarDate, formatMonthLabel, formatTime, minutesInTz, minutesToLabel, monthStartEnd, parseHHmm, shiftCalendarDate, shiftCalendarMonth, zonedDateTime } from "@/lib/dates";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { financeOrigin, financeTitular } from "@/lib/finance";
@@ -234,6 +235,10 @@ describe("comandas", () => {
       /não encontrou a conexão/,
     );
     expect(evolutionSendFailure(new Error("timeout"))).toMatch(/timeout/);
+    expect(parseClientIds("a, b  a,c")).toEqual(["a", "b", "c"]);
+    expect(clientDeleteCopy(1, "one").title).toMatch(/este cliente/);
+    expect(clientDeleteCopy(3, "selected").title).toMatch(/3 clientes selecionados/);
+    expect(clientDeleteCopy(12, "all").title).toMatch(/12 clientes deste salão/);
     expect(parseIntegrationTab("contora")).toBe("contora");
     expect(parseIntegrationTab("evolution")).toBe("evolution");
     expect(parseIntegrationTab("outro")).toBe("openai");

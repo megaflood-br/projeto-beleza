@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, X } from "lucide-react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { saveAnamnesisForm } from "@/app/actions/anamnesis";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   ANAMNESIS_AREAS,
   ANAMNESIS_AREA_LABEL,
@@ -38,6 +39,7 @@ export function AnamnesisFormDrawer({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [name, setName] = useState(form?.name ?? "");
@@ -140,7 +142,15 @@ export function AnamnesisFormDrawer({
                   <button
                     type="button"
                     className="rounded p-1 text-red-600 hover:bg-red-50"
-                    onClick={() => setQuestions((list) => list.filter((item) => item.id !== question.id))}
+                    onClick={() => {
+                      void confirm({
+                        title: "Remover esta pergunta?",
+                        description: "Ela some da ficha ao salvar.",
+                        confirmLabel: "Remover",
+                      }).then((ok) => {
+                        if (ok) setQuestions((list) => list.filter((item) => item.id !== question.id));
+                      });
+                    }}
                     aria-label="Remover pergunta"
                   >
                     <Trash2 size={14} />

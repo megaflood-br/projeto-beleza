@@ -6,12 +6,14 @@ import { BadgePercent, Pencil, Plus, Search } from "lucide-react";
 import { Badge, Button, Input } from "@/components/ui";
 import { PlanDrawer } from "@/components/plataforma/plan-drawer";
 import { deletePlatformPlan, setPlatformPlanActive } from "@/app/actions/plans";
+import { useConfirm } from "@/components/confirm-dialog";
 import { formatPlanPrice } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 import type { PlatformPlanRow } from "@/components/plataforma/plan-types";
 
 export function PlanBoard({ plans }: { plans: PlatformPlanRow[] }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<PlatformPlanRow | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +130,12 @@ export function PlanBoard({ plans }: { plans: PlatformPlanRow[] }) {
                         variant="ghost"
                         className="h-8 px-2 text-xs text-red-600"
                         onClick={() => {
-                          if (confirm(`Excluir o plano ${plan.name}?`)) run(deletePlatformPlan, plan.id);
+                          void confirm({
+                            title: `Excluir o plano ${plan.name}?`,
+                            description: "Contas que já usam este plano precisam ser movidas antes.",
+                          }).then((ok) => {
+                            if (ok) run(deletePlatformPlan, plan.id);
+                          });
                         }}
                       >
                         Excluir

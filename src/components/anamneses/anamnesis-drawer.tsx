@@ -6,6 +6,7 @@ import { AlertTriangle, Trash2, X } from "lucide-react";
 import { Button, Field, Input, Textarea } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
 import { deleteAnamnesis, saveAnamnesis } from "@/app/actions/anamnesis";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   ANAMNESIS_AREA_LABEL,
   collectAlerts,
@@ -39,6 +40,7 @@ export function AnamnesisDrawer({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const activeForms = forms.filter((form) => form.active || form.id === record?.formId);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -105,7 +107,7 @@ export function AnamnesisDrawer({
 
   async function remove() {
     if (!record?.id) return;
-    if (!confirm("Excluir esta anamnese?")) return;
+    if (!(await confirm({ title: "Excluir esta anamnese?", description: "As respostas preenchidas serão apagadas." }))) return;
     setPending(true);
     const fd = new FormData();
     fd.set("id", record.id);

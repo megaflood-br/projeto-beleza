@@ -7,6 +7,7 @@ import { Building2, Headphones, LogIn, Pencil, Plus, Search } from "lucide-react
 import { Badge, Button, Input } from "@/components/ui";
 import { TenantDrawer } from "@/components/plataforma/tenant-drawer";
 import { deleteTenantAccount, impersonateTenant, setTenantStatus } from "@/app/actions/platform";
+import { useConfirm } from "@/components/confirm-dialog";
 import { TENANT_STATUS_COLOR, TENANT_STATUS_LABEL, type TenantStatus } from "@/lib/constants";
 import { formatMediumDate } from "@/lib/dates";
 import { cn, formAction } from "@/lib/utils";
@@ -14,6 +15,7 @@ import type { PlatformPlanOption, TenantAccountRow } from "@/components/platafor
 
 export function PlatformBoard({ accounts, plans }: { accounts: TenantAccountRow[]; plans: PlatformPlanOption[] }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<TenantStatus | "ALL">("ALL");
   const [editing, setEditing] = useState<TenantAccountRow | null | undefined>(undefined);
@@ -175,9 +177,12 @@ export function PlatformBoard({ accounts, plans }: { accounts: TenantAccountRow[
                         variant="ghost"
                         className="h-8 px-2 text-xs text-red-600"
                         onClick={() => {
-                          if (confirm(`Excluir ${row.name} e todos os dados deste salão?`)) {
-                            run(deleteTenantAccount, row.id);
-                          }
+                          void confirm({
+                            title: `Excluir ${row.name}?`,
+                            description: "Todos os dados deste salão serão apagados. Esta ação não pode ser desfeita.",
+                          }).then((ok) => {
+                            if (ok) run(deleteTenantAccount, row.id);
+                          });
                         }}
                       >
                         Excluir
