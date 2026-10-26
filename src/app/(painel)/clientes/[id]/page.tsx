@@ -80,6 +80,7 @@ export default async function ClientePage({
       anamneses={client.anamneses.map(mapAnamnesisRow)}
       forms={forms.map(mapFormRow)}
       professionals={professionals}
+      salonName={tenant.name}
       cashbackEnabled={tenant.cashbackEnabled}
       cashbackCentsPerPoint={tenant.cashbackCentsPerPoint}
       cashbackMoves={client.cashbackMoves.map((move) => ({

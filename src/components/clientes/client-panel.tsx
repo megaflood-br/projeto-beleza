@@ -89,6 +89,7 @@ export function ClientPanel({
   cashbackEnabled,
   cashbackCentsPerPoint,
   cashbackMoves,
+  salonName,
 }: {
   tab: ClientTab;
   client: {
@@ -115,6 +116,7 @@ export function ClientPanel({
   cashbackEnabled: boolean;
   cashbackCentsPerPoint: number;
   cashbackMoves: CashbackMoveRow[];
+  salonName?: string;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
@@ -205,6 +207,7 @@ export function ClientPanel({
               records={anamneses}
               forms={forms}
               professionals={professionals}
+              salonName={salonName}
             />
           ) : (
             <EmptyState text="Nenhuma venda por assinatura." />

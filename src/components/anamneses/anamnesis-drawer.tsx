@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Trash2, X } from "lucide-react";
+import { AlertTriangle, Eye, Trash2, X } from "lucide-react";
 import { Button, Field, Input, Textarea } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
 import { deleteAnamnesis, saveAnamnesis } from "@/app/actions/anamnesis";
@@ -29,6 +29,7 @@ export function AnamnesisDrawer({
   clients,
   professionals,
   lockedClientId,
+  onView,
   onClose,
 }: {
   open: boolean;
@@ -37,6 +38,7 @@ export function AnamnesisDrawer({
   clients: { id: string; name: string; phone?: string }[];
   professionals: { id: string; name: string }[];
   lockedClientId?: string;
+  onView?: () => void;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -235,6 +237,12 @@ export function AnamnesisDrawer({
             <span />
           )}
           <div className="flex gap-2">
+            {record && onView ? (
+              <Button type="button" variant="outline" disabled={pending} onClick={onView}>
+                <Eye size={16} />
+                Visualizar
+              </Button>
+            ) : null}
             <Button type="button" variant="outline" disabled={pending} onClick={() => submit(false)}>
               {pending ? "Salvando..." : "Salvar rascunho"}
             </Button>

@@ -95,3 +95,30 @@ textarea {
   flex: 1 1 0%;
   min-width: 14rem;
 }
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-root,
+  .print-root * {
+    visibility: visible;
+  }
+
+  .print-root {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    box-shadow: none !important;
+    background: #fff;
+  }
+}

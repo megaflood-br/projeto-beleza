@@ -214,6 +214,24 @@ export function missingRequired(questions: AnamnesisQuestion[], answers: Anamnes
     .map((question) => question.label);
 }
 
+export function formatAnamnesisAnswer(question: AnamnesisQuestion, answer?: AnamnesisAnswer) {
+  const value = String(answer?.value ?? "").trim();
+  if (!value) return "—";
+  const label = question.type === "yes_no" ? (value === "yes" ? "Sim" : value === "no" ? "Não" : value) : value;
+  const detail = answer?.detail?.trim();
+  return detail ? `${label} — ${detail}` : label;
+}
+
+export function anamnesisDocumentItems(questions: AnamnesisQuestion[], answers: AnamnesisAnswers) {
+  return questions.map((question) => ({
+    id: question.id,
+    label: question.label,
+    hint: question.hint,
+    value: formatAnamnesisAnswer(question, answers[question.id]),
+    alert: Boolean(question.alertOn && answers[question.id]?.value === question.alertOn),
+  }));
+}
+
 const seeding = new Map<string, Promise<void>>();
 
 export async function ensureAnamnesisForms(tenantId: string) {

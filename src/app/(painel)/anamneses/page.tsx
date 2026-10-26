@@ -4,7 +4,7 @@ import { AnamnesisBoard } from "@/components/anamneses/anamnesis-board";
 import { ensureAnamnesisForms, mapAnamnesisRow, mapFormRow } from "@/lib/anamnesis";
 
 export default async function AnamnesesPage() {
-  const { session } = await requireTenant();
+  const { session, tenant } = await requireTenant();
   await ensureAnamnesisForms(session.tenantId);
 
   const [records, forms, clients, professionals] = await Promise.all([
@@ -36,6 +36,7 @@ export default async function AnamnesesPage() {
       forms={forms.map(mapFormRow)}
       clients={clients}
       professionals={professionals}
+      salonName={tenant.name}
     />
   );
 }
