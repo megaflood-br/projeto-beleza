@@ -27,6 +27,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { stopImpersonation } from "@/app/actions/platform";
 import { SupportCallOverlay } from "@/components/suporte/call-overlay";
 import { SupportLiveProvider, useSupportLive } from "@/components/suporte/live-context";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -80,6 +81,7 @@ export function AppShell({
   const pathname = usePathname();
 
   return (
+    <ConfirmProvider>
     <SupportLiveProvider>
     <div className="flex min-h-screen bg-cream">
       <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-950 text-white">
@@ -135,5 +137,6 @@ export function AppShell({
     </div>
     <SupportCallOverlay />
     </SupportLiveProvider>
+    </ConfirmProvider>
   );
 }

@@ -10,6 +10,7 @@ import { formatMonthLabel, shiftCalendarMonth } from "@/lib/dates";
 import { formatGoalValue, goalMetricMeta, summarizeGoalStatuses, type GoalStatus } from "@/lib/goals";
 import { cn } from "@/lib/utils";
 import { GoalDrawer } from "@/components/metas/goal-drawer";
+import { useConfirm } from "@/components/confirm-dialog";
 import type { GoalCard, GoalProfessional, GoalRow } from "@/components/metas/types";
 
 function statusTone(status: GoalStatus) {
@@ -44,6 +45,7 @@ export function GoalsBoard({
   pacePct: number;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState<{ goal: GoalRow | null; professionalId?: string } | undefined>();
   const [copyError, setCopyError] = useState<string | null>(null);
   const prev = shiftCalendarMonth(month, -1);
@@ -67,6 +69,9 @@ export function GoalsBoard({
   }
 
   async function remove(id: string) {
+    if (!(await confirm({ title: "Excluir esta meta?", description: "O progresso do mês some da lista deste profissional." }))) {
+      return;
+    }
     const form = new FormData();
     form.set("id", id);
     await deleteProfessionalGoal(form);

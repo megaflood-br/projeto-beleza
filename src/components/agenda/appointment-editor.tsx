@@ -6,6 +6,7 @@ import { MessageCircle, Trash2, X } from "lucide-react";
 import { deleteAppointment, saveAppointment } from "@/app/actions/appointments";
 import { createComandaFromAppointment } from "@/app/actions/comandas";
 import { Button, Select } from "@/components/ui";
+import { useConfirm } from "@/components/confirm-dialog";
 import { SearchSelect } from "@/components/search-select";
 import { DURATION_OPTIONS, STATUS_COLOR, STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
 import { formatTime, minutesToLabel } from "@/lib/dates";
@@ -49,6 +50,7 @@ export function AppointmentEditor({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [clientId, setClientId] = useState(appointment?.client.id ?? "");
   const [status, setStatus] = useState<AppointmentStatus>(appointment?.status ?? "PENDING");
   const [apptDate, setApptDate] = useState(date);
@@ -249,7 +251,11 @@ export function AppointmentEditor({
                     <button
                       type="button"
                       className="flex h-11 items-center justify-center text-red-600"
-                      onClick={() => setItems((rows) => (rows.length === 1 ? rows : rows.filter((r) => r.key !== row.key)))}
+                      onClick={() => {
+                        void confirm({ title: "Remover este serviço do horário?", confirmLabel: "Remover" }).then((ok) => {
+                          if (ok) setItems((rows) => (rows.length === 1 ? rows : rows.filter((r) => r.key !== row.key)));
+                        });
+                      }}
                       aria-label="Remover item"
                     >
                       <Trash2 size={16} />
@@ -286,10 +292,16 @@ export function AppointmentEditor({
                 variant="danger"
                 disabled={pending}
                 onClick={() => {
-                  startTransition(async () => {
-                    const result = await deleteAppointment(appointment.id);
-                    if (result?.error) setError(result.error);
-                    else onClose();
+                  void confirm({
+                    title: "Excluir este agendamento?",
+                    description: "A comanda aberta ligada a este horário também será apagada.",
+                  }).then((ok) => {
+                    if (!ok) return;
+                    startTransition(async () => {
+                      const result = await deleteAppointment(appointment.id);
+                      if (result?.error) setError(result.error);
+                      else onClose();
+                    });
                   });
                 }}
               >

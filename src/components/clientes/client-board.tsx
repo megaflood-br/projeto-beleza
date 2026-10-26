@@ -1,14 +1,26 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { CirclePlay, Plus, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, CirclePlay, Plus, Search } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { ClientDrawer } from "@/components/clientes/client-drawer";
+import { ConfirmProvider, useConfirm } from "@/components/confirm-dialog";
+import { deleteClients } from "@/app/actions/clients";
+import { clientDeleteCopy } from "@/lib/client-delete";
 import { matchesClientSearch } from "@/lib/client-search";
-import { formatPhoneBR, initials } from "@/lib/utils";
+import { cn, formatPhoneBR, initials } from "@/lib/utils";
 import type { ClientFormValue } from "@/components/clientes/types";
 
-export function ClientBoard({
+export function ClientBoard(props: { clients: ClientFormValue[]; tags: string[] }) {
+  return (
+    <ConfirmProvider>
+      <ClientBoardInner {...props} />
+    </ConfirmProvider>
+  );
+}
+
+function ClientBoardInner({
   clients,
   tags,
 }: {
@@ -23,8 +35,13 @@ export function ClientBoard({
   const [withoutDebt, setWithoutDebt] = useState(true);
   const [tagFilters, setTagFilters] = useState<string[]>(tags);
   const [includeUntagged, setIncludeUntagged] = useState(true);
+  const router = useRouter();
+  const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<ClientFormValue | null | undefined>(undefined);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const visible = useMemo(
     () =>
@@ -46,10 +63,50 @@ export function ClientBoard({
     [clients, query, showActive, showInactive, withPhone, withoutPhone, withDebt, withoutDebt, tagFilters, includeUntagged],
   );
 
+  const visibleIds = useMemo(() => visible.map((client) => client.id), [visible]);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
   const countLabel =
     visible.length === clients.length
       ? `${clients.length.toLocaleString("pt-BR")} cliente${clients.length === 1 ? "" : "s"}`
       : `${visible.length.toLocaleString("pt-BR")} de ${clients.length.toLocaleString("pt-BR")} clientes`;
+
+  function toggleOne(id: string, on: boolean) {
+    setSelected((current) => (on ? [...new Set([...current, id])] : current.filter((item) => item !== id)));
+  }
+
+  function toggleVisible(on: boolean) {
+    setSelected((current) => {
+      if (on) return [...new Set([...current, ...visibleIds])];
+      return current.filter((id) => !visibleIds.includes(id));
+    });
+  }
+
+  async function runDelete(scope: "selected" | "all") {
+    const ids = scope === "all" ? clients.map((client) => client.id) : selected;
+    if (ids.length === 0) {
+      setError(scope === "selected" ? "Marque pelo menos um cliente para excluir." : "Não há clientes para excluir.");
+      return;
+    }
+    const copy = clientDeleteCopy(ids.length, scope === "all" ? "all" : ids.length === 1 ? "one" : "selected");
+    if (!(await confirm(copy))) return;
+    setPending(true);
+    setError(null);
+    const form = new FormData();
+    form.set("scope", scope === "all" ? "all" : "ids");
+    form.set("ids", ids.join(","));
+    try {
+      const result = await deleteClients(form);
+      if (result && "error" in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      setSelected([]);
+      setEditing(undefined);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -107,25 +164,62 @@ export function ClientBoard({
               />
             </div>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-slate-50 px-3 py-2.5">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+              <SelectBox
+                checked={allVisibleSelected}
+                onChange={toggleVisible}
+                label="Selecionar todos visíveis"
+              />
+              Selecionar todos
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-ink-soft">
+                {selected.length.toLocaleString("pt-BR")} selecionado{selected.length === 1 ? "" : "s"}
+              </span>
+              <Button type="button" variant="ghost" disabled={pending || selected.length === 0} onClick={() => setSelected([])}>
+                Limpar
+              </Button>
+              <Button type="button" variant="danger" disabled={pending || selected.length === 0} onClick={() => void runDelete("selected")}>
+                {pending ? "Excluindo..." : "Excluir selecionados"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="text-red-600"
+                disabled={pending || clients.length === 0}
+                onClick={() => void runDelete("all")}
+              >
+                Excluir todos
+              </Button>
+            </div>
+          </div>
+          {error ? <p className="px-4 py-2 text-sm text-red-600">{error}</p> : null}
           {visible.length === 0 ? (
             <p className="px-4 py-12 text-center text-sm text-ink-soft">
               {query.trim() ? "Nenhum cliente encontrado nessa busca." : "Nenhum cliente neste filtro."}
             </p>
           ) : (
             <>
-              <div className="grid grid-cols-[1fr_180px] items-center gap-2 border-b border-line px-4 py-2.5 text-sm font-medium text-ink-soft">
-                <span className="pl-12">Nome</span>
+              <div className="grid grid-cols-[44px_1fr_180px] items-center gap-2 border-b border-line px-3 py-2.5 text-sm font-medium text-ink-soft">
+                <span className="sr-only">Selecionar</span>
+                <span>Nome</span>
                 <span className="text-right">Celular</span>
               </div>
               <ul>
                 {visible.map((c) => (
                   <li key={c.id} className="border-b border-line last:border-0">
-                    <button
-                      type="button"
-                      onClick={() => setEditing(c)}
-                      className="grid w-full grid-cols-[1fr_180px] items-center gap-2 px-4 py-3 text-left hover:bg-slate-50"
-                    >
-                      <span className="flex min-w-0 items-center gap-3">
+                    <div className="grid grid-cols-[44px_1fr_180px] items-center gap-2 px-3 py-3 hover:bg-slate-50">
+                      <SelectBox
+                        checked={selected.includes(c.id)}
+                        onChange={(on) => toggleOne(c.id, on)}
+                        label={`Selecionar ${c.name}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditing(c)}
+                        className="flex min-w-0 items-center gap-3 text-left"
+                      >
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xs font-semibold text-white">
                           {c.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -147,9 +241,9 @@ export function ClientBoard({
                               : c.lastService ?? "Sem histórico"}
                           </span>
                         </span>
-                      </span>
+                      </button>
                       <span className="text-right text-sm text-ink-soft">{formatPhoneBR(c.phone)}</span>
-                    </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -169,6 +263,37 @@ export function ClientBoard({
         />
       ) : null}
     </div>
+  );
+}
+
+function SelectBox({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex h-10 w-10 cursor-pointer items-center justify-center">
+      <input
+        type="checkbox"
+        className="sr-only"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span
+        aria-hidden
+        className={cn(
+          "flex h-5 w-5 items-center justify-center rounded border-2",
+          checked ? "border-blue-600 bg-blue-600 text-white" : "border-slate-400 bg-white",
+        )}
+      >
+        {checked ? <Check size={12} strokeWidth={3} /> : null}
+      </span>
+      <span className="sr-only">{label}</span>
+    </label>
   );
 }
 

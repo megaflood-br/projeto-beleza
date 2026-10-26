@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, ImageIcon, Info, User, X } from "lucide-react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
-import { upsertClient } from "@/app/actions/clients";
+import { deleteClients, upsertClient } from "@/app/actions/clients";
+import { useConfirm } from "@/components/confirm-dialog";
+import { clientDeleteCopy } from "@/lib/client-delete";
 import { cn, initials } from "@/lib/utils";
 import type { ClientFormValue } from "@/components/clientes/types";
 
@@ -40,6 +42,7 @@ export function ClientDrawer({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -63,6 +66,27 @@ export function ClientDrawer({
     formData.set("blockAccess", blockAccess ? "1" : "0");
     try {
       const result = await upsertClient(formData);
+      if (result && "error" in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      onClose();
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function remove() {
+    if (!client?.id) return;
+    const copy = clientDeleteCopy(1, "one");
+    if (!(await confirm(copy))) return;
+    setPending(true);
+    setError(null);
+    const form = new FormData();
+    form.set("ids", client.id);
+    try {
+      const result = await deleteClients(form);
       if (result && "error" in result && result.error) {
         setError(result.error);
         return;
@@ -310,6 +334,11 @@ export function ClientDrawer({
             </aside>
           </div>
           <div className="flex justify-end gap-2 border-t border-line px-5 py-4">
+            {client ? (
+              <Button type="button" variant="danger" className="mr-auto" disabled={pending} onClick={() => void remove()}>
+                Excluir
+              </Button>
+            ) : null}
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
             </Button>

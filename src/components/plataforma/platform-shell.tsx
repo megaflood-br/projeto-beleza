@@ -6,6 +6,7 @@ import { BadgePercent, Building2, Headphones, LogOut, Plug, Shield } from "lucid
 import { logoutAction } from "@/app/actions/auth";
 import { SupportCallOverlay } from "@/components/suporte/call-overlay";
 import { SupportLiveProvider, useSupportLive } from "@/components/suporte/live-context";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -65,6 +66,7 @@ function PlatformNav({ userName }: { userName: string }) {
 
 export function PlatformShell({ children, userName }: { children: React.ReactNode; userName: string }) {
   return (
+    <ConfirmProvider>
     <SupportLiveProvider>
       <div className="flex min-h-screen bg-cream">
         <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-950 text-white">
@@ -81,5 +83,6 @@ export function PlatformShell({ children, userName }: { children: React.ReactNod
       </div>
       <SupportCallOverlay />
     </SupportLiveProvider>
+    </ConfirmProvider>
   );
 }

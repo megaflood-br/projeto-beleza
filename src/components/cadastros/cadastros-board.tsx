@@ -8,6 +8,7 @@ import { AccountDrawer } from "@/components/cadastros/account-drawer";
 import { MethodDrawer } from "@/components/cadastros/method-drawer";
 import { CategoryDrawer } from "@/components/cadastros/category-drawer";
 import { deleteFinanceAccount, deleteFinanceCategory, deletePaymentMethod, togglePaymentFavorite } from "@/app/actions/cadastros";
+import { useConfirm } from "@/components/confirm-dialog";
 import { accountDetailsLabel, feePercentLabel } from "@/lib/finance-catalog";
 import { settlementLabel } from "@/lib/ledger";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export function CadastrosBoard({
   categories: CategoryRow[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [tab, setTab] = useState<Tab>("contas");
   const [query, setQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -78,7 +80,12 @@ export function CadastrosBoard({
     setError(null);
   }
 
-  async function runDelete(fn: (formData: FormData) => Promise<{ error?: string } | { ok: true }>, id: string) {
+  async function runDelete(
+    fn: (formData: FormData) => Promise<{ error?: string } | { ok: true }>,
+    id: string,
+    title: string,
+  ) {
+    if (!(await confirm({ title, description: "Se o item estiver em uso, ele não será excluído." }))) return;
     const fd = new FormData();
     fd.set("id", id);
     const result = await fn(fd);
@@ -162,14 +169,14 @@ export function CadastrosBoard({
           <AccountsTable
             rows={paged as AccountRow[]}
             onEdit={setAccountEdit}
-            onDelete={(id) => runDelete(deleteFinanceAccount, id)}
+            onDelete={(id) => runDelete(deleteFinanceAccount, id, "Excluir esta conta?")}
           />
         ) : null}
         {tab === "formas" ? (
           <MethodsTable
             rows={paged as MethodRow[]}
             onEdit={setMethodEdit}
-            onDelete={(id) => runDelete(deletePaymentMethod, id)}
+            onDelete={(id) => runDelete(deletePaymentMethod, id, "Excluir esta forma de pagamento?")}
             onFavorite={async (id) => {
               const fd = new FormData();
               fd.set("id", id);
@@ -182,7 +189,7 @@ export function CadastrosBoard({
           <CategoriesTable
             rows={paged as CategoryRow[]}
             onEdit={setCategoryEdit}
-            onDelete={(id) => runDelete(deleteFinanceCategory, id)}
+            onDelete={(id) => runDelete(deleteFinanceCategory, id, "Excluir esta categoria?")}
           />
         ) : null}
 

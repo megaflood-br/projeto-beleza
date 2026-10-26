@@ -6,6 +6,7 @@ import { Plus, Tag } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui";
 import { PromoDrawer } from "@/components/promocoes/promo-drawer";
 import { deletePromotion } from "@/app/actions/promotions";
+import { useConfirm } from "@/components/confirm-dialog";
 import { WEEKDAYS } from "@/lib/promotions";
 import { formatBRL } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
@@ -26,6 +27,7 @@ export function PromoBoard({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState<PromotionRow | null | undefined>(undefined);
   const weak = heat.filter((day) => day.weak).map((day) => day.label).join(" e ");
 
@@ -116,9 +118,15 @@ export function PromoBoard({
                           type="button"
                           className="text-sm text-red-600"
                           onClick={() => {
-                            const form = new FormData();
-                            form.set("id", promo.id);
-                            void deletePromotion(form).then(() => router.refresh());
+                            void confirm({
+                              title: `Excluir a promoção ${promo.name}?`,
+                              description: "O desconto deixa de valer na comanda e no agendamento online.",
+                            }).then((ok) => {
+                              if (!ok) return;
+                              const form = new FormData();
+                              form.set("id", promo.id);
+                              void deletePromotion(form).then(() => router.refresh());
+                            });
                           }}
                         >
                           Excluir

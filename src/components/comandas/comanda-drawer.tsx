@@ -10,6 +10,7 @@ import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { comandaTotal, itemLineTotal } from "@/lib/comandas";
 import { calendarDate } from "@/lib/dates";
 import { PaymentDrawer } from "@/components/comandas/payment-drawer";
+import { useConfirm } from "@/components/confirm-dialog";
 import type { ComandaFormValue, ComandaItemDraft, PaymentDraft, PaymentMethodOption } from "@/components/comandas/types";
 
 function centsToInput(cents: number) {
@@ -68,6 +69,7 @@ export function ComandaDrawer({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const formRef = useRef<HTMLFormElement>(null);
   const defaultPro = comanda?.professionalId ?? professionals[0]?.id ?? "";
   const [error, setError] = useState<string | null>(null);
@@ -206,7 +208,8 @@ export function ComandaDrawer({
     setItems((rows) => rows.map((row) => (row.key === key ? { ...row, ...patch } : row)));
   }
 
-  function removeItem(key: string) {
+  async function removeItem(key: string) {
+    if (!(await confirm({ title: "Remover este item da comanda?", confirmLabel: "Remover" }))) return;
     setMenuKey(null);
     setItems((rows) => (rows.length === 1 ? [emptyItem(defaultPro)] : rows.filter((row) => row.key !== key)));
   }
@@ -345,7 +348,7 @@ export function ComandaDrawer({
                               <button
                                 type="button"
                                 className="block w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-sand"
-                                onClick={() => removeItem(item.key)}
+                                onClick={() => void removeItem(item.key)}
                               >
                                 Remover
                               </button>

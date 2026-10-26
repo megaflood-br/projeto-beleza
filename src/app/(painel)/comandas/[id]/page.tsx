@@ -5,6 +5,7 @@ import { requireTenant } from "@/lib/tenant";
 import { Badge, Button, Card, Field, Input, Select } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
 import { addComandaItem, closeComanda, removeComandaItemForm } from "@/app/actions/comandas";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { emitComandaInvoice } from "@/app/actions/fiscal";
 import { formAction } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
@@ -89,12 +90,19 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
                 <td>{formatBRL(itemLineTotal(item))}</td>
                 <td>
                   {open ? (
-                    <form action={formAction(removeComandaItemForm)}>
-                      <input type="hidden" name="itemId" value={item.id} />
-                      <button className="p-2 text-red-600" aria-label="Remover">
-                        <Trash2 size={16} />
-                      </button>
-                    </form>
+                    <ConfirmDeleteButton
+                      title="Remover este item da comanda?"
+                      confirmLabel="Remover"
+                      ariaLabel="Remover"
+                      className="p-2 text-red-600"
+                      onConfirm={async () => {
+                        const form = new FormData();
+                        form.set("itemId", item.id);
+                        await removeComandaItemForm(form);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </ConfirmDeleteButton>
                   ) : null}
                 </td>
               </tr>
