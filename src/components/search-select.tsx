@@ -175,7 +175,7 @@ export function SearchSelect({
           autoComplete="off"
           placeholder={placeholder}
           value={open ? query : (selected?.label ?? "")}
-          className="h-11 w-full rounded-lg border border-line bg-paper py-0 pr-9 pl-3 text-sm outline-none ring-wine/20 focus:ring-2"
+          className="h-11 w-full rounded-lg border border-line bg-paper py-0 pr-9 pl-3 text-base outline-none ring-wine/20 focus:ring-2 md:text-sm"
           onFocus={(e) => {
             openList();
             e.currentTarget.select();

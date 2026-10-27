@@ -45,7 +45,7 @@ export function SettingsBoard({
         <p className="mt-1 text-sm text-ink-soft">{current.description}</p>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-line">
+      <div className="-mx-1 flex gap-1 overflow-x-auto border-b border-line px-1">
         {SETTINGS_TABS.map((item) => {
           const active = item.id === tab;
           return (
@@ -53,7 +53,7 @@ export function SettingsBoard({
               key={item.id}
               href={`/configuracoes?tab=${item.id}`}
               className={cn(
-                "-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm",
+                "-mb-px inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm sm:px-4",
                 active ? "border-blue-600 font-medium text-blue-600" : "border-transparent text-ink-soft hover:text-ink",
               )}
             >
