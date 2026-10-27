@@ -10,6 +10,9 @@ function createPrisma() {
 
 function isCurrentClient(client: PrismaClient | undefined): client is PrismaClient {
   if (typeof client?.supplierProduct?.findMany !== "function") return false;
+  if (typeof (client as { supplierPromotion?: { findMany?: unknown } }).supplierPromotion?.findMany !== "function") {
+    return false;
+  }
   const models = (
     client as unknown as {
       _runtimeDataModel?: { models?: Record<string, { fields?: { name?: string }[] }> };

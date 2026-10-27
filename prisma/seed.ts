@@ -16,6 +16,8 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.supplierPromotionItem.deleteMany();
+  await prisma.supplierPromotion.deleteMany();
   await prisma.promotionItem.deleteMany();
   await prisma.promotion.deleteMany();
   await prisma.fiscalInvoice.deleteMany();
@@ -271,6 +273,21 @@ async function main() {
       minQty: 1,
       stock: 40,
       description: "Máscara profissional para cabelos danificados.",
+    },
+  });
+  await prisma.supplierPromotion.create({
+    data: {
+      tenantId: supply.id,
+      name: "Só hoje",
+      note: "Reposição com desconto",
+      startsOn: zonedDateTime(calendarDate(today), "12:00"),
+      endsOn: zonedDateTime(calendarDate(today), "12:00"),
+      weekdays: "0,1,2,3,4,5,6",
+      dealType: "BUNDLE",
+      buyQty: 5,
+      payQty: 3,
+      active: true,
+      items: { create: { productId: mask.id } },
     },
   });
   await prisma.supplierProduct.createMany({

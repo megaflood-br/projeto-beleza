@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Filter, Info, RefreshCw } from "lucide-react";
 import { Button, Card, Input } from "@/components/ui";
 import { formatBRL } from "@/lib/money";
@@ -45,9 +45,11 @@ function TrendBadge({
 export function DashboardBoard({
   userName,
   metrics,
+  alerts,
 }: {
   userName: string;
   metrics: DashboardMetrics;
+  alerts?: ReactNode;
 }) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [tab, setTab] = useState<"appointments" | "comandas">("appointments");
@@ -84,6 +86,8 @@ export function DashboardBoard({
           </Button>
         </form>
       </div>
+
+      {alerts}
 
       <p className="flex items-center justify-center gap-1.5 text-sm text-ink-soft">
         {dateLabel(metrics.from)} → {dateLabel(metrics.to)}

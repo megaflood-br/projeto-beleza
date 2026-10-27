@@ -9,13 +9,14 @@ import {
   canChangeSupplierOrder,
   canReceiveSupplierOrder,
   makeSupplierOrderCode,
-  orderLineCents,
   orderTotalCents,
   parseOrderQty,
   parseSupplierPayMethods,
   quoteSupplierFulfillment,
 } from "@/lib/supplier-market";
 import { supplierServesSalon } from "@/lib/br-cities";
+import { calendarDate } from "@/lib/dates";
+import { applySupplierPromo, toSupplierPromoRule } from "@/lib/supplier-promo";
 
 function revalidateOrders() {
   revalidatePath("/fornecedor");
@@ -72,18 +73,27 @@ export async function placeSupplierOrder(formData: FormData) {
   if (!grouped.size) return { error: "Nenhum produto válido no pedido." };
 
   const salonAddress = [tenant.address, tenant.city].filter(Boolean).join(" · ") || null;
+  const today = calendarDate();
+  const promoRows = await prisma.supplierPromotion.findMany({
+    where: { tenantId: { in: [...grouped.keys()] }, active: true },
+    include: { items: true },
+  });
+  const promoRules = promoRows.map(toSupplierPromoRule);
 
   for (const [supplierTenantId, group] of grouped) {
-    const lines = group.items.map(({ product, quantity }) => ({
-      productId: product.id,
-      name: product.name,
-      brand: product.brand,
-      sku: product.sku,
-      unit: product.unit,
-      quantity,
-      unitCents: product.priceCents,
-      lineCents: orderLineCents(quantity, product.priceCents),
-    }));
+    const lines = group.items.map(({ product, quantity }) => {
+      const priced = applySupplierPromo(promoRules, product.id, product.priceCents, quantity, today);
+      return {
+        productId: product.id,
+        name: product.name,
+        brand: product.brand,
+        sku: product.sku,
+        unit: product.unit,
+        quantity,
+        unitCents: priced.unitCents,
+        lineCents: priced.lineCents,
+      };
+    });
     const subtotalCents = orderTotalCents(lines);
     const fulfillment = String(formData.get(`fulfillment_${supplierTenantId}`) ?? "PICKUP");
     const paymentMethod = asSupplierPayMethod(String(formData.get(`payment_${supplierTenantId}`) ?? "")) ?? parseSupplierPayMethods(group.supplier.supplierPayMethods)[0];

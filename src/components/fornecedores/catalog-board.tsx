@@ -18,6 +18,8 @@ import {
   orderLineCents,
   quoteSupplierFulfillment,
 } from "@/lib/supplier-market";
+import { bundlePayableQty } from "@/lib/supplier-promo";
+import { SupplierDealStrip, type SupplierDealCard } from "@/components/avisos/salon-alerts";
 import type { SupplierCatalogProduct, SupplierOrderRow } from "@/components/fornecedor/types";
 
 type CartLine = {
@@ -37,6 +39,14 @@ type CheckoutChoice = {
   notes: string;
 };
 
+function catalogLineCents(product: SupplierCatalogProduct | undefined, quantity: number, fallbackCents: number) {
+  if (!product?.promo) return orderLineCents(quantity, fallbackCents);
+  if (product.promo.dealType === "BUNDLE") {
+    return orderLineCents(bundlePayableQty(quantity, product.promo.buyQty, product.promo.payQty), product.priceCents);
+  }
+  return orderLineCents(quantity, product.promo.priceCents);
+}
+
 function defaultChoice(product: SupplierCatalogProduct): CheckoutChoice {
   return {
     fulfillment: "PICKUP",
@@ -49,14 +59,18 @@ export function SalonSupplierBoard({
   products,
   orders,
   salonCity,
+  initialQuery = "",
+  deals = [],
 }: {
   products: SupplierCatalogProduct[];
   orders: SupplierOrderRow[];
   salonCity?: string | null;
+  initialQuery?: string;
+  deals?: SupplierDealCard[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<"catalogo" | "pedidos">("catalogo");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [supplierId, setSupplierId] = useState("all");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [choices, setChoices] = useState<Record<string, CheckoutChoice>>({});
@@ -96,7 +110,7 @@ export function SalonSupplierBoard({
         subtotalCents: 0,
       };
       group.lines.push(line);
-      group.subtotalCents += orderLineCents(line.quantity, line.unitCents);
+      group.subtotalCents += catalogLineCents(sample, line.quantity, line.unitCents);
       if (!group.sample && sample) group.sample = sample;
       map.set(line.supplierId, group);
     }
@@ -239,6 +253,7 @@ export function SalonSupplierBoard({
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-4">
+            <SupplierDealStrip deals={deals} />
             <div className="rounded-xl bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
               <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar produtos, marcas e mais..." />
               {suppliers.length > 1 ? (
@@ -325,7 +340,7 @@ export function SalonSupplierBoard({
                                 Remover
                               </button>
                             </span>
-                            <span>{formatBRL(orderLineCents(line.quantity, line.unitCents))}</span>
+                            <span>{formatBRL(catalogLineCents(catalogById.get(line.productId), line.quantity, line.unitCents))}</span>
                           </li>
                         ))}
                       </ul>

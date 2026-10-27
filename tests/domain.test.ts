@@ -48,6 +48,8 @@ import {
   supplierOrderStatusLabel,
 } from "@/lib/supplier-market";
 import { parseServedCities, resolveCityLabel, supplierServesSalon } from "@/lib/br-cities";
+import { applySupplierPromo, bundlePayableQty } from "@/lib/supplier-promo";
+import { buildLowStockAlerts, productsLookAlike } from "@/lib/supplier-alerts";
 import {
   anamnesisDocumentItems,
   collectAlerts,
@@ -875,5 +877,32 @@ describe("pedidos de fornecedor", () => {
     expect(supplierServesSalon('["Atibaia/SP","Bragança Paulista/SP"]', "Atibaia, SP")).toBe(true);
     expect(supplierServesSalon('["Atibaia/SP"]', "Campinas/SP")).toBe(false);
     expect(supplierServesSalon("", "Atibaia/SP")).toBe(false);
+  });
+
+  it("calcula leve 5 pague 3 e casa estoque baixo com o catálogo", () => {
+    expect(bundlePayableQty(5, 5, 3)).toBe(3);
+    expect(bundlePayableQty(7, 5, 3)).toBe(5);
+    expect(bundlePayableQty(4, 5, 3)).toBe(4);
+    const rule = {
+      id: "1",
+      name: "Só hoje",
+      note: null,
+      startsOn: "2026-10-27",
+      endsOn: "2026-10-27",
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
+      dealType: "BUNDLE" as const,
+      discountValue: 0,
+      buyQty: 5,
+      payQty: 3,
+      active: true,
+      productIds: ["p1"],
+    };
+    expect(applySupplierPromo([rule], "p1", 1000, 5, "2026-10-27").lineCents).toBe(3000);
+    expect(productsLookAlike({ name: "Máscara hidratação 500ml", brand: "Lumina" }, { name: "Máscara hidratação 500ml", brand: "Lumina" })).toBe(true);
+    const alerts = buildLowStockAlerts(
+      [{ id: "s1", name: "Máscara hidratação 500ml", brand: "Lumina", stock: 1, minStock: 2, unit: "un", active: true }],
+      [{ id: "p1", name: "Máscara hidratação 500ml", brand: "Lumina", supplierName: "Beauty Supply SP", priceCents: 8900 }],
+    );
+    expect(alerts[0]?.supplierName).toBe("Beauty Supply SP");
   });
 });

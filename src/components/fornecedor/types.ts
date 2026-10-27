@@ -21,6 +21,15 @@ export type SupplierCatalogProduct = SupplierProductRow & {
   deliveryMinCents: number;
   deliveryFeeCents: number;
   payMethods: string[];
+  promo?: {
+    id: string;
+    name: string;
+    label: string;
+    dealType: string;
+    priceCents: number;
+    buyQty: number;
+    payQty: number;
+  } | null;
 };
 
 export type SupplierOrderRow = {

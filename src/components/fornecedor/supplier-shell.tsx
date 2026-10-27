@@ -1,12 +1,13 @@
 "use client";
 
-import { ClipboardList, Package, Settings } from "lucide-react";
+import { ClipboardList, Package, Settings, Tag } from "lucide-react";
 import { stopImpersonation } from "@/app/actions/platform";
 import { ConfirmProvider } from "@/components/confirm-dialog";
 import { SidebarLayout, type SidebarNavItem } from "@/components/sidebar-layout";
 
 const NAV: SidebarNavItem[] = [
   { href: "/fornecedor", label: "Produtos", icon: Package, exact: true },
+  { href: "/fornecedor/promocoes", label: "Promoções", icon: Tag },
   { href: "/fornecedor/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/fornecedor/empresa", label: "Empresa", icon: Settings },
 ];

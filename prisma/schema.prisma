@@ -110,6 +110,7 @@ model Tenant {
   fiscalInvoices     FiscalInvoice[]
   promotions         Promotion[]
   catalogProducts    SupplierProduct[]
+  supplierPromos     SupplierPromotion[]
   ordersAsSalon      SupplierOrder[] @relation("OrdersAsSalon")
   ordersAsSupplier   SupplierOrder[] @relation("OrdersAsSupplier")
 
@@ -935,8 +936,40 @@ model SupplierProduct {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   orderItems  SupplierOrderItem[]
+  promoItems  SupplierPromotionItem[]
 
   @@index([tenantId, active])
+}
+
+model SupplierPromotion {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name          String
+  note          String?
+  startsOn      DateTime
+  endsOn        DateTime
+  weekdays      String   @default("0,1,2,3,4,5,6")
+  dealType      String   @default("PERCENT")
+  discountValue Int      @default(0)
+  buyQty        Int      @default(0)
+  payQty        Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  items         SupplierPromotionItem[]
+
+  @@index([tenantId, active, startsOn, endsOn])
+}
+
+model SupplierPromotionItem {
+  id           String             @id @default(cuid())
+  promotionId  String
+  promotion    SupplierPromotion  @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  productId    String
+  product      SupplierProduct    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 model SupplierOrder {

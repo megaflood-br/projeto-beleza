@@ -32,7 +32,11 @@ export function CatalogProductCard({
     <article className="flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
       <div className="relative aspect-square border-b border-slate-100 bg-white p-3">
         <ProductPhoto src={product.imageUrl} alt={product.name} className="h-full w-full" iconSize={48} />
-        {product.category ? (
+        {product.promo ? (
+          <span className="absolute top-2 left-2 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+            {product.promo.label}
+          </span>
+        ) : product.category ? (
           <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-medium text-ink-soft shadow-sm">
             {product.category}
           </span>
@@ -41,7 +45,15 @@ export function CatalogProductCard({
       <div className="flex flex-1 flex-col gap-2 p-3">
         <h3 className="line-clamp-2 min-h-10 text-sm leading-snug text-slate-800">{product.name}</h3>
         {product.brand ? <p className="text-xs text-ink-soft">{product.brand}</p> : null}
-        <div className="text-2xl leading-none font-light tracking-tight text-slate-900">{formatBRL(product.priceCents)}</div>
+        <div>
+          {product.promo && product.promo.dealType !== "BUNDLE" && product.promo.priceCents < product.priceCents ? (
+            <div className="text-xs text-ink-soft line-through">{formatBRL(product.priceCents)}</div>
+          ) : null}
+          <div className="text-2xl leading-none font-light tracking-tight text-slate-900">
+            {formatBRL(product.promo && product.promo.dealType !== "BUNDLE" ? product.promo.priceCents : product.priceCents)}
+          </div>
+          {product.promo?.dealType === "BUNDLE" ? <p className="mt-1 text-xs font-medium text-rose-700">{product.promo.label}</p> : null}
+        </div>
         <p className="text-xs font-medium text-emerald-600">
           {delivery}
           {min}

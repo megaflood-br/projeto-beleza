@@ -12,6 +12,7 @@ import { formatBRL } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
 import { isLowStock, stockUnitLabel } from "@/lib/stock";
 import { cn, initials } from "@/lib/utils";
+import { LowStockAlert, type LowStockAlertItem } from "@/components/avisos/salon-alerts";
 import type { ProductFormValue, ProductLotValue, ProductRequestValue } from "@/components/estoque/types";
 
 type Tab = "produtos" | "lotes" | "solicitacoes";
@@ -25,6 +26,7 @@ export function StockBoard({
   lots,
   requests,
   professionals,
+  restock = [],
 }: {
   products: ProductFormValue[];
   categories: { id: string; name: string }[];
@@ -33,6 +35,7 @@ export function StockBoard({
   lots: ProductLotValue[];
   requests: ProductRequestValue[];
   professionals: { id: string; name: string }[];
+  restock?: LowStockAlertItem[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("produtos");
@@ -70,6 +73,8 @@ export function StockBoard({
           ) : null}
         </div>
       </div>
+
+      <LowStockAlert items={restock} />
 
       <div className="flex gap-1 border-b border-line">
         <TabButton active={tab === "produtos"} onClick={() => setTab("produtos")}>

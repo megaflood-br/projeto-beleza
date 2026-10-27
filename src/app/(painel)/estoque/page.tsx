@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { StockBoard } from "@/components/estoque/stock-board";
+import { LowStockAlert } from "@/components/avisos/salon-alerts";
+import { buildLowStockAlerts } from "@/lib/supplier-alerts";
+import { loadRegionalSupplierGoods } from "@/lib/supplier-region";
 
 export default async function EstoquePage() {
-  const { session } = await requireTenant();
-  const [products, categories, services, lots, requests, professionals] = await Promise.all([
+  const { session, tenant } = await requireTenant();
+  const [products, categories, services, lots, requests, professionals, regional] = await Promise.all([
     prisma.product.findMany({
       where: { tenantId: session.tenantId },
       include: { category: true, services: { include: { service: true } } },
@@ -31,12 +34,25 @@ export default async function EstoquePage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    loadRegionalSupplierGoods(tenant.city),
   ]);
 
   const brands = [...new Set(products.map((p) => p.brand).filter((name): name is string => Boolean(name)))];
 
+  const restock = buildLowStockAlerts(
+    products,
+    regional.products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      brand: product.brand,
+      supplierName: product.tenant.name,
+      priceCents: product.priceCents,
+    })),
+  );
+
   return (
     <StockBoard
+      restock={restock}
       categories={categories.map((c) => ({ id: c.id, name: c.name }))}
       brands={brands}
       services={services}
