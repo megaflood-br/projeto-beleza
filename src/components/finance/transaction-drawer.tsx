@@ -92,7 +92,7 @@ export function TransactionDrawer({
         <div className="fixed inset-0 z-50 flex justify-end">
           <button type="button" className="absolute inset-0 bg-slate-900/40" aria-label="Fechar" onClick={close} />
           <aside className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-line px-5 py-4">
+            <div className="flex items-center justify-between border-b border-line px-5 py-3">
               <h2 className="text-lg font-semibold">
                 {isEdit ? (isExpense ? "Editar despesa" : "Editar receita") : isExpense ? "Nova despesa" : "Nova receita"}
               </h2>
@@ -102,7 +102,8 @@ export function TransactionDrawer({
             </div>
             <form action={handleAction} className="flex min-h-0 flex-1 flex-col">
               {transaction?.id ? <input type="hidden" name="id" value={transaction.id} /> : null}
-              <div className="grid flex-1 gap-4 overflow-y-auto px-5 py-4">
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div className="grid content-start gap-3">
                 {isExpense ? (
                   <Toggle
                     checked={organizational}
@@ -112,7 +113,7 @@ export function TransactionDrawer({
                   />
                 ) : null}
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid content-start items-start gap-3 sm:grid-cols-2">
                   <Field label="Valor" required>
                     <Input
                       name="amount"
@@ -126,7 +127,7 @@ export function TransactionDrawer({
                   </Field>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid content-start items-start gap-3 sm:grid-cols-2">
                   <Field label="Vencimento" required>
                     <Input name="dueDate" type="date" required defaultValue={transaction?.dueDate ?? calendarDate()} />
                   </Field>
@@ -141,7 +142,7 @@ export function TransactionDrawer({
                   </Field>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid content-start items-start gap-3 sm:grid-cols-2">
                   <Field label="Conta" required>
                     <SearchSelect
                       name="accountId"
@@ -163,7 +164,7 @@ export function TransactionDrawer({
                 </div>
 
                 {isExpense ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid content-start items-start gap-3 sm:grid-cols-2">
                     <Field label="Pago para fornecedor">
                       <Input name="supplier" placeholder="Fornecedor" list="supplier-list" defaultValue={transaction?.supplier ?? ""} />
                       <datalist id="supplier-list">
@@ -213,8 +214,9 @@ export function TransactionDrawer({
                 ) : null}
 
                 {error ? <p className="text-sm text-red-600">{error}</p> : null}
+                </div>
               </div>
-              <div className="flex justify-end border-t border-line px-5 py-4">
+              <div className="flex justify-end border-t border-line px-5 py-3">
                 <Button type="submit" disabled={pending}>
                   {pending ? "Salvando..." : "Salvar"}
                 </Button>
@@ -239,7 +241,7 @@ function Toggle({
   hint?: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex items-center justify-between gap-4">
       <div>
         <div className="text-sm font-medium">{label}</div>
         {hint ? <p className="text-xs text-ink-soft">{hint}</p> : null}
