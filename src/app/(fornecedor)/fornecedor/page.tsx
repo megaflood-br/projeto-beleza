@@ -21,6 +21,7 @@ export default async function FornecedorProdutosPage() {
         minQty: product.minQty,
         stock: product.stock,
         description: product.description,
+        imageUrl: product.imageUrl,
         active: product.active,
       }))}
     />

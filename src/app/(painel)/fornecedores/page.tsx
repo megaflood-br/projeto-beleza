@@ -47,6 +47,7 @@ export default async function FornecedoresPage() {
         minQty: product.minQty,
         stock: product.stock,
         description: product.description,
+        imageUrl: product.imageUrl,
         active: product.active,
         supplierId: product.tenant.id,
         supplierName: product.tenant.name,

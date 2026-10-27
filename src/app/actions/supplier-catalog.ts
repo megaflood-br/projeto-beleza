@@ -45,12 +45,14 @@ export async function saveSupplierProduct(formData: FormData) {
   const stockRaw = String(formData.get("stock") ?? "").trim();
   const stock = stockRaw === "" ? null : Math.max(parseOrderQty(stockRaw, 0), 0);
   const description = String(formData.get("description") ?? "").trim() || null;
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
   const active = String(formData.get("active") ?? "") !== "0";
 
   if (!name) return { error: "Informe o nome do produto." };
   if (priceCents <= 0) return { error: "Informe o preço de venda." };
+  if (imageUrl && imageUrl.length > 400_000) return { error: "Imagem muito grande. Use uma foto menor." };
 
-  const data = { name, brand, sku, category, unit, priceCents, minQty, stock, description, active };
+  const data = { name, brand, sku, category, unit, priceCents, minQty, stock, description, imageUrl, active };
   if (id) {
     const existing = await prisma.supplierProduct.findFirst({ where: { id, tenantId: session.tenantId } });
     if (!existing) return { error: "Produto não encontrado." };

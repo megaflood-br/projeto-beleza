@@ -929,6 +929,7 @@ model SupplierProduct {
   minQty      Float    @default(1)
   stock       Float?
   description String?
+  imageUrl    String?
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

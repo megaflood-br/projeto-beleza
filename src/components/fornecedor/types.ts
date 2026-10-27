@@ -9,6 +9,7 @@ export type SupplierProductRow = {
   minQty: number;
   stock: number | null;
   description: string | null;
+  imageUrl: string | null;
   active: boolean;
 };
 

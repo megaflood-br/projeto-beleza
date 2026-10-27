@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { ImageIcon, X } from "lucide-react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { saveSupplierProduct } from "@/app/actions/supplier-catalog";
+import { ProductPhoto } from "@/components/fornecedores/product-photo";
 import { formatBRL } from "@/lib/money";
 import { STOCK_UNITS } from "@/lib/constants";
+import { readProductPhoto } from "@/lib/product-photo";
 import type { SupplierProductRow } from "@/components/fornecedor/types";
 
 export function SupplierProductDrawer({
@@ -17,14 +19,17 @@ export function SupplierProductDrawer({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [active, setActive] = useState(product?.active ?? true);
+  const [imageUrl, setImageUrl] = useState(product?.imageUrl ?? "");
 
   async function handleAction(formData: FormData) {
     setError(null);
     setPending(true);
     formData.set("active", active ? "1" : "0");
+    formData.set("imageUrl", imageUrl);
     try {
       const result = await saveSupplierProduct(formData);
       if (result && "error" in result && result.error) {
@@ -52,6 +57,43 @@ export function SupplierProductDrawer({
           {product?.id ? <input type="hidden" name="id" value={product.id} /> : null}
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <div className="grid content-start gap-3">
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-36 w-36 overflow-hidden rounded-xl border border-line bg-white">
+                  {imageUrl ? (
+                    <ProductPhoto src={imageUrl} alt={product?.name ?? "Foto do produto"} className="h-full w-full" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-slate-50">
+                      <ImageIcon size={28} className="text-slate-400" />
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    void readProductPhoto(file)
+                      .then((url) => {
+                        setError(null);
+                        setImageUrl(url);
+                      })
+                      .catch((err: Error) => setError(err.message));
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button type="button" className="h-8 px-4 text-xs" onClick={() => fileRef.current?.click()}>
+                    {imageUrl ? "Trocar foto" : "Adicionar foto"}
+                  </Button>
+                  {imageUrl ? (
+                    <Button type="button" variant="ghost" className="h-8 px-3 text-xs" onClick={() => setImageUrl("")}>
+                      Remover
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
               <Field label="Nome" required>
                 <Input name="name" required defaultValue={product?.name ?? ""} placeholder="Ex.: Máscara hidratação 500ml" />
               </Field>

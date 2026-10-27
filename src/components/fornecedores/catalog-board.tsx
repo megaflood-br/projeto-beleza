@@ -6,6 +6,8 @@ import { ShoppingCart } from "lucide-react";
 import { Button, Card, Input, Select } from "@/components/ui";
 import { placeSupplierOrder } from "@/app/actions/supplier-orders";
 import { SupplierOrdersBoard } from "@/components/fornecedor/orders-board";
+import { CatalogProductCard } from "@/components/fornecedores/product-card";
+import { ProductPhoto } from "@/components/fornecedores/product-photo";
 import { formatBRL } from "@/lib/money";
 import { formatStockQty } from "@/lib/stock";
 import { cn } from "@/lib/utils";
@@ -26,6 +28,7 @@ type CartLine = {
   unit: string;
   unitCents: number;
   quantity: number;
+  imageUrl: string | null;
 };
 
 type CheckoutChoice = {
@@ -52,38 +55,29 @@ export function SalonSupplierBoard({
   const router = useRouter();
   const [tab, setTab] = useState<"catalogo" | "pedidos">("catalogo");
   const [query, setQuery] = useState("");
+  const [supplierId, setSupplierId] = useState("all");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [choices, setChoices] = useState<Record<string, CheckoutChoice>>({});
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const catalogById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+  const suppliers = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    for (const product of products) map.set(product.supplierId, { id: product.supplierId, name: product.supplierName });
+    return [...map.values()];
+  }, [products]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((product) => {
+      if (supplierId !== "all" && product.supplierId !== supplierId) return false;
       if (!q) return true;
       return [product.name, product.brand, product.category, product.supplierName].some((value) =>
         (value ?? "").toLowerCase().includes(q),
       );
     });
-  }, [products, query]);
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; city: string | null; sample: SupplierCatalogProduct; products: SupplierCatalogProduct[] }>();
-    for (const product of visible) {
-      const group = map.get(product.supplierId) ?? {
-        id: product.supplierId,
-        name: product.supplierName,
-        city: product.supplierCity,
-        sample: product,
-        products: [],
-      };
-      group.products.push(product);
-      map.set(product.supplierId, group);
-    }
-    return [...map.values()];
-  }, [visible]);
+  }, [products, query, supplierId]);
 
   const cartGroups = useMemo(() => {
     const map = new Map<
@@ -107,25 +101,25 @@ export function SalonSupplierBoard({
     return [...map.values()];
   }, [cart, catalogById]);
 
-  function choiceOf(supplierId: string, sample?: SupplierCatalogProduct): CheckoutChoice {
-    return choices[supplierId] ?? (sample ? defaultChoice(sample) : { fulfillment: "PICKUP", payment: "PIX", notes: "" });
+  function choiceOf(id: string, sample?: SupplierCatalogProduct): CheckoutChoice {
+    return choices[id] ?? (sample ? defaultChoice(sample) : { fulfillment: "PICKUP", payment: "PIX", notes: "" });
   }
 
-  function setChoice(supplierId: string, sample: SupplierCatalogProduct | undefined, patch: Partial<CheckoutChoice>) {
+  function setChoice(id: string, sample: SupplierCatalogProduct | undefined, patch: Partial<CheckoutChoice>) {
     setChoices((current) => ({
       ...current,
-      [supplierId]: { ...choiceOf(supplierId, sample), ...patch },
+      [id]: { ...choiceOf(id, sample), ...patch },
     }));
   }
 
-  function qtyOf(productId: string, fallback: number) {
-    return cart.find((line) => line.productId === productId)?.quantity ?? fallback;
+  function qtyOf(productId: string) {
+    return cart.find((line) => line.productId === productId)?.quantity ?? 0;
   }
 
-  function setQty(product: SupplierCatalogProduct, raw: string) {
-    const quantity = Math.max(Number(raw.replace(",", ".")) || product.minQty, product.minQty);
+  function put(product: SupplierCatalogProduct, quantity: number) {
     setCart((list) => {
       const rest = list.filter((line) => line.productId !== product.id);
+      if (quantity <= 0) return rest;
       return [
         ...rest,
         {
@@ -136,6 +130,7 @@ export function SalonSupplierBoard({
           unit: product.unit,
           unitCents: product.priceCents,
           quantity,
+          imageUrl: product.imageUrl,
         },
       ];
     });
@@ -143,7 +138,14 @@ export function SalonSupplierBoard({
   }
 
   function add(product: SupplierCatalogProduct) {
-    setQty(product, String(qtyOf(product.id, product.minQty)));
+    const current = qtyOf(product.id);
+    put(product, current === 0 ? product.minQty : current + 1);
+  }
+
+  function dec(product: SupplierCatalogProduct) {
+    const current = qtyOf(product.id);
+    if (current <= product.minQty) put(product, 0);
+    else put(product, current - 1);
   }
 
   function remove(productId: string) {
@@ -164,6 +166,7 @@ export function SalonSupplierBoard({
   });
   const blocked = quotes.some((item) => !item.quote.ok);
   const grandTotal = quotes.reduce((sum, item) => sum + item.quote.totalCents, 0);
+  const cartCount = cart.reduce((sum, line) => sum + line.quantity, 0);
 
   async function submit() {
     if (!cart.length || blocked) return;
@@ -196,7 +199,7 @@ export function SalonSupplierBoard({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-20 lg:pb-0">
       <div>
         <h1 className="font-display text-3xl">Fornecedores</h1>
         <p className="mt-1 text-sm text-ink-soft">Peça agora e pague na retirada ou na entrega, direto com o fornecedor.</p>
@@ -218,6 +221,9 @@ export function SalonSupplierBoard({
             )}
           >
             {label}
+            {id === "catalogo" && cartCount > 0 ? (
+              <span className="ml-2 rounded-full bg-[#3483fa] px-1.5 text-[11px] font-semibold text-white">{cartCount}</span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -227,59 +233,63 @@ export function SalonSupplierBoard({
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-4">
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar produto, marca ou fornecedor" />
-            {grouped.length === 0 ? (
+            <div className="rounded-xl bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar produtos, marcas e mais..." />
+              {suppliers.length > 1 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSupplierId("all")}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs",
+                      supplierId === "all" ? "bg-[#3483fa] text-white" : "bg-slate-100 text-ink-soft",
+                    )}
+                  >
+                    Todos
+                  </button>
+                  {suppliers.map((supplier) => (
+                    <button
+                      key={supplier.id}
+                      type="button"
+                      onClick={() => setSupplierId(supplier.id)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs",
+                        supplierId === supplier.id ? "bg-[#3483fa] text-white" : "bg-slate-100 text-ink-soft",
+                      )}
+                    >
+                      {supplier.name}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            {visible.length === 0 ? (
               <Card>
                 <p className="text-sm text-ink-soft">Nenhum produto à venda no momento.</p>
               </Card>
             ) : (
-              grouped.map((supplier) => (
-                <Card key={supplier.id} className="space-y-3">
-                  <div>
-                    <div className="font-medium">{supplier.name}</div>
-                    {supplier.city ? <div className="text-xs text-ink-soft">{supplier.city}</div> : null}
-                    <div className="mt-1 text-xs text-ink-soft">
-                      {supplier.sample.deliveryMinCents > 0
-                        ? `Entrega a partir de ${formatBRL(supplier.sample.deliveryMinCents)}`
-                        : "Entrega sem mínimo"}
-                      {supplier.sample.deliveryFeeCents > 0 ? ` · Taxa ${formatBRL(supplier.sample.deliveryFeeCents)}` : " · Sem taxa"}
-                    </div>
-                    <div className="text-xs text-ink-soft">
-                      Aceita {supplier.sample.payMethods.map((method) => SUPPLIER_PAY_METHOD_LABEL[asSupplierPayMethod(method) ?? "PIX"]).join(", ")} no ato
-                    </div>
-                  </div>
-                  <ul className="divide-y divide-line">
-                    {supplier.products.map((product) => (
-                      <li key={product.id} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium">{product.name}</div>
-                          <div className="text-xs text-ink-soft">
-                            {[product.brand, product.category, product.stock == null ? "Pronta entrega" : formatStockQty(product.stock, product.unit)].filter(Boolean).join(" · ")}
-                          </div>
-                        </div>
-                        <div className="text-sm font-medium">{formatBRL(product.priceCents)}</div>
-                        <Input
-                          className="h-10 w-20"
-                          value={qtyOf(product.id, product.minQty)}
-                          onChange={(e) => setQty(product, e.target.value)}
-                        />
-                        <Button type="button" variant="outline" onClick={() => add(product)}>
-                          Adicionar
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              ))
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                {visible.map((product) => (
+                  <CatalogProductCard
+                    key={product.id}
+                    product={product}
+                    quantity={qtyOf(product.id)}
+                    onAdd={() => add(product)}
+                    onInc={() => add(product)}
+                    onDec={() => dec(product)}
+                  />
+                ))}
+              </div>
             )}
           </div>
-          <aside className="h-fit rounded-2xl border border-line bg-white p-4">
+          <aside id="supplier-cart" className="h-fit rounded-xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.08)]">
             <div className="mb-3 flex items-center gap-2 font-medium">
               <ShoppingCart size={16} />
-              Pedido
+              Carrinho
+              {cartCount > 0 ? <span className="text-sm font-normal text-ink-soft">({cartCount})</span> : null}
             </div>
             {cart.length === 0 ? (
-              <p className="text-sm text-ink-soft">Escolha produtos para montar o pedido.</p>
+              <p className="text-sm text-ink-soft">Adicione produtos ao carrinho para montar o pedido.</p>
             ) : (
               <div className="space-y-4">
                 {cartGroups.map((group) => {
@@ -296,9 +306,10 @@ export function SalonSupplierBoard({
                       <div className="text-sm font-medium">{group.supplierName}</div>
                       <ul className="space-y-2 text-sm">
                         {group.lines.map((line) => (
-                          <li key={line.productId} className="flex justify-between gap-2">
-                            <span>
-                              {line.name}
+                          <li key={line.productId} className="flex gap-2">
+                            <ProductPhoto src={line.imageUrl} alt="" className="h-12 w-12 shrink-0 rounded-md border border-line" iconSize={16} />
+                            <span className="min-w-0 flex-1">
+                              <span className="line-clamp-2">{line.name}</span>
                               <span className="block text-xs text-ink-soft">{formatStockQty(line.quantity, line.unit)}</span>
                               <button type="button" className="text-xs text-red-600" onClick={() => remove(line.productId)}>
                                 Remover
@@ -389,6 +400,15 @@ export function SalonSupplierBoard({
           </aside>
         </div>
       )}
+      {tab === "catalogo" && cartCount > 0 ? (
+        <a
+          href="#supplier-cart"
+          className="fixed right-4 bottom-4 z-30 flex items-center gap-2 rounded-full bg-[#3483fa] px-4 py-3 text-sm font-medium text-white shadow-lg lg:hidden"
+        >
+          <ShoppingCart size={16} />
+          Carrinho · {cartCount} · {formatBRL(grandTotal)}
+        </a>
+      ) : null}
     </div>
   );
 }
