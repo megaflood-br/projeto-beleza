@@ -71,6 +71,7 @@ async function main() {
       plan: "premium",
       status: "ACTIVE",
       isPlatform: true,
+      kind: "PLATFORM",
     },
   });
   const admin = await prisma.user.create({
@@ -231,6 +232,91 @@ async function main() {
       professionalId: camila.id,
     },
   });
+
+  const supply = await prisma.tenant.create({
+    data: {
+      name: "Beauty Supply SP",
+      slug: "beauty-supply-sp",
+      phone: "1133334444",
+      email: "oscar.d@example.net",
+      city: "São Paulo, SP",
+      plan: "fornecedor",
+      status: "ACTIVE",
+      kind: "SUPPLIER",
+    },
+  });
+  const supplyUser = await prisma.user.create({
+    data: {
+      tenantId: supply.id,
+      email: "oscar.d@example.net",
+      passwordHash,
+      name: "Paulo Distribuidor",
+      role: "SUPPLIER",
+    },
+  });
+  const mask = await prisma.supplierProduct.create({
+    data: {
+      tenantId: supply.id,
+      name: "Máscara hidratação 500ml",
+      brand: "Lumina",
+      sku: "LUM-500",
+      category: "Tratamento",
+      unit: "un",
+      priceCents: 8900,
+      minQty: 1,
+      stock: 40,
+      description: "Máscara profissional para cabelos danificados.",
+    },
+  });
+  await prisma.supplierProduct.createMany({
+    data: [
+      {
+        tenantId: supply.id,
+        name: "Ox 20 volumes 900ml",
+        brand: "Lumina",
+        sku: "LUM-OX20",
+        category: "Coloração",
+        unit: "un",
+        priceCents: 3200,
+        minQty: 3,
+        stock: 80,
+      },
+      {
+        tenantId: supply.id,
+        name: "Luva de procedimento (100 un)",
+        brand: "MedCare",
+        sku: "MC-LUV",
+        category: "Descartáveis",
+        unit: "un",
+        priceCents: 2490,
+        minQty: 1,
+        stock: null,
+      },
+    ],
+  });
+  await prisma.supplierOrder.create({
+    data: {
+      salonTenantId: aurora.id,
+      supplierTenantId: supply.id,
+      createdById: ana.id,
+      status: "SUBMITTED",
+      notes: "Reposição da semana.",
+      totalCents: 8900,
+      items: {
+        create: {
+          productId: mask.id,
+          name: mask.name,
+          brand: mask.brand,
+          sku: mask.sku,
+          unit: mask.unit,
+          quantity: 1,
+          unitCents: mask.priceCents,
+          lineCents: mask.priceCents,
+        },
+      },
+    },
+  });
+  void supplyUser;
 
   const cats = await prisma.serviceCategory.createManyAndReturn({
     data: [
@@ -1115,7 +1201,9 @@ async function main() {
     },
   });
 
-  console.log("Seed ok. Salão: iris.p@example.org / demo1234 · Plataforma: nathan.k@example.net / admin1234");
+  console.log(
+    "Seed ok. Salão: iris.p@example.org / demo1234 · Fornecedor: oscar.d@example.net / demo1234 · Plataforma: nathan.k@example.net / admin1234",
+  );
 }
 
 main()

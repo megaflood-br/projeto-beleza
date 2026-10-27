@@ -37,6 +37,13 @@ import {
 } from "@/lib/dashboard";
 import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementLabel, summarizeAccountBalances } from "@/lib/ledger";
 import {
+  canChangeSupplierOrder,
+  canReceiveSupplierOrder,
+  orderLineCents,
+  orderTotalCents,
+  parseOrderQty,
+} from "@/lib/supplier-market";
+import {
   anamnesisDocumentItems,
   collectAlerts,
   DEFAULT_ANAMNESIS_FORMS,
@@ -804,5 +811,23 @@ describe("promoções", () => {
     expect(applyCatalogPrice([promo], "2026-10-24", "SERVICE", "corte", 8000, 6400).promoName).toBe("Fim de semana do corte");
     expect(applyCatalogPrice([promo], "2026-10-24", "SERVICE", "corte", 8000, 7000).priceCents).toBe(7000);
     expect(weekdayHeat([10, 4, 2, 8, 9, 12, 3]).find((day) => day.id === 2)?.weak).toBe(true);
+  });
+});
+
+describe("pedidos de fornecedor", () => {
+  it("calcula linhas e total", () => {
+    expect(parseOrderQty("2,5", 1)).toBe(2.5);
+    expect(orderLineCents(2, 2490)).toBe(4980);
+    expect(orderTotalCents([{ lineCents: 8900 }, { lineCents: 4980 }])).toBe(13880);
+  });
+
+  it("restringe a troca de status", () => {
+    expect(canChangeSupplierOrder("SUBMITTED", "CONFIRMED", "supplier")).toBe(true);
+    expect(canChangeSupplierOrder("SUBMITTED", "CANCELLED", "salon")).toBe(true);
+    expect(canChangeSupplierOrder("CONFIRMED", "CANCELLED", "salon")).toBe(false);
+    expect(canChangeSupplierOrder("SHIPPED", "DELIVERED", "supplier")).toBe(true);
+    expect(canReceiveSupplierOrder("SHIPPED", null)).toBe(true);
+    expect(canReceiveSupplierOrder("SUBMITTED", null)).toBe(false);
+    expect(canReceiveSupplierOrder("DELIVERED", new Date())).toBe(false);
   });
 });

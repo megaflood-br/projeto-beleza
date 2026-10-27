@@ -70,6 +70,7 @@ model Tenant {
   fiscalContoraCompanyId   String?
   fiscalCertificateAt      DateTime?
   fiscalCertificateUntil   DateTime?
+  kind                String   @default("SALON")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -104,8 +105,12 @@ model Tenant {
   professionalGoals  ProfessionalGoal[]
   fiscalInvoices     FiscalInvoice[]
   promotions         Promotion[]
+  catalogProducts    SupplierProduct[]
+  ordersAsSalon      SupplierOrder[] @relation("OrdersAsSalon")
+  ordersAsSupplier   SupplierOrder[] @relation("OrdersAsSupplier")
 
   @@index([slug])
+  @@index([kind])
 }
 
 model User {
@@ -128,6 +133,7 @@ model User {
   callsStarted      SupportCall[]    @relation("CallStarter")
   callsAccepted     SupportCall[]    @relation("CallAcceptor")
   supportPresence   SupportPresence?
+  supplierOrders    SupplierOrder[]
 
   @@index([tenantId])
 }
@@ -905,4 +911,60 @@ model CashbackMovement {
   createdAt     DateTime @default(now())
 
   @@index([tenantId, clientId, createdAt])
+}
+
+model SupplierProduct {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  brand       String?
+  sku         String?
+  category    String?
+  unit        String   @default("un")
+  priceCents  Int      @default(0)
+  minQty      Float    @default(1)
+  stock       Float?
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderItems  SupplierOrderItem[]
+
+  @@index([tenantId, active])
+}
+
+model SupplierOrder {
+  id               String   @id @default(cuid())
+  salonTenantId    String
+  salonTenant      Tenant   @relation("OrdersAsSalon", fields: [salonTenantId], references: [id], onDelete: Cascade)
+  supplierTenantId String
+  supplierTenant   Tenant   @relation("OrdersAsSupplier", fields: [supplierTenantId], references: [id], onDelete: Cascade)
+  createdById      String
+  createdBy        User     @relation(fields: [createdById], references: [id])
+  status           String   @default("SUBMITTED")
+  notes            String?
+  totalCents       Int      @default(0)
+  receivedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  items            SupplierOrderItem[]
+
+  @@index([salonTenantId, createdAt])
+  @@index([supplierTenantId, status])
+}
+
+model SupplierOrderItem {
+  id        String           @id @default(cuid())
+  orderId   String
+  order     SupplierOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   SupplierProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name      String
+  brand     String?
+  sku       String?
+  unit      String           @default("un")
+  quantity  Float
+  unitCents Int
+  lineCents Int
 }

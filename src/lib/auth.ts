@@ -17,6 +17,16 @@ export function isPlatformAdmin(role: Role | string) {
   return role === "SUPER_ADMIN";
 }
 
+export function isSupplierRole(role: Role | string) {
+  return role === "SUPPLIER";
+}
+
+export function homePath(role: string, kind?: string | null) {
+  if (role === "SUPER_ADMIN") return "/plataforma";
+  if (kind === "SUPPLIER" || role === "SUPPLIER") return "/fornecedor";
+  return "/dashboard";
+}
+
 function secret() {
   const value = process.env.AUTH_SECRET;
   if (!value) throw new Error("AUTH_SECRET is not set");
