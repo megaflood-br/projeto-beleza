@@ -71,6 +71,9 @@ model Tenant {
   fiscalCertificateAt      DateTime?
   fiscalCertificateUntil   DateTime?
   kind                String   @default("SALON")
+  deliveryMinCents    Int      @default(0)
+  deliveryFeeCents    Int      @default(0)
+  supplierPayMethods  String   @default("PIX,CASH")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -943,13 +946,24 @@ model SupplierOrder {
   createdById      String
   createdBy        User     @relation(fields: [createdById], references: [id])
   status           String   @default("SUBMITTED")
+  fulfillment      String   @default("PICKUP")
+  paymentMethod    String   @default("PIX")
+  paymentWhen      String   @default("ON_FULFILLMENT")
   notes            String?
+  subtotalCents    Int      @default(0)
+  deliveryFeeCents Int      @default(0)
   totalCents       Int      @default(0)
+  pickupCode       String?
+  salonAddress     String?
+  salonPhone       String?
+  pickupAddress    String?
+  fiscalInvoiceId  String?
   receivedAt       DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   items            SupplierOrderItem[]
 
+  @@unique([pickupCode])
   @@index([salonTenantId, createdAt])
   @@index([supplierTenantId, status])
 }

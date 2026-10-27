@@ -240,9 +240,13 @@ async function main() {
       phone: "1133334444",
       email: "oscar.d@example.net",
       city: "São Paulo, SP",
+      address: "Rua dos Fornecedores, 120",
       plan: "fornecedor",
       status: "ACTIVE",
       kind: "SUPPLIER",
+      deliveryMinCents: 15000,
+      deliveryFeeCents: 1500,
+      supplierPayMethods: "PIX,CASH,TRANSFER",
     },
   });
   const supplyUser = await prisma.user.create({

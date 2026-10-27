@@ -1,14 +1,26 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { SalonSupplierBoard } from "@/components/fornecedores/catalog-board";
-import type { SupplierOrderRow } from "@/components/fornecedor/types";
+import { toSupplierOrderRow, catalogPayMethods } from "@/lib/supplier-order-view";
 
 export default async function FornecedoresPage() {
   const { session } = await requireTenant();
   const [products, orders] = await Promise.all([
     prisma.supplierProduct.findMany({
       where: { active: true, tenant: { kind: "SUPPLIER", status: { not: "SUSPENDED" } } },
-      include: { tenant: { select: { id: true, name: true, city: true } } },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            address: true,
+            deliveryMinCents: true,
+            deliveryFeeCents: true,
+            supplierPayMethods: true,
+          },
+        },
+      },
       orderBy: [{ tenant: { name: "asc" } }, { name: "asc" }],
     }),
     prisma.supplierOrder.findMany({
@@ -21,26 +33,6 @@ export default async function FornecedoresPage() {
       orderBy: { createdAt: "desc" },
     }),
   ]);
-
-  const rows: SupplierOrderRow[] = orders.map((order) => ({
-    id: order.id,
-    status: order.status,
-    notes: order.notes,
-    totalCents: order.totalCents,
-    createdAt: order.createdAt.toISOString(),
-    receivedAt: order.receivedAt?.toISOString() ?? null,
-    salonName: order.salonTenant.name,
-    supplierName: order.supplierTenant.name,
-    items: order.items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      brand: item.brand,
-      quantity: item.quantity,
-      unit: item.unit,
-      unitCents: item.unitCents,
-      lineCents: item.lineCents,
-    })),
-  }));
 
   return (
     <SalonSupplierBoard
@@ -59,8 +51,12 @@ export default async function FornecedoresPage() {
         supplierId: product.tenant.id,
         supplierName: product.tenant.name,
         supplierCity: product.tenant.city,
+        supplierAddress: [product.tenant.address, product.tenant.city].filter(Boolean).join(" · ") || null,
+        deliveryMinCents: product.tenant.deliveryMinCents,
+        deliveryFeeCents: product.tenant.deliveryFeeCents,
+        payMethods: catalogPayMethods(product.tenant.supplierPayMethods),
       }))}
-      orders={rows}
+      orders={orders.map(toSupplierOrderRow)}
     />
   );
 }

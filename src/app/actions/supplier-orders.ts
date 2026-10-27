@@ -5,11 +5,15 @@ import { prisma } from "@/lib/db";
 import { requireSupplier, requireTenant } from "@/lib/tenant";
 import { nextStock } from "@/lib/stock";
 import {
+  asSupplierPayMethod,
   canChangeSupplierOrder,
   canReceiveSupplierOrder,
+  makeSupplierOrderCode,
   orderLineCents,
   orderTotalCents,
   parseOrderQty,
+  parseSupplierPayMethods,
+  quoteSupplierFulfillment,
 } from "@/lib/supplier-market";
 
 function revalidateOrders() {
@@ -18,20 +22,40 @@ function revalidateOrders() {
   revalidatePath("/fornecedores");
 }
 
+async function uniquePickupCode() {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const pickupCode = makeSupplierOrderCode();
+    const taken = await prisma.supplierOrder.findUnique({ where: { pickupCode } });
+    if (!taken) return pickupCode;
+  }
+  return `${makeSupplierOrderCode()}${Date.now().toString(36).slice(-2).toUpperCase()}`;
+}
+
 export async function placeSupplierOrder(formData: FormData) {
-  const { session } = await requireTenant();
-  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const { session, tenant } = await requireTenant();
   const productIds = formData.getAll("productId").map(String);
   const quantities = formData.getAll("quantity").map(String);
   if (!productIds.length) return { error: "Inclua pelo menos um produto." };
 
   const products = await prisma.supplierProduct.findMany({
     where: { id: { in: productIds }, active: true, tenant: { kind: "SUPPLIER", status: { not: "SUSPENDED" } } },
-    include: { tenant: { select: { id: true, name: true } } },
+    include: {
+      tenant: {
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          city: true,
+          deliveryMinCents: true,
+          deliveryFeeCents: true,
+          supplierPayMethods: true,
+        },
+      },
+    },
   });
   if (!products.length) return { error: "Nenhum produto válido no pedido." };
 
-  const grouped = new Map<string, { supplierName: string; items: { product: (typeof products)[number]; quantity: number }[] }>();
+  const grouped = new Map<string, { supplier: (typeof products)[number]["tenant"]; items: { product: (typeof products)[number]; quantity: number }[] }>();
   for (const [index, productId] of productIds.entries()) {
     const product = products.find((row) => row.id === productId);
     if (!product) continue;
@@ -39,11 +63,13 @@ export async function placeSupplierOrder(formData: FormData) {
     if (product.stock != null && quantity > product.stock) {
       return { error: `Estoque insuficiente de ${product.name} em ${product.tenant.name}.` };
     }
-    const group = grouped.get(product.tenantId) ?? { supplierName: product.tenant.name, items: [] };
+    const group = grouped.get(product.tenantId) ?? { supplier: product.tenant, items: [] };
     group.items.push({ product, quantity });
     grouped.set(product.tenantId, group);
   }
   if (!grouped.size) return { error: "Nenhum produto válido no pedido." };
+
+  const salonAddress = [tenant.address, tenant.city].filter(Boolean).join(" · ") || null;
 
   for (const [supplierTenantId, group] of grouped) {
     const lines = group.items.map(({ product, quantity }) => ({
@@ -56,13 +82,35 @@ export async function placeSupplierOrder(formData: FormData) {
       unitCents: product.priceCents,
       lineCents: orderLineCents(quantity, product.priceCents),
     }));
+    const subtotalCents = orderTotalCents(lines);
+    const fulfillment = String(formData.get(`fulfillment_${supplierTenantId}`) ?? "PICKUP");
+    const paymentMethod = asSupplierPayMethod(String(formData.get(`payment_${supplierTenantId}`) ?? "")) ?? parseSupplierPayMethods(group.supplier.supplierPayMethods)[0];
+    const allowed = parseSupplierPayMethods(group.supplier.supplierPayMethods);
+    if (!allowed.includes(paymentMethod)) return { error: `Forma de pagamento inválida em ${group.supplier.name}.` };
+    const quote = quoteSupplierFulfillment({
+      subtotalCents,
+      fulfillment,
+      deliveryMinCents: group.supplier.deliveryMinCents,
+      deliveryFeeCents: group.supplier.deliveryFeeCents,
+    });
+    if (!quote.ok) return { error: `${group.supplier.name}: ${quote.error}` };
+    const notes = String(formData.get(`notes_${supplierTenantId}`) ?? formData.get("notes") ?? "").trim() || null;
     await prisma.supplierOrder.create({
       data: {
         salonTenantId: session.tenantId,
         supplierTenantId,
         createdById: session.userId,
         notes,
-        totalCents: orderTotalCents(lines),
+        fulfillment: quote.fulfillment,
+        paymentMethod,
+        paymentWhen: "ON_FULFILLMENT",
+        subtotalCents,
+        deliveryFeeCents: quote.feeCents,
+        totalCents: quote.totalCents,
+        pickupCode: await uniquePickupCode(),
+        salonAddress,
+        salonPhone: tenant.phone,
+        pickupAddress: [group.supplier.address, group.supplier.city].filter(Boolean).join(" · ") || null,
         items: { create: lines },
       },
     });
@@ -151,7 +199,7 @@ export async function receiveSupplierOrder(formData: FormData) {
             productId: existing.id,
             type: "IN",
             quantity: item.quantity,
-            reason: `Pedido ${order.id.slice(-6).toUpperCase()} · ${order.supplierTenant.name}`,
+            reason: `Pedido ${order.pickupCode ?? order.id.slice(-6).toUpperCase()} · ${order.supplierTenant.name}`,
           },
         }),
       ]);
@@ -177,7 +225,7 @@ export async function receiveSupplierOrder(formData: FormData) {
         productId: created.id,
         type: "IN",
         quantity: item.quantity,
-        reason: `Pedido ${order.id.slice(-6).toUpperCase()} · ${order.supplierTenant.name}`,
+        reason: `Pedido ${order.pickupCode ?? order.id.slice(-6).toUpperCase()} · ${order.supplierTenant.name}`,
       },
     });
   }

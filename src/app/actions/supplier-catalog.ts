@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireSupplier } from "@/lib/tenant";
 import { parseBRLToCents } from "@/lib/money";
-import { parseOrderQty } from "@/lib/supplier-market";
+import { parseOrderQty, serializeSupplierPayMethods } from "@/lib/supplier-market";
 
 function revalidateCatalog() {
   revalidatePath("/fornecedor");
@@ -18,11 +18,14 @@ export async function saveSupplierProfile(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase() || null;
   const city = String(formData.get("city") ?? "").trim() || null;
   const address = String(formData.get("address") ?? "").trim() || null;
+  const deliveryMinCents = Math.max(parseBRLToCents(String(formData.get("deliveryMin") ?? "0")), 0);
+  const deliveryFeeCents = Math.max(parseBRLToCents(String(formData.get("deliveryFee") ?? "0")), 0);
+  const supplierPayMethods = serializeSupplierPayMethods(formData.getAll("payMethod").map(String));
   if (!name) return { error: "Informe o nome da empresa." };
   void tenant;
   await prisma.tenant.update({
     where: { id: session.tenantId },
-    data: { name, phone, email, city, address },
+    data: { name, phone, email, city, address, deliveryMinCents, deliveryFeeCents, supplierPayMethods },
   });
   revalidateCatalog();
   revalidatePath("/fornecedor/empresa");

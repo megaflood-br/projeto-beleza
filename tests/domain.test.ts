@@ -42,6 +42,10 @@ import {
   orderLineCents,
   orderTotalCents,
   parseOrderQty,
+  parseSupplierPayMethods,
+  quoteSupplierFulfillment,
+  serializeSupplierPayMethods,
+  supplierOrderStatusLabel,
 } from "@/lib/supplier-market";
 import {
   anamnesisDocumentItems,
@@ -829,5 +833,38 @@ describe("pedidos de fornecedor", () => {
     expect(canReceiveSupplierOrder("SHIPPED", null)).toBe(true);
     expect(canReceiveSupplierOrder("SUBMITTED", null)).toBe(false);
     expect(canReceiveSupplierOrder("DELIVERED", new Date())).toBe(false);
+  });
+
+  it("bloqueia entrega abaixo do mínimo e soma a taxa", () => {
+    const below = quoteSupplierFulfillment({
+      subtotalCents: 8900,
+      fulfillment: "DELIVERY",
+      deliveryMinCents: 15000,
+      deliveryFeeCents: 1500,
+    });
+    expect(below.ok).toBe(false);
+    expect(below.missingCents).toBe(6100);
+    const ok = quoteSupplierFulfillment({
+      subtotalCents: 15000,
+      fulfillment: "DELIVERY",
+      deliveryMinCents: 15000,
+      deliveryFeeCents: 1500,
+    });
+    expect(ok).toEqual({ ok: true, fulfillment: "DELIVERY", feeCents: 1500, totalCents: 16500, missingCents: 0 });
+    const pickup = quoteSupplierFulfillment({
+      subtotalCents: 8900,
+      fulfillment: "PICKUP",
+      deliveryMinCents: 15000,
+      deliveryFeeCents: 1500,
+    });
+    expect(pickup).toEqual({ ok: true, fulfillment: "PICKUP", feeCents: 0, totalCents: 8900, missingCents: 0 });
+  });
+
+  it("normaliza formas de pagamento e rótulos de retirada", () => {
+    expect(parseSupplierPayMethods("PIX,CASH")).toEqual(["PIX", "CASH"]);
+    expect(serializeSupplierPayMethods(["PIX", "BOLETO", "TRANSFER"])).toBe("PIX,TRANSFER");
+    expect(supplierOrderStatusLabel("SHIPPED", "PICKUP")).toBe("Pronto para retirada");
+    expect(supplierOrderStatusLabel("SHIPPED", "DELIVERY")).toBe("Saiu para entrega");
+    expect(supplierOrderStatusLabel("DELIVERED", "PICKUP")).toBe("Retirado");
   });
 });
