@@ -56,8 +56,19 @@ export function SearchSelect({
     return [{ value: emptyOption.value, label: emptyOption.label }, ...options.filter((o) => o.value !== emptyOption.value)];
   }, [emptyOption, options]);
   const selected = allOptions.find((o) => o.value === selectedId);
-  const filtered = useMemo(() => allOptions.filter((o) => matches(o, query)), [allOptions, query]);
+  const browsingSelected = Boolean(selected && normalize(query) === normalize(selected.label));
+  const filtered = useMemo(
+    () => (browsingSelected ? allOptions : allOptions.filter((o) => matches(o, query))),
+    [allOptions, browsingSelected, query],
+  );
   const highlighted = Math.min(active, Math.max(filtered.length - 1, 0));
+
+  function openList() {
+    const index = allOptions.findIndex((o) => o.value === selectedId);
+    setQuery(selected?.label ?? "");
+    setActive(index >= 0 ? index : 0);
+    setOpen(true);
+  }
 
   useEffect(() => {
     inputRef.current?.setCustomValidity(required && !selectedId ? "Selecione uma opção da lista." : "");
@@ -166,9 +177,7 @@ export function SearchSelect({
           value={open ? query : (selected?.label ?? "")}
           className="h-11 w-full rounded-lg border border-line bg-paper py-0 pr-9 pl-3 text-sm outline-none ring-wine/20 focus:ring-2"
           onFocus={(e) => {
-            setQuery(selected?.label ?? "");
-            setActive(0);
-            setOpen(true);
+            openList();
             e.currentTarget.select();
           }}
           onBlur={() => {
@@ -178,7 +187,10 @@ export function SearchSelect({
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              setOpen(true);
+              if (!open) {
+                openList();
+                return;
+              }
               setActive(highlighted + 1);
             } else if (e.key === "ArrowUp") {
               e.preventDefault();
