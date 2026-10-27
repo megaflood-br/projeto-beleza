@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/constants";
 
-const PUBLIC_PREFIXES = ["/login", "/cadastro", "/agendar", "/api/webhooks", "/api/health"];
+const PUBLIC_PREFIXES = ["/login", "/cadastro", "/agendar", "/api/webhooks", "/api/health", "/uploads"];
 
 function isPublic(pathname: string) {
   if (pathname === "/") return true;

@@ -9,7 +9,13 @@ function createPrisma() {
 }
 
 function isCurrentClient(client: PrismaClient | undefined): client is PrismaClient {
-  return typeof client?.supplierProduct?.findMany === "function";
+  if (typeof client?.supplierProduct?.findMany !== "function") return false;
+  const fields = (
+    client as unknown as {
+      _runtimeDataModel?: { models?: Record<string, { fields?: { name?: string }[] }> };
+    }
+  )._runtimeDataModel?.models?.SupplierProduct?.fields;
+  return Boolean(fields?.some((field) => field.name === "imageUrl"));
 }
 
 export const prisma = isCurrentClient(globalForPrisma.prisma) ? globalForPrisma.prisma : createPrisma();

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireSupplier } from "@/lib/tenant";
 import { parseBRLToCents } from "@/lib/money";
 import { parseOrderQty, serializeSupplierPayMethods } from "@/lib/supplier-market";
+import { saveSupplierProductPhoto } from "@/lib/product-upload";
 
 function revalidateCatalog() {
   revalidatePath("/fornecedor");
@@ -50,18 +51,23 @@ export async function saveSupplierProduct(formData: FormData) {
 
   if (!name) return { error: "Informe o nome do produto." };
   if (priceCents <= 0) return { error: "Informe o preço de venda." };
-  if (imageUrl && imageUrl.length > 400_000) return { error: "Imagem muito grande. Use uma foto menor." };
-
-  const data = { name, brand, sku, category, unit, priceCents, minQty, stock, description, imageUrl, active };
-  if (id) {
-    const existing = await prisma.supplierProduct.findFirst({ where: { id, tenantId: session.tenantId } });
-    if (!existing) return { error: "Produto não encontrado." };
-    await prisma.supplierProduct.update({ where: { id }, data });
-  } else {
-    await prisma.supplierProduct.create({ data: { ...data, tenantId: session.tenantId } });
+  if (imageUrl && imageUrl.startsWith("data:") && imageUrl.length > 400_000) {
+    return { error: "Imagem muito grande. Use uma foto menor." };
   }
-  revalidateCatalog();
-  return { ok: true };
+
+  try {
+    const existing = id ? await prisma.supplierProduct.findFirst({ where: { id, tenantId: session.tenantId } }) : null;
+    if (id && !existing) return { error: "Produto não encontrado." };
+    const storedImage = await saveSupplierProductPhoto(session.tenantId, imageUrl, existing?.imageUrl);
+    const data = { name, brand, sku, category, unit, priceCents, minQty, stock, description, imageUrl: storedImage, active };
+    if (existing) await prisma.supplierProduct.update({ where: { id: existing.id }, data });
+    else await prisma.supplierProduct.create({ data: { ...data, tenantId: session.tenantId } });
+    revalidateCatalog();
+    return { ok: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Não foi possível salvar o produto." };
+  }
 }
 
 export async function deleteSupplierProduct(formData: FormData) {
