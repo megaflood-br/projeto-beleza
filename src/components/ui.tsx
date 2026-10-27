@@ -29,7 +29,7 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return (
     <input
       className={cn(
-        "h-11 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none ring-wine/20 focus:ring-2",
+        "h-11 w-full rounded-lg border border-line bg-paper px-3 text-base outline-none ring-wine/20 focus:ring-2 md:text-sm",
         className,
       )}
       {...props}
@@ -41,7 +41,7 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
   return (
     <textarea
       className={cn(
-        "min-h-24 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none ring-wine/20 focus:ring-2",
+        "min-h-24 w-full rounded-lg border border-line bg-paper px-3 py-2 text-base outline-none ring-wine/20 focus:ring-2 md:text-sm",
         className,
       )}
       {...props}
@@ -53,7 +53,7 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
   return (
     <select
       className={cn(
-        "h-11 w-full rounded-lg border border-line bg-paper px-3 text-sm outline-none ring-wine/20 focus:ring-2",
+        "h-11 w-full rounded-lg border border-line bg-paper px-3 text-base outline-none ring-wine/20 focus:ring-2 md:text-sm",
         className,
       )}
       {...props}

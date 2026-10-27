@@ -118,7 +118,7 @@ export default async function FinanceiroPage() {
           />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card>
           <div className="text-xs text-ink-soft">Entradas</div>
           <div className="font-display text-2xl text-emerald-700">{formatBRL(income)}</div>

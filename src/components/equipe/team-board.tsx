@@ -65,9 +65,9 @@ export function TeamBoard({
           </p>
         ) : (
           <>
-            <div className="grid grid-cols-[1fr_180px] items-center gap-2 border-b border-line px-4 py-2.5 text-sm font-medium text-ink-soft">
+            <div className="grid grid-cols-1 items-center gap-2 border-b border-line px-4 py-2.5 text-sm font-medium text-ink-soft sm:grid-cols-[1fr_10rem]">
               <span className="pl-16">Nome</span>
-              <span className="text-right">Celular</span>
+              <span className="hidden text-right sm:block">Celular</span>
             </div>
             <ul>
               {visible.map((p) => (
@@ -75,7 +75,7 @@ export function TeamBoard({
                   <button
                     type="button"
                     onClick={() => setEditing(p)}
-                    className="grid w-full grid-cols-[1fr_180px] items-center gap-2 px-4 py-3 text-left hover:bg-slate-50"
+                    className="grid w-full grid-cols-1 items-center gap-2 px-4 py-3 text-left hover:bg-slate-50 sm:grid-cols-[1fr_10rem]"
                   >
                     <span className="flex min-w-0 items-center gap-3">
                       <GripVertical size={16} className="shrink-0 text-slate-400" />
@@ -90,14 +90,17 @@ export function TeamBoard({
                           initials(p.name)
                         )}
                       </span>
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate font-medium">{p.name}</span>
-                        {p.user?.role === "OWNER" || p.user?.role === "MANAGER" ? (
-                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">Admin</span>
-                        ) : null}
+                      <span className="flex min-w-0 flex-col">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate font-medium">{p.name}</span>
+                          {p.user?.role === "OWNER" || p.user?.role === "MANAGER" ? (
+                            <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">Admin</span>
+                          ) : null}
+                        </span>
+                        <span className="truncate text-xs text-ink-soft sm:hidden">{formatPhoneBR(p.phone)}</span>
                       </span>
                     </span>
-                    <span className="text-right text-sm text-ink-soft">{formatPhoneBR(p.phone)}</span>
+                    <span className="hidden text-right text-sm text-ink-soft sm:block">{formatPhoneBR(p.phone)}</span>
                   </button>
                 </li>
               ))}

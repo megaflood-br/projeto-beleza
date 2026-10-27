@@ -98,15 +98,15 @@ export function ComandaBoard({
           {visible.length === 0 ? (
             <p className="px-4 py-12 text-center text-sm text-ink-soft">Nenhuma comanda neste filtro.</p>
           ) : (
-            <>
-              <div className="grid grid-cols-[80px_1fr_120px_120px_110px] items-center gap-2 border-b border-line px-4 py-2.5 text-sm font-medium text-ink-soft">
+            <div className="overflow-x-auto">
+              <div className="grid min-w-[540px] grid-cols-[80px_1fr_120px_120px_110px] items-center gap-2 border-b border-line px-4 py-2.5 text-sm font-medium text-ink-soft">
                 <span>Ticket</span>
                 <span>Cliente</span>
                 <span>Status</span>
                 <span className="text-right">Total</span>
                 <span className="text-right">Data</span>
               </div>
-              <ul>
+              <ul className="min-w-[540px]">
                 {visible.map((c) => (
                   <li key={c.id} className="border-b border-line last:border-0">
                     {c.status === "OPEN" ? (
@@ -128,7 +128,7 @@ export function ComandaBoard({
                   </li>
                 ))}
               </ul>
-            </>
+            </div>
           )}
         </div>
       </div>

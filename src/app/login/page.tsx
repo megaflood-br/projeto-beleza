@@ -22,14 +22,18 @@ export default function LoginPage() {
         </div>
         <p className="text-sm text-slate-400">Ainda não é cliente? Abra sua conta e comece hoje.</p>
       </section>
-      <section className="flex items-center justify-center bg-cream p-8">
+      <section className="flex min-h-dvh items-center justify-center bg-cream p-6 pt-[max(2rem,env(safe-area-inset-top))] lg:min-h-0 lg:p-8">
         <form
           className="w-full max-w-sm space-y-4"
+
           action={async (formData) => {
             const result = await loginAction(formData);
             if (result?.error) setError(result.error);
           }}
         >
+          <div className="text-xl font-semibold tracking-tight lg:hidden">
+            Mega<span className="text-blue-400">Beauty</span>
+          </div>
           <h2 className="font-display text-3xl">Entrar</h2>
           <Field label="E-mail">
             <Input name="email" type="email" autoComplete="email" required />

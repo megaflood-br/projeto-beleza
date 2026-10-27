@@ -201,15 +201,15 @@ function ClientBoardInner({
             </p>
           ) : (
             <>
-              <div className="grid grid-cols-[44px_1fr_180px] items-center gap-2 border-b border-line px-3 py-2.5 text-sm font-medium text-ink-soft">
+              <div className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-2 border-b border-line px-3 py-2.5 text-sm font-medium text-ink-soft sm:grid-cols-[44px_1fr_10rem]">
                 <span className="sr-only">Selecionar</span>
                 <span>Nome</span>
-                <span className="text-right">Celular</span>
+                <span className="hidden text-right sm:block">Celular</span>
               </div>
               <ul>
                 {visible.map((c) => (
                   <li key={c.id} className="border-b border-line last:border-0">
-                    <div className="grid grid-cols-[44px_1fr_180px] items-center gap-2 px-3 py-3 hover:bg-slate-50">
+                    <div className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-2 px-3 py-3 hover:bg-slate-50 sm:grid-cols-[44px_1fr_10rem]">
                       <SelectBox
                         checked={selected.includes(c.id)}
                         onChange={(on) => toggleOne(c.id, on)}
@@ -230,6 +230,7 @@ function ClientBoardInner({
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate font-medium text-blue-700">{c.name}</span>
+                          <span className="block truncate text-xs text-ink-soft sm:hidden">{formatPhoneBR(c.phone)}</span>
                           <span className="block truncate text-xs text-ink-soft">
                             {c.tags
                               ? c.tags
@@ -242,7 +243,7 @@ function ClientBoardInner({
                           </span>
                         </span>
                       </button>
-                      <span className="text-right text-sm text-ink-soft">{formatPhoneBR(c.phone)}</span>
+                      <span className="hidden text-right text-sm text-ink-soft sm:block">{formatPhoneBR(c.phone)}</span>
                     </div>
                   </li>
                 ))}
