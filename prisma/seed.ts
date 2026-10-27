@@ -247,6 +247,7 @@ async function main() {
       deliveryMinCents: 15000,
       deliveryFeeCents: 1500,
       supplierPayMethods: "PIX,CASH,TRANSFER",
+      servedCities: JSON.stringify(["Atibaia/SP", "Campinas/SP", "São Paulo/SP"]),
     },
   });
   const supplyUser = await prisma.user.create({

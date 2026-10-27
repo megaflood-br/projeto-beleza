@@ -48,9 +48,11 @@ function defaultChoice(product: SupplierCatalogProduct): CheckoutChoice {
 export function SalonSupplierBoard({
   products,
   orders,
+  salonCity,
 }: {
   products: SupplierCatalogProduct[];
   orders: SupplierOrderRow[];
+  salonCity?: string | null;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<"catalogo" | "pedidos">("catalogo");
@@ -202,7 +204,11 @@ export function SalonSupplierBoard({
     <div className="space-y-4 pb-20 lg:pb-0">
       <div>
         <h1 className="font-display text-3xl">Fornecedores</h1>
-        <p className="mt-1 text-sm text-ink-soft">Peça agora e pague na retirada ou na entrega, direto com o fornecedor.</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          {salonCity
+            ? `Fornecedores que atendem ${salonCity}. Pagamento na retirada ou na entrega, direto com a empresa.`
+            : "Cadastre a cidade do salão em Configurações para ver os fornecedores da sua região."}
+        </p>
       </div>
       <div className="flex gap-1 overflow-x-auto border-b border-line">
         {(
@@ -265,7 +271,11 @@ export function SalonSupplierBoard({
             </div>
             {visible.length === 0 ? (
               <Card>
-                <p className="text-sm text-ink-soft">Nenhum produto à venda no momento.</p>
+                <p className="text-sm text-ink-soft">
+                  {salonCity
+                    ? `Nenhum fornecedor atende ${salonCity} no momento.`
+                    : "Informe a cidade do salão em Configurações para ver o catálogo da sua região."}
+                </p>
               </Card>
             ) : (
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">

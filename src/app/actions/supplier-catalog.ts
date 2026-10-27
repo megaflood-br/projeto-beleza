@@ -6,6 +6,7 @@ import { requireSupplier } from "@/lib/tenant";
 import { parseBRLToCents } from "@/lib/money";
 import { parseOrderQty, serializeSupplierPayMethods } from "@/lib/supplier-market";
 import { saveSupplierProductPhoto } from "@/lib/product-upload";
+import { resolveCityLabel, serializeServedCities } from "@/lib/br-cities";
 
 function revalidateCatalog() {
   revalidatePath("/fornecedor");
@@ -17,16 +18,18 @@ export async function saveSupplierProfile(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const email = String(formData.get("email") ?? "").trim().toLowerCase() || null;
-  const city = String(formData.get("city") ?? "").trim() || null;
+  const city = resolveCityLabel(String(formData.get("city") ?? "").trim()) || null;
   const address = String(formData.get("address") ?? "").trim() || null;
   const deliveryMinCents = Math.max(parseBRLToCents(String(formData.get("deliveryMin") ?? "0")), 0);
   const deliveryFeeCents = Math.max(parseBRLToCents(String(formData.get("deliveryFee") ?? "0")), 0);
   const supplierPayMethods = serializeSupplierPayMethods(formData.getAll("payMethod").map(String));
+  const servedCities = serializeServedCities(formData.getAll("servedCity").map(String));
   if (!name) return { error: "Informe o nome da empresa." };
+  if (!JSON.parse(servedCities).length) return { error: "Escolha ao menos uma cidade atendida." };
   void tenant;
   await prisma.tenant.update({
     where: { id: session.tenantId },
-    data: { name, phone, email, city, address, deliveryMinCents, deliveryFeeCents, supplierPayMethods },
+    data: { name, phone, email, city, address, deliveryMinCents, deliveryFeeCents, supplierPayMethods, servedCities },
   });
   revalidateCatalog();
   revalidatePath("/fornecedor/empresa");

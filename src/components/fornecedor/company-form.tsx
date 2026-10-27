@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field, Input } from "@/components/ui";
 import { saveSupplierProfile } from "@/app/actions/supplier-catalog";
+import { CityMultiSelect, CitySearch } from "@/components/fornecedor/city-picker";
 import { formatBRL } from "@/lib/money";
 import { SUPPLIER_PAY_METHODS, SUPPLIER_PAY_METHOD_LABEL } from "@/lib/supplier-market";
 
@@ -19,12 +20,15 @@ export function SupplierCompanyForm({
     deliveryMinCents: number;
     deliveryFeeCents: number;
     payMethods: string[];
+    servedCities: string[];
   };
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [methods, setMethods] = useState(company.payMethods);
+  const [city, setCity] = useState(company.city ?? "");
+  const [servedCities, setServedCities] = useState(company.servedCities);
 
   function toggle(method: string, on: boolean) {
     setMethods((list) => {
@@ -37,6 +41,8 @@ export function SupplierCompanyForm({
     setError(null);
     setPending(true);
     for (const method of methods) formData.append("payMethod", method);
+    formData.set("city", city);
+    for (const item of servedCities) formData.append("servedCity", item);
     try {
       const result = await saveSupplierProfile(formData);
       if (result && "error" in result && result.error) {
@@ -53,7 +59,7 @@ export function SupplierCompanyForm({
     <div className="max-w-xl space-y-4">
       <div>
         <h1 className="font-display text-3xl">Empresa</h1>
-        <p className="mt-1 text-sm text-ink-soft">Endereço de retirada, entrega e formas aceitas no ato com você.</p>
+        <p className="mt-1 text-sm text-ink-soft">Endereço, cidades que você atende e formas aceitas no ato.</p>
       </div>
       <Card>
         <form action={submit} className="grid gap-3">
@@ -66,8 +72,11 @@ export function SupplierCompanyForm({
           <Field label="E-mail">
             <Input name="email" type="email" defaultValue={company.email ?? ""} />
           </Field>
-          <Field label="Cidade">
-            <Input name="city" defaultValue={company.city ?? ""} />
+          <Field label="Cidade da empresa">
+            <CitySearch value={city} onChange={setCity} placeholder="Buscar cidade da sede" />
+          </Field>
+          <Field label="Área atendida" required>
+            <CityMultiSelect values={servedCities} onChange={setServedCities} />
           </Field>
           <Field label="Endereço de retirada">
             <Input name="address" defaultValue={company.address ?? ""} placeholder="O salão apresenta a nota neste endereço" />

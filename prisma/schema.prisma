@@ -74,6 +74,7 @@ model Tenant {
   deliveryMinCents    Int      @default(0)
   deliveryFeeCents    Int      @default(0)
   supplierPayMethods  String   @default("PIX,CASH")
+  servedCities        String   @default("")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

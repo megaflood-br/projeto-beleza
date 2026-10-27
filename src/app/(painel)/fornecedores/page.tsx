@@ -2,9 +2,10 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { SalonSupplierBoard } from "@/components/fornecedores/catalog-board";
 import { toSupplierOrderRow, catalogPayMethods } from "@/lib/supplier-order-view";
+import { supplierServesSalon } from "@/lib/br-cities";
 
 export default async function FornecedoresPage() {
-  const { session } = await requireTenant();
+  const { session, tenant } = await requireTenant();
   const [products, orders] = await Promise.all([
     prisma.supplierProduct.findMany({
       where: { active: true, tenant: { kind: "SUPPLIER", status: { not: "SUSPENDED" } } },
@@ -18,6 +19,7 @@ export default async function FornecedoresPage() {
             deliveryMinCents: true,
             deliveryFeeCents: true,
             supplierPayMethods: true,
+            servedCities: true,
           },
         },
       },
@@ -34,9 +36,12 @@ export default async function FornecedoresPage() {
     }),
   ]);
 
+  const regional = products.filter((product) => supplierServesSalon(product.tenant.servedCities, tenant.city));
+
   return (
     <SalonSupplierBoard
-      products={products.map((product) => ({
+      salonCity={tenant.city}
+      products={regional.map((product) => ({
         id: product.id,
         name: product.name,
         brand: product.brand,

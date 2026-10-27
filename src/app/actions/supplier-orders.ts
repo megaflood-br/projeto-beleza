@@ -15,6 +15,7 @@ import {
   parseSupplierPayMethods,
   quoteSupplierFulfillment,
 } from "@/lib/supplier-market";
+import { supplierServesSalon } from "@/lib/br-cities";
 
 function revalidateOrders() {
   revalidatePath("/fornecedor");
@@ -49,6 +50,7 @@ export async function placeSupplierOrder(formData: FormData) {
           deliveryMinCents: true,
           deliveryFeeCents: true,
           supplierPayMethods: true,
+          servedCities: true,
         },
       },
     },
@@ -87,6 +89,9 @@ export async function placeSupplierOrder(formData: FormData) {
     const paymentMethod = asSupplierPayMethod(String(formData.get(`payment_${supplierTenantId}`) ?? "")) ?? parseSupplierPayMethods(group.supplier.supplierPayMethods)[0];
     const allowed = parseSupplierPayMethods(group.supplier.supplierPayMethods);
     if (!allowed.includes(paymentMethod)) return { error: `Forma de pagamento inválida em ${group.supplier.name}.` };
+    if (!supplierServesSalon(group.supplier.servedCities, tenant.city)) {
+      return { error: `${group.supplier.name} não atende a região do salão.` };
+    }
     const quote = quoteSupplierFulfillment({
       subtotalCents,
       fulfillment,

@@ -47,6 +47,7 @@ import {
   serializeSupplierPayMethods,
   supplierOrderStatusLabel,
 } from "@/lib/supplier-market";
+import { parseServedCities, resolveCityLabel, supplierServesSalon } from "@/lib/br-cities";
 import {
   anamnesisDocumentItems,
   collectAlerts,
@@ -866,5 +867,13 @@ describe("pedidos de fornecedor", () => {
     expect(supplierOrderStatusLabel("SHIPPED", "PICKUP")).toBe("Pronto para retirada");
     expect(supplierOrderStatusLabel("SHIPPED", "DELIVERY")).toBe("Saiu para entrega");
     expect(supplierOrderStatusLabel("DELIVERED", "PICKUP")).toBe("Retirado");
+  });
+
+  it("mostra o fornecedor só na cidade que ele atende", () => {
+    expect(resolveCityLabel("atibaia, sp")).toBe("Atibaia/SP");
+    expect(parseServedCities('["Atibaia/SP","Campinas/SP"]')).toEqual(["Atibaia/SP", "Campinas/SP"]);
+    expect(supplierServesSalon('["Atibaia/SP","Bragança Paulista/SP"]', "Atibaia, SP")).toBe(true);
+    expect(supplierServesSalon('["Atibaia/SP"]', "Campinas/SP")).toBe(false);
+    expect(supplierServesSalon("", "Atibaia/SP")).toBe(false);
   });
 });

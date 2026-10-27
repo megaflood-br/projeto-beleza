@@ -10,12 +10,16 @@ function createPrisma() {
 
 function isCurrentClient(client: PrismaClient | undefined): client is PrismaClient {
   if (typeof client?.supplierProduct?.findMany !== "function") return false;
-  const fields = (
+  const models = (
     client as unknown as {
       _runtimeDataModel?: { models?: Record<string, { fields?: { name?: string }[] }> };
     }
-  )._runtimeDataModel?.models?.SupplierProduct?.fields;
-  return Boolean(fields?.some((field) => field.name === "imageUrl"));
+  )._runtimeDataModel?.models;
+  const productFields = models?.SupplierProduct?.fields;
+  const tenantFields = models?.Tenant?.fields;
+  return Boolean(
+    productFields?.some((field) => field.name === "imageUrl") && tenantFields?.some((field) => field.name === "servedCities"),
+  );
 }
 
 export const prisma = isCurrentClient(globalForPrisma.prisma) ? globalForPrisma.prisma : createPrisma();
