@@ -22,6 +22,7 @@ import {
   Tag,
   Bell,
 } from "lucide-react";
+import Link from "next/link";
 import { stopImpersonation } from "@/app/actions/platform";
 import { SupportCallOverlay } from "@/components/suporte/call-overlay";
 import { SupportLiveProvider, useSupportLive } from "@/components/suporte/live-context";
@@ -37,7 +38,6 @@ const NAV: SidebarNavItem[] = [
   { href: "/equipe", label: "Equipe", icon: Users },
   { href: "/usuarios", label: "Usuários", icon: UserCog },
   { href: "/estoque", label: "Estoque", icon: Boxes },
-  { href: "/avisos", label: "Avisos", icon: Bell },
   { href: "/fornecedores", label: "Fornecedores", icon: Truck },
   { href: "/comandas", label: "Comandas", icon: Receipt },
   { href: "/promocoes", label: "Promoções", icon: Tag },
@@ -52,15 +52,25 @@ const NAV: SidebarNavItem[] = [
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
-function NavBadges({ href, noticeCount }: { href: string; noticeCount: number }) {
+function NoticeBell({ count }: { count: number }) {
+  return (
+    <Link
+      href="/avisos"
+      className="relative shrink-0 rounded-lg p-1.5 text-current hover:bg-black/10"
+      aria-label={count ? `${count} avisos` : "Avisos"}
+    >
+      <Bell size={18} />
+      {count > 0 ? (
+        <span className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-amber-400 px-1 text-center text-[10px] font-semibold leading-4 text-amber-950">
+          {count > 9 ? "9+" : count}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+function NavBadges({ href }: { href: string }) {
   const { state } = useSupportLive();
-  if (href === "/avisos" && noticeCount > 0) {
-    return (
-      <span className="ml-auto rounded-full bg-amber-400 px-1.5 text-[10px] font-semibold text-amber-950">
-        {noticeCount}
-      </span>
-    );
-  }
   if (href !== "/suporte") return null;
   const ringing = state?.ringingCalls.filter((call) => call.startedById !== state.me.id).length ?? 0;
   const unread = state?.unread ?? 0;
@@ -95,7 +105,8 @@ export function AppShell({
           title={salon}
           userName={userName}
           items={NAV}
-          badge={(href) => <NavBadges href={href} noticeCount={noticeCount} />}
+          badge={(href) => <NavBadges href={href} />}
+          headerAction={<NoticeBell count={noticeCount} />}
           banner={
             impersonatorName ? (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-950">
