@@ -74,7 +74,7 @@ export function StockBoard({
         </div>
       </div>
 
-      <LowStockAlert items={restock} />
+      <LowStockAlert items={restock} always />
 
       <div className="flex gap-1 border-b border-line">
         <TabButton active={tab === "produtos"} onClick={() => setTab("produtos")}>

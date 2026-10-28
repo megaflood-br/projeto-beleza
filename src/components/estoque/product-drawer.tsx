@@ -201,7 +201,7 @@ export function ProductDrawer({
                       name="minStock"
                       suffix={unitShort}
                       info="Quando o saldo chegar nesse valor, o produto entra no alerta de estoque baixo."
-                      defaultValue={String(product?.minStock ?? 0)}
+                      defaultValue={String(product?.minStock && product.minStock > 0 ? product.minStock : 2)}
                     />
                   </Field>
                   {product ? (

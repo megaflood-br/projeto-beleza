@@ -10,10 +10,8 @@ import {
   rangeBounds,
 } from "@/lib/dashboard";
 import { DashboardBoard } from "@/components/painel/dashboard-board";
-import { LowStockAlert, SupplierDealStrip } from "@/components/avisos/salon-alerts";
-import { buildLowStockAlerts } from "@/lib/supplier-alerts";
-import { loadRegionalSupplierGoods } from "@/lib/supplier-region";
-import { applySupplierPromo } from "@/lib/supplier-promo";
+import { LowStockAlert, SalonCityHint, SupplierDealStrip } from "@/components/avisos/salon-alerts";
+import { loadSalonNotices } from "@/lib/salon-notices";
 
 function parseRange(fromRaw?: string, toRaw?: string) {
   const fallback = defaultDashboardRange();
@@ -36,7 +34,7 @@ export default async function DashboardPage({
   const prevRange = rangeBounds(previous.from, previous.to);
   const todayRange = rangeBounds(today, today);
 
-  const [income, prevIncome, todayIncome, appointments, prevAppointments, comandas, prevComandas, stockProducts, regional] = await Promise.all([
+  const [income, prevIncome, todayIncome, appointments, prevAppointments, comandas, prevComandas, notices] = await Promise.all([
     prisma.transaction.findMany({
       where: { tenantId: session.tenantId, type: "INCOME", occurredAt: { gte: current.start, lt: current.end } },
       select: { amountCents: true, occurredAt: true },
@@ -64,36 +62,8 @@ export default async function DashboardPage({
       where: { tenantId: session.tenantId, occurredAt: { gte: prevRange.start, lt: prevRange.end } },
       select: { status: true },
     }),
-    prisma.product.findMany({
-      where: { tenantId: session.tenantId, active: true },
-      select: { id: true, name: true, brand: true, stock: true, minStock: true, unit: true, active: true },
-    }),
-    loadRegionalSupplierGoods(tenant.city),
+    loadSalonNotices(session.tenantId, tenant.city),
   ]);
-
-  const restock = buildLowStockAlerts(
-    stockProducts,
-    regional.products.map((product) => ({
-      id: product.id,
-      name: product.name,
-      brand: product.brand,
-      supplierName: product.tenant.name,
-      priceCents: product.priceCents,
-    })),
-  );
-  const dealCards = regional.deals.flatMap((deal) =>
-    deal.productIds
-      .map((productId) => regional.products.find((product) => product.id === productId))
-      .filter(Boolean)
-      .map((product) => ({
-        id: deal.id,
-        name: deal.name,
-        label: applySupplierPromo([deal], product!.id, product!.priceCents, product!.minQty, regional.today).label ?? deal.name,
-        supplierName: product!.tenant.name,
-        productName: product!.name,
-        query: product!.name,
-      })),
-  );
 
   const worked = (status: string) => !["CANCELLED", "NO_SHOW", "PENDING"].includes(status);
   const attendances = appointments.filter((a) => worked(a.status)).flatMap((a) =>
@@ -150,8 +120,9 @@ export default async function DashboardPage({
       metrics={metrics}
       alerts={
         <div className="space-y-4">
-          <LowStockAlert items={restock} />
-          <SupplierDealStrip deals={dealCards} />
+          <SalonCityHint city={notices.city} />
+          <LowStockAlert items={notices.restock} always />
+          <SupplierDealStrip deals={notices.deals} always salonCity={notices.city} />
         </div>
       }
     />

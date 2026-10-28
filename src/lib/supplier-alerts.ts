@@ -1,5 +1,5 @@
 import { foldCity } from "@/lib/br-cities";
-import { isLowStock } from "@/lib/stock";
+import { effectiveMinStock, isLowStock } from "@/lib/stock";
 
 export function productsLookAlike(
   salon: { name: string; brand?: string | null },
@@ -30,7 +30,7 @@ export function buildLowStockAlerts<
         productId: product.id,
         name: product.name,
         stock: product.stock,
-        minStock: product.minStock,
+        minStock: effectiveMinStock(product.minStock),
         unit: product.unit,
         supplierName: offer?.supplierName ?? null,
         supplierPriceCents: offer?.priceCents ?? null,

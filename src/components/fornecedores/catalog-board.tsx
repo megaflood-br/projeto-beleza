@@ -253,7 +253,7 @@ export function SalonSupplierBoard({
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-4">
-            <SupplierDealStrip deals={deals} />
+            <SupplierDealStrip deals={deals} always salonCity={salonCity} />
             <div className="rounded-xl bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
               <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar produtos, marcas e mais..." />
               {suppliers.length > 1 ? (

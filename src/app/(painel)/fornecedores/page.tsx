@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { SalonSupplierBoard } from "@/components/fornecedores/catalog-board";
 import { toSupplierOrderRow, catalogPayMethods } from "@/lib/supplier-order-view";
-import { loadRegionalSupplierGoods } from "@/lib/supplier-region";
+import { loadSalonNotices } from "@/lib/salon-notices";
 import { applySupplierPromo } from "@/lib/supplier-promo";
 
 export default async function FornecedoresPage({
@@ -12,8 +12,8 @@ export default async function FornecedoresPage({
 }) {
   const { session, tenant } = await requireTenant();
   const params = await searchParams;
-  const [{ products, deals, today }, orders] = await Promise.all([
-    loadRegionalSupplierGoods(tenant.city),
+  const [notices, orders] = await Promise.all([
+    loadSalonNotices(session.tenantId, tenant.city),
     prisma.supplierOrder.findMany({
       where: { salonTenantId: session.tenantId },
       include: {
@@ -29,22 +29,10 @@ export default async function FornecedoresPage({
     <SalonSupplierBoard
       salonCity={tenant.city}
       initialQuery={params.q ?? ""}
-      deals={deals.flatMap((deal) =>
-        deal.productIds
-          .map((productId) => products.find((product) => product.id === productId))
-          .filter(Boolean)
-          .map((product) => ({
-            id: deal.id,
-            name: deal.name,
-            label: applySupplierPromo([deal], product!.id, product!.priceCents, product!.minQty, today).label ?? deal.name,
-            supplierName: product!.tenant.name,
-            productName: product!.name,
-            query: product!.name,
-          })),
-      )}
-      products={products.map((product) => {
-        const rule = deals.find((deal) => deal.productIds.includes(product.id));
-        const priced = applySupplierPromo(deals, product.id, product.priceCents, product.minQty, today);
+      deals={notices.deals}
+      products={notices.regional.products.map((product) => {
+        const rule = notices.regional.deals.find((deal) => deal.productIds.includes(product.id));
+        const priced = applySupplierPromo(notices.regional.deals, product.id, product.priceCents, product.minQty, notices.regional.today);
         return {
           id: product.id,
           name: product.name,

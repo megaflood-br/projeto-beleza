@@ -4,8 +4,12 @@ export function nextStock(current: number, type: "IN" | "OUT" | "ADJUST", quanti
   return quantity;
 }
 
+export function effectiveMinStock(minStock: number) {
+  return minStock > 0 ? minStock : 2;
+}
+
 export function isLowStock(stock: number, minStock: number) {
-  return stock <= minStock;
+  return stock <= effectiveMinStock(minStock);
 }
 
 export function stockUnitLabel(unit: string) {

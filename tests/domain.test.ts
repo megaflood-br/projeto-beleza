@@ -174,6 +174,8 @@ describe("estoque", () => {
   it("marca estoque mínimo", () => {
     expect(isLowStock(2, 4)).toBe(true);
     expect(isLowStock(8, 4)).toBe(false);
+    expect(isLowStock(1, 0)).toBe(true);
+    expect(isLowStock(3, 0)).toBe(false);
   });
 
   it("formata quantidade com unidade", () => {
