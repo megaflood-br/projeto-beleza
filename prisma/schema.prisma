@@ -113,6 +113,8 @@ model Tenant {
   supplierPromos     SupplierPromotion[]
   ordersAsSalon      SupplierOrder[] @relation("OrdersAsSalon")
   ordersAsSupplier   SupplierOrder[] @relation("OrdersAsSupplier")
+  marketingCampaigns MarketingCampaign[]
+  marketingRecipients MarketingRecipient[]
 
   @@index([slug])
   @@index([kind])
@@ -382,6 +384,7 @@ model Client {
   anamneses      Anamnesis[]
   cashbackMoves  CashbackMovement[]
   fiscalInvoices FiscalInvoice[]
+  marketingRecipients MarketingRecipient[]
 
   @@unique([tenantId, phone])
   @@index([tenantId, name])
@@ -764,6 +767,46 @@ model CampaignSend {
 
   @@unique([tenantId, trigger, clientId, sentOn])
   @@index([tenantId, trigger])
+}
+
+model MarketingCampaign {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  body         String
+  audience     String   @default("ALL")
+  tag          String?
+  serviceId    String?
+  inactiveDays Int?
+  status       String   @default("DRAFT")
+  createdAt    DateTime @default(now())
+  sentAt       DateTime?
+  recipients   MarketingRecipient[]
+
+  @@index([tenantId, createdAt])
+}
+
+model MarketingRecipient {
+  id             String   @id @default(cuid())
+  campaignId     String
+  campaign       MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  phone          String
+  status         String   @default("PENDING")
+  error          String?
+  sentAt         DateTime?
+  repliedAt      DateTime?
+  replyPreview   String?
+  conversationId String?
+
+  @@unique([campaignId, clientId])
+  @@index([tenantId, status])
+  @@index([tenantId, phone])
+  @@index([campaignId, status])
 }
 
 model AnamnesisForm {

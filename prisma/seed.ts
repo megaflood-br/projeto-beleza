@@ -16,6 +16,8 @@ function at(day: Date, hour: number, minute = 0) {
 }
 
 async function main() {
+  await prisma.marketingRecipient.deleteMany();
+  await prisma.marketingCampaign.deleteMany();
   await prisma.supplierPromotionItem.deleteMany();
   await prisma.supplierPromotion.deleteMany();
   await prisma.promotionItem.deleteMany();

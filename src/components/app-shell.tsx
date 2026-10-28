@@ -21,6 +21,7 @@ import {
   FileText,
   Tag,
   Bell,
+  Megaphone,
 } from "lucide-react";
 import Link from "next/link";
 import { stopImpersonation } from "@/app/actions/platform";
@@ -47,6 +48,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/cadastros", label: "Cadastros", icon: Landmark },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
+  { href: "/marketing", label: "Marketing", icon: Megaphone },
   { href: "/suporte", label: "Suporte", icon: Headphones },
   { href: "/ia", label: "Assistente IA", icon: Sparkles },
   { href: "/configuracoes", label: "Configurações", icon: Settings },

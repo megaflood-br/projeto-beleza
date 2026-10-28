@@ -72,6 +72,19 @@ import {
   ticketUnreadFor,
 } from "@/lib/support";
 import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEvolutionState } from "@/lib/evolution";
+import {
+  clientHasTag,
+  isEligibleMarketingClient,
+  isInactiveSince,
+  isMarketingReply,
+  marketingLane,
+  nextCampaignStatus,
+  parseRecipientIds,
+  phonesMatch,
+  pickMarketingAudience,
+  renderMarketingBody,
+  summarizeMarketing,
+} from "@/lib/marketing";
 import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, parseIntegrationTab } from "@/lib/integrations";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
@@ -906,5 +919,46 @@ describe("pedidos de fornecedor", () => {
       [{ id: "p1", name: "Máscara hidratação 500ml", brand: "Lumina", supplierName: "Beauty Supply SP", priceCents: 8900 }],
     );
     expect(alerts[0]?.supplierName).toBe("Beauty Supply SP");
+  });
+
+  it("monta público de marketing e marca resposta depois do envio", () => {
+    expect(parseRecipientIds("a, b  a,c")).toEqual(["a", "b", "c"]);
+    expect(renderMarketingBody("Oi {{nome}} no {{salao}}", { nome: "Ana", salao: "Aurora" })).toBe("Oi Ana no Aurora");
+    expect(clientHasTag("vip, coloracao", "VIP")).toBe(true);
+    expect(clientHasTag("vip", "ouro")).toBe(false);
+    expect(isEligibleMarketingClient({ phone: "11 98552-1672", active: true, notifications: true })).toBe(true);
+    expect(isEligibleMarketingClient({ phone: "11985521672", active: true, notifications: false })).toBe(false);
+    expect(phonesMatch("11985521672", "55 11 98552-1672")).toBe(true);
+    expect(phonesMatch("11985521672", "11988887777")).toBe(false);
+    const sentAt = new Date("2026-10-27T15:00:00.000Z");
+    expect(isMarketingReply(sentAt, new Date("2026-10-27T15:00:01.000Z"))).toBe(true);
+    expect(isMarketingReply(sentAt, new Date("2026-10-27T14:59:59.000Z"))).toBe(false);
+    expect(isMarketingReply(null, new Date())).toBe(false);
+    expect(isInactiveSince(new Date("2026-09-01T12:00:00.000Z"), 30, new Date("2026-10-27T12:00:00.000Z"))).toBe(true);
+    expect(isInactiveSince(new Date("2026-10-20T12:00:00.000Z"), 30, new Date("2026-10-27T12:00:00.000Z"))).toBe(false);
+    expect(marketingLane("PENDING")).toBe("pending");
+    expect(marketingLane("SENT")).toBe("sent");
+    expect(marketingLane("REPLIED")).toBe("replied");
+    expect(marketingLane("RESOLVED")).toBe("resolved");
+    expect(nextCampaignStatus(12, true)).toBe("SENDING");
+    expect(nextCampaignStatus(0, true)).toBe("SENT");
+    const picked = pickMarketingAudience(
+      [
+        { id: "1", name: "Ana", phone: "11985521672", tags: "vip", active: true, notifications: true, serviceIds: ["dep"] },
+        { id: "2", name: "Bia", phone: "119", tags: "vip", active: true, notifications: true, serviceIds: ["dep"] },
+        { id: "3", name: "Cris", phone: "11988887777", tags: "ouro", active: true, notifications: true, serviceIds: ["corte"] },
+      ],
+      { audience: "SERVICE", serviceId: "dep", cap: 400 },
+    );
+    expect(picked.map((row) => row.id)).toEqual(["1"]);
+    expect(summarizeMarketing([{ status: "SENT" }, { status: "REPLIED" }, { status: "FAILED" }, { status: "PENDING" }, { status: "RESOLVED" }])).toEqual({
+      pending: 1,
+      sent: 1,
+      failed: 1,
+      replied: 1,
+      resolved: 1,
+      waiting: 2,
+      total: 5,
+    });
   });
 });

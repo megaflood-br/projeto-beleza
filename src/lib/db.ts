@@ -13,6 +13,9 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   if (typeof (client as { supplierPromotion?: { findMany?: unknown } }).supplierPromotion?.findMany !== "function") {
     return false;
   }
+  if (typeof (client as { marketingCampaign?: { findMany?: unknown } }).marketingCampaign?.findMany !== "function") {
+    return false;
+  }
   const models = (
     client as unknown as {
       _runtimeDataModel?: { models?: Record<string, { fields?: { name?: string }[] }> };
@@ -20,8 +23,11 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   )._runtimeDataModel?.models;
   const productFields = models?.SupplierProduct?.fields;
   const tenantFields = models?.Tenant?.fields;
+  const campaignFields = models?.MarketingCampaign?.fields;
   return Boolean(
-    productFields?.some((field) => field.name === "imageUrl") && tenantFields?.some((field) => field.name === "servedCities"),
+    productFields?.some((field) => field.name === "imageUrl") &&
+      tenantFields?.some((field) => field.name === "servedCities") &&
+      campaignFields?.some((field) => field.name === "serviceId"),
   );
 }
 
