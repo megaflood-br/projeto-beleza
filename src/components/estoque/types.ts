@@ -1,3 +1,9 @@
+export type ProductCategoryRow = {
+  id: string;
+  name: string;
+  productCount: number;
+};
+
 export type ProductFormValue = {
   id: string;
   name: string;

@@ -2,20 +2,22 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { FlaskConical, Plus, Tag, X } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Tag, Trash2, X } from "lucide-react";
 import { Button, Field, Input, Select } from "@/components/ui";
 import { SearchSelect } from "@/components/search-select";
 import { ProductDrawer } from "@/components/estoque/product-drawer";
-import { createProductLot, createProductRequest, moveStock, reviewProductRequest } from "@/app/actions/inventory";
+import { ProductCategoryDrawer } from "@/components/estoque/category-drawer";
+import { createProductLot, createProductRequest, deleteProductCategory, moveStock, reviewProductRequest } from "@/app/actions/inventory";
+import { useConfirm } from "@/components/confirm-dialog";
 import { REQUEST_STATUS_LABEL } from "@/lib/constants";
 import { formatBRL } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
 import { isLowStock, stockUnitLabel } from "@/lib/stock";
 import { cn, initials } from "@/lib/utils";
 import { LowStockAlert, type LowStockAlertItem } from "@/components/avisos/salon-alerts";
-import type { ProductFormValue, ProductLotValue, ProductRequestValue } from "@/components/estoque/types";
+import type { ProductCategoryRow, ProductFormValue, ProductLotValue, ProductRequestValue } from "@/components/estoque/types";
 
-type Tab = "produtos" | "lotes" | "solicitacoes";
+type Tab = "produtos" | "categorias" | "lotes" | "solicitacoes";
 type ExtraDrawer = "lote" | "solicitacao" | "movimento" | null;
 
 export function StockBoard({
@@ -29,7 +31,7 @@ export function StockBoard({
   restock = [],
 }: {
   products: ProductFormValue[];
-  categories: { id: string; name: string }[];
+  categories: ProductCategoryRow[];
   brands: string[];
   services: { id: string; name: string }[];
   lots: ProductLotValue[];
@@ -38,9 +40,12 @@ export function StockBoard({
   restock?: LowStockAlertItem[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [tab, setTab] = useState<Tab>("produtos");
   const [editing, setEditing] = useState<ProductFormValue | null | undefined>(undefined);
+  const [categoryEdit, setCategoryEdit] = useState<ProductCategoryRow | null | undefined>(undefined);
   const [extra, setExtra] = useState<ExtraDrawer>(null);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const pendingCount = requests.filter((r) => r.status === "PENDING").length;
 
   return (
@@ -58,6 +63,12 @@ export function StockBoard({
                 Novo produto
               </Button>
             </>
+          ) : null}
+          {tab === "categorias" ? (
+            <Button type="button" onClick={() => setCategoryEdit(null)}>
+              <Plus size={16} />
+              Nova categoria
+            </Button>
           ) : null}
           {tab === "lotes" ? (
             <Button type="button" onClick={() => setExtra("lote")}>
@@ -80,6 +91,9 @@ export function StockBoard({
         <TabButton active={tab === "produtos"} onClick={() => setTab("produtos")}>
           Produtos
         </TabButton>
+        <TabButton active={tab === "categorias"} onClick={() => setTab("categorias")}>
+          Categorias
+        </TabButton>
         <TabButton active={tab === "lotes"} onClick={() => setTab("lotes")}>
           Lotes e validades
         </TabButton>
@@ -95,6 +109,31 @@ export function StockBoard({
 
       {tab === "produtos" ? (
         <ProductTable products={products} onEdit={setEditing} />
+      ) : null}
+      {tab === "categorias" ? (
+        <CategoriesTable
+          categories={categories}
+          error={categoryError}
+          onEdit={setCategoryEdit}
+          onDelete={async (id) => {
+            const ok = await confirm({
+              title: "Excluir esta categoria?",
+              description: "Produtos desta categoria precisam ser recategorizados antes.",
+              confirmLabel: "Excluir",
+              danger: true,
+            });
+            if (!ok) return;
+            setCategoryError(null);
+            const fd = new FormData();
+            fd.set("id", id);
+            const result = await deleteProductCategory(fd);
+            if (result && "error" in result && result.error) {
+              setCategoryError(result.error);
+              return;
+            }
+            router.refresh();
+          }}
+        />
       ) : null}
       {tab === "lotes" ? <LotsTable lots={lots} /> : null}
       {tab === "solicitacoes" ? (
@@ -120,6 +159,15 @@ export function StockBoard({
           brands={brands}
           services={services}
           onClose={() => setEditing(undefined)}
+        />
+      ) : null}
+
+      {categoryEdit !== undefined ? (
+        <ProductCategoryDrawer
+          key={categoryEdit?.id ?? "new-cat"}
+          open
+          category={categoryEdit}
+          onClose={() => setCategoryEdit(undefined)}
         />
       ) : null}
 
@@ -265,6 +313,58 @@ function ProductTable({
             ))}
           </ul>
         </div>
+      )}
+    </div>
+  );
+}
+
+function CategoriesTable({
+  categories,
+  error,
+  onEdit,
+  onDelete,
+}: {
+  categories: ProductCategoryRow[];
+  error: string | null;
+  onEdit: (category: ProductCategoryRow) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-line bg-white">
+      {error ? <p className="border-b border-line px-4 py-3 text-sm text-red-600">{error}</p> : null}
+      {categories.length === 0 ? (
+        <p className="px-4 py-12 text-center text-sm text-ink-soft">
+          Nenhuma categoria cadastrada. Crie uma para poder cadastrar produtos.
+        </p>
+      ) : (
+        <ul>
+          {categories.map((category) => (
+            <li key={category.id} className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-0">
+              <button type="button" onClick={() => onEdit(category)} className="min-w-0 flex-1 text-left">
+                <div className="font-medium text-blue-700">{category.name}</div>
+                <div className="text-xs text-ink-soft">
+                  {category.productCount} produto{category.productCount === 1 ? "" : "s"}
+                </div>
+              </button>
+              <button
+                type="button"
+                className="rounded-lg p-2 text-ink-soft hover:bg-sand"
+                aria-label="Editar categoria"
+                onClick={() => onEdit(category)}
+              >
+                <Pencil size={16} />
+              </button>
+              <button
+                type="button"
+                className="rounded-lg p-2 text-ink-soft hover:bg-rose-50 hover:text-rose-700"
+                aria-label="Excluir categoria"
+                onClick={() => onDelete(category.id)}
+              >
+                <Trash2 size={16} />
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
