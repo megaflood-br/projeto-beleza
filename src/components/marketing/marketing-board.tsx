@@ -3,31 +3,33 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Megaphone, MessageCircle, Trash2 } from "lucide-react";
+import { Check, Megaphone, MessageCircle, Send, Trash2 } from "lucide-react";
 import { Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
+import { SearchSelect } from "@/components/search-select";
 import { useConfirm } from "@/components/confirm-dialog";
 import {
   createMarketingCampaign,
   deleteMarketingCampaign,
   previewMarketingAudience,
-  sendMarketingBatch,
+  resolveMarketingRecipient,
+  sendMarketingSelected,
   type MarketingSendResult,
 } from "@/app/actions/marketing";
-
-function isSendOk(result: MarketingSendResult): result is Extract<MarketingSendResult, { ok: true }> {
-  return "ok" in result;
-}
 import {
   MARKETING_AUDIENCE_LABEL,
-  MARKETING_BATCH,
   MARKETING_CAP,
   MARKETING_DEFAULT_INACTIVE_DAYS,
+  MARKETING_SEND_MAX,
   marketingLane,
   parseMarketingAudience,
   summarizeMarketing,
   type MarketingAudience,
 } from "@/lib/marketing";
 import { cn, formatPhoneBR } from "@/lib/utils";
+
+function isSendOk(result: MarketingSendResult): result is Extract<MarketingSendResult, { ok: true }> {
+  return "ok" in result;
+}
 
 export type MarketingRecipientRow = {
   id: string;
@@ -48,6 +50,7 @@ export type MarketingCampaignRow = {
   body: string;
   audience: string;
   tag: string | null;
+  serviceId: string | null;
   inactiveDays: number | null;
   status: string;
   createdAt: string;
@@ -58,24 +61,31 @@ export type MarketingCampaignRow = {
 export function MarketingBoard({
   campaigns,
   tags,
+  services,
   canManage,
   connected,
   selectedId,
 }: {
   campaigns: MarketingCampaignRow[];
   tags: string[];
+  services: { id: string; name: string }[];
   canManage: boolean;
   connected: boolean;
   selectedId?: string | null;
 }) {
   const router = useRouter();
   const confirm = useConfirm();
-  const [audience, setAudience] = useState<MarketingAudience>("ALL");
+  const [audience, setAudience] = useState<MarketingAudience>("SERVICE");
   const [preview, setPreview] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>("");
+  const [picked, setPicked] = useState<string[]>([]);
   const selected = campaigns.find((row) => row.id === selectedId) ?? campaigns[0] ?? null;
   const summary = useMemo(() => summarizeMarketing(selected?.recipients ?? []), [selected]);
+  const pending = selected?.recipients.filter((row) => marketingLane(row.status) === "pending") ?? [];
+  const sent = selected?.recipients.filter((row) => marketingLane(row.status) === "sent") ?? [];
+  const replied = selected?.recipients.filter((row) => marketingLane(row.status) === "replied") ?? [];
+  const resolved = selected?.recipients.filter((row) => marketingLane(row.status) === "resolved") ?? [];
 
   async function refresh(id?: string) {
     router.push(id ? `/marketing?c=${id}` : "/marketing");
@@ -93,7 +103,7 @@ export function MarketingBoard({
     if ("ok" in result) {
       setPreview(
         result.capped
-          ? `${result.count} clientes (limite de ${MARKETING_CAP} por disparo).`
+          ? `${result.count} clientes (lista limitada a ${MARKETING_CAP}).`
           : `${result.count} cliente${result.count === 1 ? "" : "s"} neste público.`,
       );
     }
@@ -104,63 +114,64 @@ export function MarketingBoard({
     setBusy(true);
     setMessage("");
     const result = await createMarketingCampaign(formData);
-    if (!isSendOk(result)) {
-      setBusy(false);
+    setBusy(false);
+    if (!("ok" in result)) {
       setMessage(result.error);
-      if (result.campaignId) await refresh(result.campaignId);
       return;
     }
-    let pending = result.pending;
-    let sent = result.sent;
-    let mocked = result.mocked;
-    const campaignId = result.campaignId;
-    while (pending > 0 && campaignId) {
-      const next = new FormData();
-      next.set("campaignId", campaignId);
-      const batch = await sendMarketingBatch(next);
-      if (!isSendOk(batch)) {
-        setMessage(batch.error);
-        break;
-      }
-      pending = batch.pending;
-      sent += batch.sent;
-      mocked += batch.mocked;
-    }
-    setBusy(false);
-    setMessage(
-      mocked
-        ? `${sent} mensagens gravadas no Inbox. WhatsApp não está conectado, então nada saiu no celular.`
-        : `${sent} mensagens enviadas${pending ? `. Ainda restam ${pending} na fila.` : "."}`,
-    );
-    await refresh(campaignId);
+    setPicked([]);
+    setMessage(`${result.pending} clientes na coluna Pendente. Marque quem vai receber a mensagem.`);
+    await refresh(result.campaignId);
   }
 
-  async function onContinue() {
-    if (!selected) return;
+  async function onSend(ids: string[]) {
+    if (!selected || !ids.length) return;
+    if (ids.length > MARKETING_SEND_MAX) {
+      setMessage(`Envie no máximo ${MARKETING_SEND_MAX} por vez para não sobrecarregar o WhatsApp.`);
+      return;
+    }
+    const ok = await confirm({
+      title: ids.length === 1 ? "Enviar para este cliente?" : `Enviar para ${ids.length} clientes selecionados?`,
+      description: "Só quem você marcou recebe a mensagem. Os outros continuam em Pendente.",
+      confirmLabel: "Enviar",
+    });
+    if (!ok) return;
     setBusy(true);
     setMessage("");
-    let pending = summary.pending;
-    let sent = 0;
-    while (pending > 0) {
-      const form = new FormData();
-      form.set("campaignId", selected.id);
-      const batch = await sendMarketingBatch(form);
-      if (!isSendOk(batch)) {
-        setMessage(batch.error);
-        break;
-      }
-      pending = batch.pending;
-      sent += batch.sent;
-    }
+    const form = new FormData();
+    form.set("campaignId", selected.id);
+    form.set("recipientIds", ids.join(","));
+    const result = await sendMarketingSelected(form);
     setBusy(false);
-    setMessage(sent ? `${sent} mensagens do lote seguinte foram enviadas.` : "Nada pendente neste disparo.");
+    if (!isSendOk(result)) {
+      setMessage(result.error);
+      return;
+    }
+    setPicked((current) => current.filter((id) => !ids.includes(id)));
+    setMessage(
+      result.mocked
+        ? `${result.sent} mensagens gravadas no Inbox. WhatsApp não está conectado, então nada saiu no celular.`
+        : `${result.sent} enviada${result.sent === 1 ? "" : "s"}. ${result.pending} ainda pendente${result.pending === 1 ? "" : "s"}.`,
+    );
     await refresh(selected.id);
+  }
+
+  async function onResolve(id: string, resolvedFlag: boolean) {
+    const form = new FormData();
+    form.set("id", id);
+    form.set("resolved", resolvedFlag ? "1" : "0");
+    const result = await resolveMarketingRecipient(form);
+    if ("error" in result && result.error) {
+      setMessage(result.error);
+      return;
+    }
+    await refresh(selected?.id);
   }
 
   async function onDelete(id: string) {
     const ok = await confirm({
-      title: "Excluir esta campanha?",
-      description: "O Kanban e o histórico deste disparo somem. As conversas no WhatsApp ficam.",
+      title: "Excluir esta lista?",
+      description: "O Kanban some. As conversas no WhatsApp ficam.",
       confirmLabel: "Excluir",
       danger: true,
     });
@@ -172,27 +183,32 @@ export function MarketingBoard({
       setMessage(result.error);
       return;
     }
+    setPicked([]);
     await refresh();
   }
 
-  const waiting = selected?.recipients.filter((row) => marketingLane(row.status) === "waiting") ?? [];
-  const replied = selected?.recipients.filter((row) => marketingLane(row.status) === "replied") ?? [];
+  function toggle(id: string) {
+    setPicked((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  }
+
+  function toggleAllPending() {
+    const ids = pending.map((row) => row.id);
+    setPicked((current) => (ids.every((id) => current.includes(id)) ? current.filter((id) => !ids.includes(id)) : ids));
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl">Marketing</h1>
-          <p className="mt-1 text-sm text-ink-soft">
-            Dispare uma campanha no WhatsApp e acompanhe quem respondeu. As campanhas automáticas continuam na aba WhatsApp.
-          </p>
-        </div>
+      <div>
+        <h1 className="font-display text-3xl">Marketing</h1>
+        <p className="mt-1 text-sm text-ink-soft">
+          Segmente quem já fez um serviço, escolha os clientes e envie um a um. Pendente, enviado, respondido e resolvido ficam no Kanban.
+        </p>
       </div>
 
       {!connected ? (
         <Card className="border-amber-200 bg-amber-50 text-amber-950">
           <p className="text-sm">
-            WhatsApp desconectado. Em produção o disparo só sai com a conexão aberta.{" "}
+            WhatsApp desconectado. Em produção o envio só sai com a conexão aberta.{" "}
             <Link href="/whatsapp?tab=conexao" className="font-medium underline">
               Abrir conexão
             </Link>
@@ -208,8 +224,8 @@ export function MarketingBoard({
             void onCreate(new FormData(event.currentTarget));
           }}
         >
-          <Field label="Nome da campanha">
-            <Input name="name" placeholder="Black Friday — retorno" maxLength={80} />
+          <Field label="Nome da lista">
+            <Input name="name" placeholder="Retorno depilação" maxLength={80} />
           </Field>
           <Field label="Público" required>
             <Select
@@ -217,11 +233,24 @@ export function MarketingBoard({
               value={audience}
               onChange={(event) => setAudience(parseMarketingAudience(event.target.value))}
             >
-              <option value="ALL">{MARKETING_AUDIENCE_LABEL.ALL}</option>
+              <option value="SERVICE">{MARKETING_AUDIENCE_LABEL.SERVICE}</option>
               <option value="TAG">{MARKETING_AUDIENCE_LABEL.TAG}</option>
               <option value="INACTIVE">{MARKETING_AUDIENCE_LABEL.INACTIVE}</option>
+              <option value="ALL">{MARKETING_AUDIENCE_LABEL.ALL}</option>
             </Select>
           </Field>
+          {audience === "SERVICE" ? (
+            <div className="md:col-span-2">
+              <Field label="Serviço" required>
+                <SearchSelect
+                  name="serviceId"
+                  required
+                  placeholder="Ex.: depilação"
+                  options={services.map((service) => ({ value: service.id, label: service.name }))}
+                />
+              </Field>
+            </div>
+          ) : null}
           {audience === "TAG" ? (
             <Field label="Hashtag" required>
               <Input name="tag" list="marketing-tags" placeholder="vip" />
@@ -243,15 +272,17 @@ export function MarketingBoard({
                 name="body"
                 required
                 minLength={8}
-                placeholder="Oi {{nome}}, no {{salao}} tem horário esta semana. Quer encaixe?"
+                placeholder="Oi {{nome}}, no {{salao}} está na hora de retocar a depilação. Quer encaixe?"
               />
             </Field>
-            <p className="mt-1 text-xs text-ink-soft">Use {"{{nome}}"} e {"{{salao}}"}. Envio em lotes de {MARKETING_BATCH}, até {MARKETING_CAP} clientes.</p>
+            <p className="mt-1 text-xs text-ink-soft">
+              Use {"{{nome}}"} e {"{{salao}}"}. A lista só monta o Kanban. O envio é manual, no máximo {MARKETING_SEND_MAX} por vez.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:col-span-2">
             <Button type="submit" disabled={!canManage || busy}>
               <Megaphone size={16} />
-              {busy ? "Disparando..." : "Disparar campanha"}
+              {busy ? "Montando..." : "Montar lista"}
             </Button>
             <Button
               type="button"
@@ -288,7 +319,7 @@ export function MarketingBoard({
       ) : (
         <Card className="flex flex-col items-center gap-2 py-12 text-center text-ink-soft">
           <Megaphone size={28} />
-          <p>Nenhuma campanha ainda. Escreva a mensagem e dispare para ver o Kanban.</p>
+          <p>Nenhuma lista ainda. Segmente o público e monte o Kanban.</p>
         </Card>
       )}
 
@@ -299,17 +330,22 @@ export function MarketingBoard({
               <h2 className="font-medium">{selected.name}</h2>
               <p className="text-sm text-ink-soft">
                 {MARKETING_AUDIENCE_LABEL[parseMarketingAudience(selected.audience)]}
-                {selected.tag ? ` · #${selected.tag}` : ""}
+                {selected.tag ? ` · ${selected.audience === "TAG" ? "#" : ""}${selected.tag}` : ""}
                 {selected.inactiveDays ? ` · ${selected.inactiveDays} dias` : ""}
-                {` · ${summary.sent + summary.replied} enviadas · ${summary.replied} responderam · ${summary.pending} na fila`}
-                {summary.failed ? ` · ${summary.failed} falharam` : ""}
+                {` · ${summary.pending} pendente · ${summary.sent + summary.failed} enviado · ${summary.replied} respondeu · ${summary.resolved} resolvido`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {summary.pending > 0 && canManage ? (
-                <Button type="button" onClick={() => void onContinue()} disabled={busy}>
-                  Enviar próximo lote
-                </Button>
+              {canManage && pending.length ? (
+                <>
+                  <Button type="button" variant="outline" onClick={toggleAllPending} disabled={busy}>
+                    {pending.every((row) => picked.includes(row.id)) ? "Limpar seleção" : "Selecionar pendentes"}
+                  </Button>
+                  <Button type="button" onClick={() => void onSend(picked)} disabled={busy || picked.length === 0}>
+                    <Send size={16} />
+                    Enviar selecionados{picked.length ? ` (${Math.min(picked.length, MARKETING_SEND_MAX)})` : ""}
+                  </Button>
+                </>
               ) : null}
               {canManage ? (
                 <Button type="button" variant="danger" onClick={() => void onDelete(selected.id)} disabled={busy}>
@@ -320,15 +356,68 @@ export function MarketingBoard({
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <KanbanColumn title="Sem resposta" count={waiting.length} empty="Ninguém nesta coluna.">
-              {waiting.map((row) => (
-                <RecipientCard key={row.id} row={row} />
+          <div className="grid gap-4 xl:grid-cols-4 md:grid-cols-2">
+            <KanbanColumn title="Pendente" count={pending.length} empty="Ninguém pendente nesta lista.">
+              {pending.map((row) => (
+                <RecipientCard
+                  key={row.id}
+                  row={row}
+                  selectable={canManage}
+                  checked={picked.includes(row.id)}
+                  onToggle={() => toggle(row.id)}
+                  action={
+                    canManage ? (
+                      <Button type="button" variant="outline" disabled={busy} onClick={() => void onSend([row.id])}>
+                        Enviar
+                      </Button>
+                    ) : null
+                  }
+                />
               ))}
             </KanbanColumn>
-            <KanbanColumn title="Responderam" count={replied.length} empty="Ainda sem resposta neste disparo." tone="ok">
+            <KanbanColumn title="Enviado" count={sent.length} empty="Ainda sem envio nesta lista.">
+              {sent.map((row) => (
+                <RecipientCard
+                  key={row.id}
+                  row={row}
+                  action={
+                    canManage ? (
+                      <Button type="button" variant="outline" disabled={busy} onClick={() => void onResolve(row.id, true)}>
+                        Resolvido
+                      </Button>
+                    ) : null
+                  }
+                />
+              ))}
+            </KanbanColumn>
+            <KanbanColumn title="Respondido" count={replied.length} empty="Ninguém respondeu ainda." tone="ok">
               {replied.map((row) => (
-                <RecipientCard key={row.id} row={row} />
+                <RecipientCard
+                  key={row.id}
+                  row={row}
+                  action={
+                    canManage ? (
+                      <Button type="button" variant="outline" disabled={busy} onClick={() => void onResolve(row.id, true)}>
+                        Resolvido
+                      </Button>
+                    ) : null
+                  }
+                />
+              ))}
+            </KanbanColumn>
+            <KanbanColumn title="Resolvido" count={resolved.length} empty="Nada resolvido ainda." tone="done">
+              {resolved.map((row) => (
+                <RecipientCard
+                  key={row.id}
+                  row={row}
+                  action={
+                    canManage ? (
+                      <Button type="button" variant="ghost" disabled={busy} onClick={() => void onResolve(row.id, false)}>
+                        Reabrir
+                      </Button>
+                    ) : null
+                  }
+                />
               ))}
             </KanbanColumn>
           </div>
@@ -348,11 +437,16 @@ function KanbanColumn({
   title: string;
   count: number;
   empty: string;
-  tone?: "ok";
+  tone?: "ok" | "done";
   children: React.ReactNode;
 }) {
   return (
-    <section className={cn("rounded-2xl border border-line p-3", tone === "ok" ? "bg-emerald-50/60" : "bg-sand/60")}>
+    <section
+      className={cn(
+        "rounded-2xl border border-line p-3",
+        tone === "ok" ? "bg-emerald-50/60" : tone === "done" ? "bg-slate-50" : "bg-sand/60",
+      )}
+    >
       <header className="mb-3 flex items-center justify-between px-1">
         <h3 className="font-medium">{title}</h3>
         <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-ink-soft">{count}</span>
@@ -364,21 +458,48 @@ function KanbanColumn({
   );
 }
 
-function RecipientCard({ row }: { row: MarketingRecipientRow }) {
+function RecipientCard({
+  row,
+  selectable,
+  checked,
+  onToggle,
+  action,
+}: {
+  row: MarketingRecipientRow;
+  selectable?: boolean;
+  checked?: boolean;
+  onToggle?: () => void;
+  action?: React.ReactNode;
+}) {
   const href = row.conversationId ? `/whatsapp?c=${row.conversationId}` : "/whatsapp";
   return (
-    <Link href={href} className="block rounded-xl border border-line bg-white p-3 hover:border-wine/40">
-      <div className="flex items-start justify-between gap-2">
-        <div>
+    <article className="rounded-xl border border-line bg-white p-3">
+      <div className="flex items-start gap-2">
+        {selectable ? (
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={checked}
+            onClick={onToggle}
+            className={cn(
+              "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border",
+              checked ? "border-wine bg-wine text-white" : "border-line bg-paper",
+            )}
+          >
+            {checked ? <Check size={12} /> : null}
+          </button>
+        ) : null}
+        <div className="min-w-0 flex-1">
           <div className="font-medium">{row.clientName}</div>
           <div className="text-xs text-ink-soft">{formatPhoneBR(row.phone)}</div>
         </div>
-        <MessageCircle size={16} className="mt-0.5 text-ink-soft" />
+        <Link href={href} className="mt-0.5 text-ink-soft hover:text-ink" aria-label="Abrir conversa">
+          <MessageCircle size={16} />
+        </Link>
       </div>
-      {row.status === "FAILED" && row.error ? (
-        <p className="mt-2 text-xs text-red-700">{row.error}</p>
-      ) : null}
+      {row.status === "FAILED" && row.error ? <p className="mt-2 text-xs text-red-700">{row.error}</p> : null}
       {row.replyPreview ? <p className="mt-2 line-clamp-2 text-sm text-ink">{row.replyPreview}</p> : null}
-    </Link>
+      {action ? <div className="mt-3">{action}</div> : null}
+    </article>
   );
 }

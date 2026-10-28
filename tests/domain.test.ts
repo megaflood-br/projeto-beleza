@@ -79,6 +79,7 @@ import {
   isMarketingReply,
   marketingLane,
   nextCampaignStatus,
+  parseRecipientIds,
   phonesMatch,
   pickMarketingAudience,
   renderMarketingBody,
@@ -921,6 +922,7 @@ describe("pedidos de fornecedor", () => {
   });
 
   it("monta público de marketing e marca resposta depois do envio", () => {
+    expect(parseRecipientIds("a, b  a,c")).toEqual(["a", "b", "c"]);
     expect(renderMarketingBody("Oi {{nome}} no {{salao}}", { nome: "Ana", salao: "Aurora" })).toBe("Oi Ana no Aurora");
     expect(clientHasTag("vip, coloracao", "VIP")).toBe(true);
     expect(clientHasTag("vip", "ouro")).toBe(false);
@@ -934,26 +936,29 @@ describe("pedidos de fornecedor", () => {
     expect(isMarketingReply(null, new Date())).toBe(false);
     expect(isInactiveSince(new Date("2026-09-01T12:00:00.000Z"), 30, new Date("2026-10-27T12:00:00.000Z"))).toBe(true);
     expect(isInactiveSince(new Date("2026-10-20T12:00:00.000Z"), 30, new Date("2026-10-27T12:00:00.000Z"))).toBe(false);
-    expect(marketingLane("SENT")).toBe("waiting");
+    expect(marketingLane("PENDING")).toBe("pending");
+    expect(marketingLane("SENT")).toBe("sent");
     expect(marketingLane("REPLIED")).toBe("replied");
+    expect(marketingLane("RESOLVED")).toBe("resolved");
     expect(nextCampaignStatus(12, true)).toBe("SENDING");
     expect(nextCampaignStatus(0, true)).toBe("SENT");
     const picked = pickMarketingAudience(
       [
-        { id: "1", name: "Ana", phone: "11985521672", tags: "vip", active: true, notifications: true },
-        { id: "2", name: "Bia", phone: "119", tags: "vip", active: true, notifications: true },
-        { id: "3", name: "Cris", phone: "11988887777", tags: "ouro", active: true, notifications: true },
+        { id: "1", name: "Ana", phone: "11985521672", tags: "vip", active: true, notifications: true, serviceIds: ["dep"] },
+        { id: "2", name: "Bia", phone: "119", tags: "vip", active: true, notifications: true, serviceIds: ["dep"] },
+        { id: "3", name: "Cris", phone: "11988887777", tags: "ouro", active: true, notifications: true, serviceIds: ["corte"] },
       ],
-      { audience: "TAG", tag: "vip", cap: 400 },
+      { audience: "SERVICE", serviceId: "dep", cap: 400 },
     );
     expect(picked.map((row) => row.id)).toEqual(["1"]);
-    expect(summarizeMarketing([{ status: "SENT" }, { status: "REPLIED" }, { status: "FAILED" }, { status: "PENDING" }])).toEqual({
+    expect(summarizeMarketing([{ status: "SENT" }, { status: "REPLIED" }, { status: "FAILED" }, { status: "PENDING" }, { status: "RESOLVED" }])).toEqual({
       pending: 1,
       sent: 1,
       failed: 1,
       replied: 1,
+      resolved: 1,
       waiting: 2,
-      total: 4,
+      total: 5,
     });
   });
 });

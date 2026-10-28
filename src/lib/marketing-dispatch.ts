@@ -3,11 +3,16 @@ import { isEvolutionConfigured, sendTextMessage } from "@/lib/evolution";
 import { resolvePlatformIntegrations } from "@/lib/integrations";
 import { evolutionSendFailure, toEvolutionNumber } from "@/lib/whatsapp-campaigns";
 import {
-  MARKETING_BATCH,
+  MARKETING_SEND_GAP_MS,
+  MARKETING_SEND_MAX,
   nextCampaignStatus,
   renderMarketingBody,
   summarizeMarketing,
 } from "@/lib/marketing";
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export async function sendMarketingRecipient(input: {
   tenantId: string;
@@ -54,7 +59,15 @@ export type MarketingBatchResult =
   | { ok: true; sent: number; failed: number; pending: number; mocked: number }
   | { error: string };
 
-export async function sendMarketingBatch(tenantId: string, campaignId: string, allowMock: boolean): Promise<MarketingBatchResult> {
+export async function sendMarketingRecipients(
+  tenantId: string,
+  campaignId: string,
+  allowMock: boolean,
+  recipientIds: string[],
+): Promise<MarketingBatchResult> {
+  const ids = [...new Set(recipientIds.filter(Boolean))].slice(0, MARKETING_SEND_MAX);
+  if (!ids.length) return { error: "Selecione ao menos um cliente para enviar." };
+
   const [tenant, campaign] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -65,21 +78,20 @@ export async function sendMarketingBatch(tenantId: string, campaignId: string, a
       include: { recipients: { select: { status: true } } },
     }),
   ]);
-  if (!tenant || !campaign) return { error: "Campanha não encontrada." };
+  if (!tenant || !campaign) return { error: "Lista não encontrada." };
 
   const pending = await prisma.marketingRecipient.findMany({
-    where: { campaignId, tenantId, status: "PENDING" },
+    where: { campaignId, tenantId, id: { in: ids }, status: { in: ["PENDING", "FAILED"] } },
     include: { client: { select: { id: true, name: true } } },
     orderBy: { id: "asc" },
-    take: MARKETING_BATCH,
   });
   if (!pending.length) {
     const summary = summarizeMarketing(campaign.recipients);
-    const status = nextCampaignStatus(summary.pending, Boolean(campaign.sentAt) || summary.sent + summary.failed + summary.replied > 0);
+    const status = nextCampaignStatus(summary.pending, Boolean(campaign.sentAt) || summary.sent + summary.failed + summary.replied + summary.resolved > 0);
     if (campaign.status !== status) {
       await prisma.marketingCampaign.update({ where: { id: campaignId }, data: { status } });
     }
-    return { ok: true as const, sent: 0, failed: 0, pending: 0, mocked: 0 };
+    return { error: "Nenhum dos selecionados está pendente." };
   }
 
   const server = await resolvePlatformIntegrations();
@@ -97,7 +109,8 @@ export async function sendMarketingBatch(tenantId: string, campaignId: string, a
   let failed = 0;
   let mocked = 0;
   let firstSentAt: Date | null = campaign.sentAt;
-  for (const row of pending) {
+  for (const [index, row] of pending.entries()) {
+    if (index > 0) await wait(MARKETING_SEND_GAP_MS);
     const now = new Date();
     const result = await sendMarketingRecipient({
       tenantId,

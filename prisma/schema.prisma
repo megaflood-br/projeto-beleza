@@ -777,6 +777,7 @@ model MarketingCampaign {
   body         String
   audience     String   @default("ALL")
   tag          String?
+  serviceId    String?
   inactiveDays Int?
   status       String   @default("DRAFT")
   createdAt    DateTime @default(now())

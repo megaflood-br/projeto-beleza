@@ -16,7 +16,7 @@ export default async function MarketingPage({
 
   await syncMarketingReplies(session.tenantId, selectedId ?? undefined).catch(() => 0);
 
-  const [campaigns, clients, live] = await Promise.all([
+  const [campaigns, clients, services, live] = await Promise.all([
     prisma.marketingCampaign.findMany({
       where: { tenantId: session.tenantId },
       include: {
@@ -31,6 +31,11 @@ export default async function MarketingPage({
     prisma.client.findMany({
       where: { tenantId: session.tenantId, active: true },
       select: { tags: true },
+    }),
+    prisma.service.findMany({
+      where: { tenantId: session.tenantId, active: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
     }),
     readWhatsAppLive(session.tenantId),
   ]);
@@ -52,12 +57,14 @@ export default async function MarketingPage({
       connected={live.state === "open"}
       selectedId={selectedId}
       tags={tags}
+      services={services}
       campaigns={campaigns.map((campaign) => ({
         id: campaign.id,
         name: campaign.name,
         body: campaign.body,
         audience: campaign.audience,
         tag: campaign.tag,
+        serviceId: campaign.serviceId,
         inactiveDays: campaign.inactiveDays,
         status: campaign.status,
         createdAt: campaign.createdAt.toISOString(),

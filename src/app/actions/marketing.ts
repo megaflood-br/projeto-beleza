@@ -10,9 +10,14 @@ import {
   MARKETING_CAP,
   parseInactiveDays,
   parseMarketingAudience,
+  parseRecipientIds,
   resolveMarketingAudience,
 } from "@/lib/marketing";
-import { sendMarketingBatch as dispatchMarketingBatch } from "@/lib/marketing-dispatch";
+import { sendMarketingRecipients } from "@/lib/marketing-dispatch";
+
+export type MarketingListResult =
+  | { ok: true; campaignId: string; pending: number }
+  | { error: string };
 
 export type MarketingSendResult =
   | { ok: true; campaignId: string; sent: number; failed: number; pending: number; mocked: number }
@@ -31,59 +36,76 @@ function refreshMarketing() {
   }
 }
 
-export async function previewMarketingAudience(formData: FormData) {
-  const { session } = await requireTenant();
+async function audienceFromForm(tenantId: string, formData: FormData) {
   const audience = parseMarketingAudience(String(formData.get("audience") ?? ""));
   const tag = String(formData.get("tag") ?? "").trim();
+  const serviceId = String(formData.get("serviceId") ?? "").trim();
   const inactiveDays = parseInactiveDays(formData.get("inactiveDays"));
-  if (audience === "TAG" && !tag) return { error: "Informe a hashtag do público." };
+  if (audience === "TAG" && !tag) return { error: "Informe a hashtag do público." as const };
+  if (audience === "SERVICE" && !serviceId) return { error: "Escolha o serviço para segmentar." as const };
   const clients = await resolveMarketingAudience({
-    tenantId: session.tenantId,
+    tenantId,
     audience,
     tag,
+    serviceId,
     inactiveDays,
   });
+  return { ok: true as const, audience, tag, serviceId, inactiveDays, clients };
+}
+
+export async function previewMarketingAudience(formData: FormData) {
+  const { session } = await requireTenant();
+  const result = await audienceFromForm(session.tenantId, formData);
+  if (!result.ok) return { error: result.error };
   return {
     ok: true as const,
-    count: clients.length,
-    capped: clients.length >= MARKETING_CAP,
-    label: MARKETING_AUDIENCE_LABEL[audience],
+    count: result.clients.length,
+    capped: result.clients.length >= MARKETING_CAP,
+    label: MARKETING_AUDIENCE_LABEL[result.audience],
   };
 }
 
-export async function createMarketingCampaign(formData: FormData): Promise<MarketingSendResult> {
+export async function createMarketingCampaign(formData: FormData): Promise<MarketingListResult> {
   const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para disparar campanhas." };
+  if (!canManageTeam(session.role)) return { error: "Sem permissão para montar a lista." };
 
   const body = String(formData.get("body") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim() || body.slice(0, 48) || "Campanha WhatsApp";
-  const audience = parseMarketingAudience(String(formData.get("audience") ?? ""));
-  const tag = String(formData.get("tag") ?? "").trim();
-  const inactiveDays = parseInactiveDays(formData.get("inactiveDays"));
-  if (body.length < 8) return { error: "Escreva a mensagem da campanha." };
-  if (audience === "TAG" && !tag) return { error: "Informe a hashtag do público." };
+  if (body.length < 8) return { error: "Escreva a mensagem que será enviada." };
 
-  const clients = await resolveMarketingAudience({
-    tenantId: session.tenantId,
-    audience,
-    tag,
-    inactiveDays,
-  });
-  if (!clients.length) {
+  const result = await audienceFromForm(session.tenantId, formData);
+  if (!result.ok) return { error: result.error };
+  if (!result.clients.length) {
     return { error: "Nenhum cliente neste público com WhatsApp e aviso ligado." };
   }
+
+  let serviceName = "";
+  if (result.audience === "SERVICE") {
+    const service = await prisma.service.findFirst({
+      where: { id: result.serviceId, tenantId: session.tenantId },
+      select: { name: true },
+    });
+    serviceName = service?.name ?? "";
+  }
+
+  const name =
+    String(formData.get("name") ?? "").trim() ||
+    serviceName ||
+    (result.audience === "TAG" ? `#${result.tag}` : "") ||
+    body.slice(0, 48) ||
+    "Lista WhatsApp";
 
   const campaign = await prisma.marketingCampaign.create({
     data: {
       tenantId: session.tenantId,
       name,
       body,
-      audience,
-      tag: audience === "TAG" ? tag : null,
-      inactiveDays: audience === "INACTIVE" ? inactiveDays : null,
+      audience: result.audience,
+      tag: result.audience === "TAG" ? result.tag : serviceName || null,
+      serviceId: result.audience === "SERVICE" ? result.serviceId : null,
+      inactiveDays: result.audience === "INACTIVE" ? result.inactiveDays : null,
       status: "DRAFT",
       recipients: {
-        create: clients.map((client) => ({
+        create: result.clients.map((client) => ({
           tenantId: session.tenantId,
           clientId: client.id,
           phone: normalizeWhatsAppPhone(client.phone),
@@ -93,28 +115,43 @@ export async function createMarketingCampaign(formData: FormData): Promise<Marke
     },
   });
 
-  const batch = await dispatchMarketingBatch(session.tenantId, campaign.id, allowMockSend());
   refreshMarketing();
-  if ("error" in batch) return { error: batch.error ?? "Não foi possível enviar.", campaignId: campaign.id };
-  return {
-    ok: true as const,
-    campaignId: campaign.id,
-    sent: batch.sent,
-    failed: batch.failed,
-    pending: batch.pending,
-    mocked: batch.mocked,
-  };
+  return { ok: true as const, campaignId: campaign.id, pending: result.clients.length };
 }
 
-export async function sendMarketingBatch(formData: FormData): Promise<MarketingSendResult> {
+export async function sendMarketingSelected(formData: FormData): Promise<MarketingSendResult> {
   const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para disparar campanhas." };
+  if (!canManageTeam(session.role)) return { error: "Sem permissão para enviar." };
   const campaignId = String(formData.get("campaignId") ?? "");
-  if (!campaignId) return { error: "Campanha não encontrada." };
-  const batch = await dispatchMarketingBatch(session.tenantId, campaignId, allowMockSend());
+  const recipientIds = parseRecipientIds([
+    String(formData.get("recipientIds") ?? ""),
+    ...formData.getAll("recipientId").map(String),
+  ]);
+  if (!campaignId) return { error: "Lista não encontrada." };
+  const batch = await sendMarketingRecipients(session.tenantId, campaignId, allowMockSend(), recipientIds);
   refreshMarketing();
-  if ("error" in batch) return { error: batch.error ?? "Não foi possível enviar.", campaignId };
+  if ("error" in batch) return { error: batch.error, campaignId };
   return { ...batch, campaignId };
+}
+
+export async function resolveMarketingRecipient(formData: FormData) {
+  const { session } = await requireTenant();
+  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const id = String(formData.get("id") ?? "");
+  const resolved = String(formData.get("resolved") ?? "1") !== "0";
+  const row = await prisma.marketingRecipient.findFirst({
+    where: { id, tenantId: session.tenantId },
+    select: { id: true, status: true, repliedAt: true },
+  });
+  if (!row) return { error: "Cliente não encontrado nesta lista." };
+  await prisma.marketingRecipient.update({
+    where: { id },
+    data: {
+      status: resolved ? "RESOLVED" : row.repliedAt ? "REPLIED" : "SENT",
+    },
+  });
+  refreshMarketing();
+  return { ok: true as const };
 }
 
 export async function deleteMarketingCampaign(formData: FormData) {
@@ -122,7 +159,7 @@ export async function deleteMarketingCampaign(formData: FormData) {
   if (!canManageTeam(session.role)) return { error: "Sem permissão para excluir." };
   const id = String(formData.get("id") ?? "");
   const row = await prisma.marketingCampaign.findFirst({ where: { id, tenantId: session.tenantId }, select: { id: true } });
-  if (!row) return { error: "Campanha não encontrada." };
+  if (!row) return { error: "Lista não encontrada." };
   await prisma.marketingCampaign.delete({ where: { id } });
   refreshMarketing();
   return { ok: true as const };
