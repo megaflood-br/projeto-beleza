@@ -56,7 +56,7 @@ export function SidebarLayout({
   }, [open]);
 
   return (
-    <div className="flex min-h-dvh bg-cream">
+    <div className="flex h-dvh overflow-hidden bg-cream">
       {open ? (
         <button
           type="button"
@@ -137,9 +137,9 @@ export function SidebarLayout({
           </div>
           {headerAction ? <div className="text-ink">{headerAction}</div> : null}
         </header>
-        <main className="min-w-0 flex-1 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8 [&_h1]:text-2xl md:[&_h1]:text-3xl">
-          {banner}
-          {children}
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8 [&_h1]:text-2xl md:[&_h1]:text-3xl">
+          {banner ? <div className="shrink-0">{banner}</div> : null}
+          <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</div>
         </main>
       </div>
     </div>
