@@ -39,7 +39,7 @@ export async function sendMarketingRecipient(input: {
       await sendTextMessage(input.evolution, toEvolutionNumber(input.phone), body);
       mocked = false;
     } catch (error) {
-      return { error: evolutionSendFailure(error) };
+      if (!input.allowMock) return { error: evolutionSendFailure(error) };
     }
   }
 
