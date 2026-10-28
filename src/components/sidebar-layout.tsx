@@ -72,25 +72,23 @@ export function SidebarLayout({
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-start justify-between gap-2 px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
-          <div className="min-w-0 flex-1">
-            <div className="text-lg font-semibold tracking-tight">
+        <div className="px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1 text-lg font-semibold tracking-tight">
               Mega<span className="text-blue-400">Beauty</span>
             </div>
-            <div className="mt-1 text-xs font-medium tracking-wider text-slate-400 uppercase">{plan}</div>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="min-w-0 flex-1 truncate text-sm text-slate-300">{title}</div>
-              {headerAction ? <div className="text-slate-300 hover:[&_a]:bg-white/10">{headerAction}</div> : null}
-            </div>
+            {headerAction ? <div className="text-slate-300 hover:[&_a]:bg-white/10">{headerAction}</div> : null}
+            <button
+              type="button"
+              className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white md:hidden"
+              aria-label="Fechar menu"
+              onClick={() => setOpen(false)}
+            >
+              <X size={18} />
+            </button>
           </div>
-          <button
-            type="button"
-            className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white md:hidden"
-            aria-label="Fechar menu"
-            onClick={() => setOpen(false)}
-          >
-            <X size={18} />
-          </button>
+          <div className="mt-1 text-xs font-medium tracking-wider text-slate-400 uppercase">{plan}</div>
+          <div className="mt-3 truncate text-sm text-slate-300">{title}</div>
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto px-3">
           {items.map((item) => {
