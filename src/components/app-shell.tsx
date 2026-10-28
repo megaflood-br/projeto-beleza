@@ -22,6 +22,7 @@ import {
   Tag,
   Bell,
   Megaphone,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { stopImpersonation } from "@/app/actions/platform";
@@ -35,6 +36,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/anamneses", label: "Anamnese", icon: ClipboardList },
+  { href: "/pops", label: "POPs", icon: ShieldCheck },
   { href: "/servicos", label: "Serviços", icon: Scissors },
   { href: "/equipe", label: "Equipe", icon: Users },
   { href: "/usuarios", label: "Usuários", icon: UserCog },

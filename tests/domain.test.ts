@@ -73,6 +73,14 @@ import {
 } from "@/lib/support";
 import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEvolutionState } from "@/lib/evolution";
 import {
+  fillPopText,
+  matchServicePop,
+  popPublicPath,
+  salonCompany,
+  uniquePopSlug,
+  POP_CATALOG,
+} from "@/lib/pops";
+import {
   clientHasTag,
   isEligibleMarketingClient,
   isInactiveSince,
@@ -960,5 +968,31 @@ describe("pedidos de fornecedor", () => {
       waiting: 2,
       total: 5,
     });
+  });
+
+  it("monta POP com dados da empresa e casa serviço com o modelo da vigilância", () => {
+    expect(POP_CATALOG.length).toBeGreaterThanOrEqual(7);
+    expect(matchServicePop("Depilação com cera").key).toBe("servico-depilacao");
+    expect(matchServicePop("Esmaltação em gel").key).toBe("servico-unhas");
+    expect(matchServicePop("Limpeza de pele").key).toBe("servico-estetica-facial");
+    expect(matchServicePop("Corte feminino").key).toBe("servico-cabelo");
+    expect(matchServicePop("Day spa exclusivo").key).toBe("servico-geral");
+    expect(fillPopText("POP do {{salao}} para {{servico}}", { salao: "Renove", servico: "depilação" })).toBe(
+      "POP do Renove para depilação",
+    );
+    expect(popPublicPath("renove", "lavagem-maos")).toBe("/pop/renove/lavagem-maos");
+    const used = new Set(["limpeza-de-pele"]);
+    expect(uniquePopSlug("Limpeza de pele", used)).toBe("limpeza-de-pele-2");
+    const company = salonCompany({
+      name: "Renove Estética Ltda",
+      tradeName: "Renove Estética e Bem Estar",
+      fiscalCnpj: "12345678000190",
+      fiscalStreet: "Rua das Flores",
+      fiscalNumber: "10",
+      city: "Atibaia",
+      fiscalUf: "SP",
+    });
+    expect(company.tradeName).toBe("Renove Estética e Bem Estar");
+    expect(company.address).toContain("Rua das Flores");
   });
 });
