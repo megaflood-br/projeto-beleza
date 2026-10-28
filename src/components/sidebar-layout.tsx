@@ -21,6 +21,7 @@ export function SidebarLayout({
   items,
   badge,
   banner,
+  headerAction,
   children,
 }: {
   plan: string;
@@ -29,6 +30,7 @@ export function SidebarLayout({
   items: SidebarNavItem[];
   badge?: (href: string) => ReactNode;
   banner?: ReactNode;
+  headerAction?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -70,13 +72,16 @@ export function SidebarLayout({
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-start justify-between px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
-          <div className="min-w-0">
+        <div className="flex items-start justify-between gap-2 px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
+          <div className="min-w-0 flex-1">
             <div className="text-lg font-semibold tracking-tight">
               Mega<span className="text-blue-400">Beauty</span>
             </div>
             <div className="mt-1 text-xs font-medium tracking-wider text-slate-400 uppercase">{plan}</div>
-            <div className="mt-3 truncate text-sm text-slate-300">{title}</div>
+            <div className="mt-3 flex items-center gap-2">
+              <div className="min-w-0 flex-1 truncate text-sm text-slate-300">{title}</div>
+              {headerAction ? <div className="text-slate-300 hover:[&_a]:bg-white/10">{headerAction}</div> : null}
+            </div>
           </div>
           <button
             type="button"
@@ -126,10 +131,13 @@ export function SidebarLayout({
           >
             <Menu size={20} />
           </button>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">{current?.label ?? "MegaBeauty"}</div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold">
+              {pathname.startsWith("/avisos") ? "Avisos" : (current?.label ?? "MegaBeauty")}
+            </div>
             <div className="truncate text-xs text-ink-soft">{title}</div>
           </div>
+          {headerAction ? <div className="text-ink">{headerAction}</div> : null}
         </header>
         <main className="min-w-0 flex-1 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8 [&_h1]:text-2xl md:[&_h1]:text-3xl">
           {banner}
