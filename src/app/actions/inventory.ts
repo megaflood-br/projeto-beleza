@@ -42,7 +42,8 @@ export async function upsertProduct(formData: FormData) {
   const cashbackPct = toNullableInt(formData.get("cashbackPct"));
   const returnRaw = Number(formData.get("returnAfterDays") ?? "");
   const returnAfterDays = Number.isFinite(returnRaw) && returnRaw > 0 ? returnRaw : null;
-  const minStock = Math.max(toNumber(formData.get("minStock"), 0), 0);
+  const minStockRaw = toNumber(formData.get("minStock"), 2);
+  const minStock = minStockRaw > 0 ? minStockRaw : 2;
   const initialStock = Math.max(toNumber(formData.get("stock"), 0), 0);
   const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;

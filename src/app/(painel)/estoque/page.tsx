@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { StockBoard } from "@/components/estoque/stock-board";
+import { loadSalonNotices } from "@/lib/salon-notices";
 
 export default async function EstoquePage() {
-  const { session } = await requireTenant();
-  const [products, categories, services, lots, requests, professionals] = await Promise.all([
+  const { session, tenant } = await requireTenant();
+  const [products, categories, services, lots, requests, professionals, notices] = await Promise.all([
     prisma.product.findMany({
       where: { tenantId: session.tenantId },
       include: { category: true, services: { include: { service: true } } },
@@ -31,12 +32,14 @@ export default async function EstoquePage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    loadSalonNotices(session.tenantId, tenant.city),
   ]);
 
   const brands = [...new Set(products.map((p) => p.brand).filter((name): name is string => Boolean(name)))];
 
   return (
     <StockBoard
+      restock={notices.restock}
       categories={categories.map((c) => ({ id: c.id, name: c.name }))}
       brands={brands}
       services={services}

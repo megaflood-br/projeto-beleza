@@ -9,6 +9,7 @@ import {
   UserCog,
   Scissors,
   Boxes,
+  Truck,
   Percent,
   Wallet,
   Receipt,
@@ -19,6 +20,7 @@ import {
   Target,
   FileText,
   Tag,
+  Bell,
 } from "lucide-react";
 import { stopImpersonation } from "@/app/actions/platform";
 import { SupportCallOverlay } from "@/components/suporte/call-overlay";
@@ -35,6 +37,8 @@ const NAV: SidebarNavItem[] = [
   { href: "/equipe", label: "Equipe", icon: Users },
   { href: "/usuarios", label: "Usuários", icon: UserCog },
   { href: "/estoque", label: "Estoque", icon: Boxes },
+  { href: "/avisos", label: "Avisos", icon: Bell },
+  { href: "/fornecedores", label: "Fornecedores", icon: Truck },
   { href: "/comandas", label: "Comandas", icon: Receipt },
   { href: "/promocoes", label: "Promoções", icon: Tag },
   { href: "/notas", label: "Notas fiscais", icon: FileText },
@@ -48,8 +52,15 @@ const NAV: SidebarNavItem[] = [
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
-function SupportNavBadge({ href }: { href: string }) {
+function NavBadges({ href, noticeCount }: { href: string; noticeCount: number }) {
   const { state } = useSupportLive();
+  if (href === "/avisos" && noticeCount > 0) {
+    return (
+      <span className="ml-auto rounded-full bg-amber-400 px-1.5 text-[10px] font-semibold text-amber-950">
+        {noticeCount}
+      </span>
+    );
+  }
   if (href !== "/suporte") return null;
   const ringing = state?.ringingCalls.filter((call) => call.startedById !== state.me.id).length ?? 0;
   const unread = state?.unread ?? 0;
@@ -67,12 +78,14 @@ export function AppShell({
   userName,
   plan,
   impersonatorName,
+  noticeCount = 0,
 }: {
   children: React.ReactNode;
   salon: string;
   userName: string;
   plan: string;
   impersonatorName?: string | null;
+  noticeCount?: number;
 }) {
   return (
     <ConfirmProvider>
@@ -82,7 +95,7 @@ export function AppShell({
           title={salon}
           userName={userName}
           items={NAV}
-          badge={(href) => <SupportNavBadge href={href} />}
+          badge={(href) => <NavBadges href={href} noticeCount={noticeCount} />}
           banner={
             impersonatorName ? (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-950">

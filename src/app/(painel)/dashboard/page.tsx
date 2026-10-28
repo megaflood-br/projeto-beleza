@@ -10,6 +10,8 @@ import {
   rangeBounds,
 } from "@/lib/dashboard";
 import { DashboardBoard } from "@/components/painel/dashboard-board";
+import { LowStockAlert, SalonCityHint, SupplierDealStrip } from "@/components/avisos/salon-alerts";
+import { loadSalonNotices } from "@/lib/salon-notices";
 
 function parseRange(fromRaw?: string, toRaw?: string) {
   const fallback = defaultDashboardRange();
@@ -32,7 +34,7 @@ export default async function DashboardPage({
   const prevRange = rangeBounds(previous.from, previous.to);
   const todayRange = rangeBounds(today, today);
 
-  const [income, prevIncome, todayIncome, appointments, prevAppointments, comandas, prevComandas] = await Promise.all([
+  const [income, prevIncome, todayIncome, appointments, prevAppointments, comandas, prevComandas, notices] = await Promise.all([
     prisma.transaction.findMany({
       where: { tenantId: session.tenantId, type: "INCOME", occurredAt: { gte: current.start, lt: current.end } },
       select: { amountCents: true, occurredAt: true },
@@ -60,6 +62,7 @@ export default async function DashboardPage({
       where: { tenantId: session.tenantId, occurredAt: { gte: prevRange.start, lt: prevRange.end } },
       select: { status: true },
     }),
+    loadSalonNotices(session.tenantId, tenant.city),
   ]);
 
   const worked = (status: string) => !["CANCELLED", "NO_SHOW", "PENDING"].includes(status);
@@ -111,5 +114,17 @@ export default async function DashboardPage({
     closeTime: tenant.closeTime,
   });
 
-  return <DashboardBoard userName={session.name} metrics={metrics} />;
+  return (
+    <DashboardBoard
+      userName={session.name}
+      metrics={metrics}
+      alerts={
+        <div className="space-y-4">
+          <SalonCityHint city={notices.city} />
+          <LowStockAlert items={notices.restock} always />
+          <SupplierDealStrip deals={notices.deals} always salonCity={notices.city} />
+        </div>
+      }
+    />
+  );
 }

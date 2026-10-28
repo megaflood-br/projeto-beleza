@@ -70,6 +70,11 @@ model Tenant {
   fiscalContoraCompanyId   String?
   fiscalCertificateAt      DateTime?
   fiscalCertificateUntil   DateTime?
+  kind                String   @default("SALON")
+  deliveryMinCents    Int      @default(0)
+  deliveryFeeCents    Int      @default(0)
+  supplierPayMethods  String   @default("PIX,CASH")
+  servedCities        String   @default("")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -104,8 +109,13 @@ model Tenant {
   professionalGoals  ProfessionalGoal[]
   fiscalInvoices     FiscalInvoice[]
   promotions         Promotion[]
+  catalogProducts    SupplierProduct[]
+  supplierPromos     SupplierPromotion[]
+  ordersAsSalon      SupplierOrder[] @relation("OrdersAsSalon")
+  ordersAsSupplier   SupplierOrder[] @relation("OrdersAsSupplier")
 
   @@index([slug])
+  @@index([kind])
 }
 
 model User {
@@ -128,6 +138,7 @@ model User {
   callsStarted      SupportCall[]    @relation("CallStarter")
   callsAccepted     SupportCall[]    @relation("CallAcceptor")
   supportPresence   SupportPresence?
+  supplierOrders    SupplierOrder[]
 
   @@index([tenantId])
 }
@@ -905,4 +916,104 @@ model CashbackMovement {
   createdAt     DateTime @default(now())
 
   @@index([tenantId, clientId, createdAt])
+}
+
+model SupplierProduct {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  brand       String?
+  sku         String?
+  category    String?
+  unit        String   @default("un")
+  priceCents  Int      @default(0)
+  minQty      Float    @default(1)
+  stock       Float?
+  description String?
+  imageUrl    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderItems  SupplierOrderItem[]
+  promoItems  SupplierPromotionItem[]
+
+  @@index([tenantId, active])
+}
+
+model SupplierPromotion {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name          String
+  note          String?
+  startsOn      DateTime
+  endsOn        DateTime
+  weekdays      String   @default("0,1,2,3,4,5,6")
+  dealType      String   @default("PERCENT")
+  discountValue Int      @default(0)
+  buyQty        Int      @default(0)
+  payQty        Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  items         SupplierPromotionItem[]
+
+  @@index([tenantId, active, startsOn, endsOn])
+}
+
+model SupplierPromotionItem {
+  id           String             @id @default(cuid())
+  promotionId  String
+  promotion    SupplierPromotion  @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  productId    String
+  product      SupplierProduct    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model SupplierOrder {
+  id               String   @id @default(cuid())
+  salonTenantId    String
+  salonTenant      Tenant   @relation("OrdersAsSalon", fields: [salonTenantId], references: [id], onDelete: Cascade)
+  supplierTenantId String
+  supplierTenant   Tenant   @relation("OrdersAsSupplier", fields: [supplierTenantId], references: [id], onDelete: Cascade)
+  createdById      String
+  createdBy        User     @relation(fields: [createdById], references: [id])
+  status           String   @default("SUBMITTED")
+  fulfillment      String   @default("PICKUP")
+  paymentMethod    String   @default("PIX")
+  paymentWhen      String   @default("ON_FULFILLMENT")
+  notes            String?
+  subtotalCents    Int      @default(0)
+  deliveryFeeCents Int      @default(0)
+  totalCents       Int      @default(0)
+  pickupCode       String?
+  salonAddress     String?
+  salonPhone       String?
+  pickupAddress    String?
+  fiscalInvoiceId  String?
+  receivedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  items            SupplierOrderItem[]
+
+  @@unique([pickupCode])
+  @@index([salonTenantId, createdAt])
+  @@index([supplierTenantId, status])
+}
+
+model SupplierOrderItem {
+  id        String           @id @default(cuid())
+  orderId   String
+  order     SupplierOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   SupplierProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name      String
+  brand     String?
+  sku       String?
+  unit      String           @default("un")
+  quantity  Float
+  unitCents Int
+  lineCents Int
 }

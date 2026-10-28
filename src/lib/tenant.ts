@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession, isPlatformAdmin, type SessionUser } from "@/lib/auth";
+import { getSession, homePath, isPlatformAdmin, type SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export async function requireSession(): Promise<SessionUser> {
@@ -12,6 +12,8 @@ export function scopedTenant<T extends { tenantId: string }>(tenantId: string, d
   return { ...data, tenantId };
 }
 
+export { homePath };
+
 export async function requireTenant() {
   const session = await requireSession();
   if (isPlatformAdmin(session.role) && !session.impersonatorId) {
@@ -19,6 +21,20 @@ export async function requireTenant() {
   }
   const tenant = await prisma.tenant.findUnique({ where: { id: session.tenantId } });
   if (!tenant) redirect("/login");
+  if (tenant.kind === "SUPPLIER") redirect("/fornecedor");
+  if (tenant.status === "SUSPENDED" && !session.impersonatorId) {
+    redirect("/login?suspended=1");
+  }
+  return { session, tenant };
+}
+
+export async function requireSupplier() {
+  const session = await requireSession();
+  if (isPlatformAdmin(session.role) && !session.impersonatorId) {
+    redirect("/plataforma");
+  }
+  const tenant = await prisma.tenant.findUnique({ where: { id: session.tenantId } });
+  if (!tenant || tenant.kind !== "SUPPLIER") redirect("/dashboard");
   if (tenant.status === "SUSPENDED" && !session.impersonatorId) {
     redirect("/login?suspended=1");
   }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import {
   clearSessionCookie,
   hashPassword,
+  homePath,
   setSessionCookie,
   verifyPassword,
   type SessionUser,
@@ -39,8 +40,9 @@ export async function loginAction(formData: FormData) {
     name: user.name,
     role: user.role as Role,
   });
-  const home = user.role === "SUPER_ADMIN" ? "/plataforma" : "/dashboard";
-  redirect(next.startsWith("/") ? next : home);
+  const home = homePath(user.role, user.tenant.kind);
+  const allowedNext = next.startsWith("/") && home === "/dashboard" ? next : home;
+  redirect(allowedNext);
 }
 
 export async function registerAction(formData: FormData) {

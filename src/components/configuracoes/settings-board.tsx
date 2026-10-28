@@ -8,6 +8,8 @@ import { formatCnpj, type FiscalConfig } from "@/lib/fiscal";
 import { parseIssuerAddress } from "@/lib/contora";
 import { SETTINGS_TABS, type SettingsTab } from "@/lib/settings";
 import { ImportClientsForm } from "@/components/configuracoes/import-clients";
+import { SalonCityField } from "@/components/fornecedor/city-picker";
+import { resolveCityLabel } from "@/lib/br-cities";
 import type { CashbackConfig } from "@/lib/cashback";
 
 export type SalonSettingsValue = {
@@ -99,7 +101,7 @@ function SalonForm({ salon }: { salon: SalonSettingsValue }) {
           <Input name="address" defaultValue={salon.address ?? ""} />
         </Field>
         <Field label="Cidade">
-          <Input name="city" defaultValue={salon.city ?? ""} />
+          <SalonCityField defaultValue={resolveCityLabel(salon.city)} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Abre">

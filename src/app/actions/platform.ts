@@ -18,7 +18,9 @@ function text(formData: FormData, key: string) {
 
 function revalidatePlatform() {
   revalidatePath("/plataforma");
+  revalidatePath("/plataforma/fornecedores");
   revalidatePath("/dashboard");
+  revalidatePath("/fornecedores");
 }
 
 export async function saveTenantAccount(formData: FormData) {
@@ -98,6 +100,7 @@ export async function saveTenantAccount(formData: FormData) {
       city,
       notes,
       trialEndsAt: status === "TRIAL" ? addDays(new Date(), 14) : null,
+      kind: "SALON",
       users: {
         create: {
           name: ownerName,
@@ -142,10 +145,15 @@ export async function impersonateTenant(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const tenant = await prisma.tenant.findFirst({
     where: { id, isPlatform: false },
-    include: { users: { where: { role: "OWNER", active: true }, orderBy: { createdAt: "asc" }, take: 1 } },
+    include: { users: { where: { active: true }, orderBy: { createdAt: "asc" }, take: 1 } },
   });
-  const owner = tenant?.users[0];
-  if (!tenant || !owner) return { error: "Não há um proprietário ativo neste salão." };
+  const owner =
+    tenant?.users[0] ??
+    (await prisma.user.findFirst({
+      where: { tenantId: id, active: true },
+      orderBy: { createdAt: "asc" },
+    }));
+  if (!tenant || !owner) return { error: "Não há um usuário ativo nesta conta." };
 
   await setSessionCookie({
     userId: owner.id,
@@ -156,7 +164,7 @@ export async function impersonateTenant(formData: FormData) {
     impersonatorId: session.userId,
     impersonatorName: session.name,
   });
-  redirect("/dashboard");
+  redirect(owner.role === "SUPPLIER" || tenant.kind === "SUPPLIER" ? "/fornecedor" : "/dashboard");
 }
 
 export async function stopImpersonation() {

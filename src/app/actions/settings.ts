@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { parseBRLToCents } from "@/lib/money";
 import { normalizeCentsPerPoint } from "@/lib/cashback";
+import { resolveCityLabel } from "@/lib/br-cities";
 
 function toInt(raw: FormDataEntryValue | null, fallback: number) {
   const value = Number(String(raw ?? "").replace(",", "."));
@@ -25,7 +26,7 @@ export async function saveSettings(formData: FormData) {
       phone: String(formData.get("phone") ?? "") || null,
       email: String(formData.get("email") ?? "") || null,
       address: String(formData.get("address") ?? "") || null,
-      city: String(formData.get("city") ?? "") || null,
+      city: resolveCityLabel(String(formData.get("city") ?? "")) || null,
       openTime: String(formData.get("openTime") ?? "08:00"),
       closeTime: String(formData.get("closeTime") ?? "20:00"),
       reminderHours: Number(formData.get("reminderHours") ?? 24),
@@ -33,6 +34,7 @@ export async function saveSettings(formData: FormData) {
   });
   revalidatePath("/configuracoes");
   revalidatePath("/agenda");
+  revalidatePath("/fornecedores");
   return { ok: true };
 }
 

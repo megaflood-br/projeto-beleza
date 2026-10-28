@@ -37,6 +37,20 @@ import {
 } from "@/lib/dashboard";
 import { accountBalanceDelta, availableAt, feeCents, netAmountCents, settlementLabel, summarizeAccountBalances } from "@/lib/ledger";
 import {
+  canChangeSupplierOrder,
+  canReceiveSupplierOrder,
+  orderLineCents,
+  orderTotalCents,
+  parseOrderQty,
+  parseSupplierPayMethods,
+  quoteSupplierFulfillment,
+  serializeSupplierPayMethods,
+  supplierOrderStatusLabel,
+} from "@/lib/supplier-market";
+import { parseServedCities, resolveCityLabel, supplierServesSalon } from "@/lib/br-cities";
+import { applySupplierPromo, bundlePayableQty } from "@/lib/supplier-promo";
+import { buildLowStockAlerts, productsLookAlike } from "@/lib/supplier-alerts";
+import {
   anamnesisDocumentItems,
   collectAlerts,
   DEFAULT_ANAMNESIS_FORMS,
@@ -160,6 +174,8 @@ describe("estoque", () => {
   it("marca estoque mínimo", () => {
     expect(isLowStock(2, 4)).toBe(true);
     expect(isLowStock(8, 4)).toBe(false);
+    expect(isLowStock(1, 0)).toBe(true);
+    expect(isLowStock(3, 0)).toBe(false);
   });
 
   it("formata quantidade com unidade", () => {
@@ -804,5 +820,91 @@ describe("promoções", () => {
     expect(applyCatalogPrice([promo], "2026-10-24", "SERVICE", "corte", 8000, 6400).promoName).toBe("Fim de semana do corte");
     expect(applyCatalogPrice([promo], "2026-10-24", "SERVICE", "corte", 8000, 7000).priceCents).toBe(7000);
     expect(weekdayHeat([10, 4, 2, 8, 9, 12, 3]).find((day) => day.id === 2)?.weak).toBe(true);
+  });
+});
+
+describe("pedidos de fornecedor", () => {
+  it("calcula linhas e total", () => {
+    expect(parseOrderQty("2,5", 1)).toBe(2.5);
+    expect(orderLineCents(2, 2490)).toBe(4980);
+    expect(orderTotalCents([{ lineCents: 8900 }, { lineCents: 4980 }])).toBe(13880);
+  });
+
+  it("restringe a troca de status", () => {
+    expect(canChangeSupplierOrder("SUBMITTED", "CONFIRMED", "supplier")).toBe(true);
+    expect(canChangeSupplierOrder("SUBMITTED", "CANCELLED", "salon")).toBe(true);
+    expect(canChangeSupplierOrder("CONFIRMED", "CANCELLED", "salon")).toBe(false);
+    expect(canChangeSupplierOrder("SHIPPED", "DELIVERED", "supplier")).toBe(true);
+    expect(canReceiveSupplierOrder("SHIPPED", null)).toBe(true);
+    expect(canReceiveSupplierOrder("SUBMITTED", null)).toBe(false);
+    expect(canReceiveSupplierOrder("DELIVERED", new Date())).toBe(false);
+  });
+
+  it("bloqueia entrega abaixo do mínimo e soma a taxa", () => {
+    const below = quoteSupplierFulfillment({
+      subtotalCents: 8900,
+      fulfillment: "DELIVERY",
+      deliveryMinCents: 15000,
+      deliveryFeeCents: 1500,
+    });
+    expect(below.ok).toBe(false);
+    expect(below.missingCents).toBe(6100);
+    const ok = quoteSupplierFulfillment({
+      subtotalCents: 15000,
+      fulfillment: "DELIVERY",
+      deliveryMinCents: 15000,
+      deliveryFeeCents: 1500,
+    });
+    expect(ok).toEqual({ ok: true, fulfillment: "DELIVERY", feeCents: 1500, totalCents: 16500, missingCents: 0 });
+    const pickup = quoteSupplierFulfillment({
+      subtotalCents: 8900,
+      fulfillment: "PICKUP",
+      deliveryMinCents: 15000,
+      deliveryFeeCents: 1500,
+    });
+    expect(pickup).toEqual({ ok: true, fulfillment: "PICKUP", feeCents: 0, totalCents: 8900, missingCents: 0 });
+  });
+
+  it("normaliza formas de pagamento e rótulos de retirada", () => {
+    expect(parseSupplierPayMethods("PIX,CASH")).toEqual(["PIX", "CASH"]);
+    expect(serializeSupplierPayMethods(["PIX", "BOLETO", "TRANSFER"])).toBe("PIX,TRANSFER");
+    expect(supplierOrderStatusLabel("SHIPPED", "PICKUP")).toBe("Pronto para retirada");
+    expect(supplierOrderStatusLabel("SHIPPED", "DELIVERY")).toBe("Saiu para entrega");
+    expect(supplierOrderStatusLabel("DELIVERED", "PICKUP")).toBe("Retirado");
+  });
+
+  it("mostra o fornecedor só na cidade que ele atende", () => {
+    expect(resolveCityLabel("atibaia, sp")).toBe("Atibaia/SP");
+    expect(parseServedCities('["Atibaia/SP","Campinas/SP"]')).toEqual(["Atibaia/SP", "Campinas/SP"]);
+    expect(supplierServesSalon('["Atibaia/SP","Bragança Paulista/SP"]', "Atibaia, SP")).toBe(true);
+    expect(supplierServesSalon('["Atibaia/SP"]', "Campinas/SP")).toBe(false);
+    expect(supplierServesSalon("", "Atibaia/SP")).toBe(false);
+  });
+
+  it("calcula leve 5 pague 3 e casa estoque baixo com o catálogo", () => {
+    expect(bundlePayableQty(5, 5, 3)).toBe(3);
+    expect(bundlePayableQty(7, 5, 3)).toBe(5);
+    expect(bundlePayableQty(4, 5, 3)).toBe(4);
+    const rule = {
+      id: "1",
+      name: "Só hoje",
+      note: null,
+      startsOn: "2026-10-27",
+      endsOn: "2026-10-27",
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
+      dealType: "BUNDLE" as const,
+      discountValue: 0,
+      buyQty: 5,
+      payQty: 3,
+      active: true,
+      productIds: ["p1"],
+    };
+    expect(applySupplierPromo([rule], "p1", 1000, 5, "2026-10-27").lineCents).toBe(3000);
+    expect(productsLookAlike({ name: "Máscara hidratação 500ml", brand: "Lumina" }, { name: "Máscara hidratação 500ml", brand: "Lumina" })).toBe(true);
+    const alerts = buildLowStockAlerts(
+      [{ id: "s1", name: "Máscara hidratação 500ml", brand: "Lumina", stock: 1, minStock: 2, unit: "un", active: true }],
+      [{ id: "p1", name: "Máscara hidratação 500ml", brand: "Lumina", supplierName: "Beauty Supply SP", priceCents: 8900 }],
+    );
+    expect(alerts[0]?.supplierName).toBe("Beauty Supply SP");
   });
 });
