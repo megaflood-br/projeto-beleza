@@ -51,6 +51,12 @@ export async function upsertProduct(formData: FormData) {
   const active = String(formData.get("active") ?? "") !== "0";
 
   if (!name) return { error: "Nome do produto é obrigatório." };
+  if (!categoryId) return { error: "Selecione ou cadastre uma categoria." };
+  const category = await prisma.productCategory.findFirst({
+    where: { id: categoryId, tenantId: session.tenantId },
+    select: { id: true },
+  });
+  if (!category) return { error: "Categoria inválida. Cadastre uma categoria no Estoque." };
   if (imageUrl && imageUrl.length > 400_000) {
     return { error: "Imagem muito grande. Use uma foto menor." };
   }
@@ -255,6 +261,63 @@ export async function reviewProductRequest(id: string, status: "APPROVED" | "REJ
   }
 
   await prisma.productRequest.update({ where: { id }, data: { status } });
+  revalidatePath("/estoque");
+  return { ok: true };
+}
+
+function foldName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+export async function saveProductCategory(formData: FormData) {
+  const { session } = await requireTenant();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Informe o nome da categoria." };
+
+  const others = await prisma.productCategory.findMany({
+    where: { tenantId: session.tenantId, ...(id ? { id: { not: id } } : {}) },
+    select: { name: true },
+  });
+  if (others.some((row) => foldName(row.name) === foldName(name))) {
+    return { error: "Já existe uma categoria com este nome." };
+  }
+
+  if (id) {
+    const existing = await prisma.productCategory.findFirst({ where: { id, tenantId: session.tenantId } });
+    if (!existing) return { error: "Categoria não encontrada." };
+    await prisma.productCategory.update({ where: { id }, data: { name } });
+    revalidatePath("/estoque");
+    return { ok: true, id, name };
+  }
+
+  const last = await prisma.productCategory.findFirst({
+    where: { tenantId: session.tenantId },
+    orderBy: { sortOrder: "desc" },
+  });
+  const created = await prisma.productCategory.create({
+    data: { tenantId: session.tenantId, name, sortOrder: (last?.sortOrder ?? -1) + 1 },
+  });
+  revalidatePath("/estoque");
+  return { ok: true, id: created.id, name: created.name };
+}
+
+export async function deleteProductCategory(formData: FormData) {
+  const { session } = await requireTenant();
+  const id = String(formData.get("id") ?? "");
+  const category = await prisma.productCategory.findFirst({
+    where: { id, tenantId: session.tenantId },
+    include: { _count: { select: { products: true } } },
+  });
+  if (!category) return { error: "Categoria não encontrada." };
+  if (category._count.products) {
+    return { error: "Esta categoria está em uso. Troque os produtos antes de excluir." };
+  }
+  await prisma.productCategory.delete({ where: { id } });
   revalidatePath("/estoque");
   return { ok: true };
 }

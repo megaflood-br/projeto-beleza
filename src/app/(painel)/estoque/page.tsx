@@ -11,7 +11,11 @@ export default async function EstoquePage() {
       include: { category: true, services: { include: { service: true } } },
       orderBy: { name: "asc" },
     }),
-    prisma.productCategory.findMany({ where: { tenantId: session.tenantId }, orderBy: { sortOrder: "asc" } }),
+    prisma.productCategory.findMany({
+      where: { tenantId: session.tenantId },
+      orderBy: { sortOrder: "asc" },
+      include: { _count: { select: { products: true } } },
+    }),
     prisma.service.findMany({
       where: { tenantId: session.tenantId, active: true },
       orderBy: { name: "asc" },
@@ -40,7 +44,7 @@ export default async function EstoquePage() {
   return (
     <StockBoard
       restock={notices.restock}
-      categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+      categories={categories.map((c) => ({ id: c.id, name: c.name, productCount: c._count.products }))}
       brands={brands}
       services={services}
       professionals={professionals}
