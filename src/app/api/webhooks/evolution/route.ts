@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { extractEvolutionNumber, extractInboundText, extractPhone, parseEvolutionState } from "@/lib/evolution";
+import { markMarketingReplies } from "@/lib/marketing";
 
 export async function POST(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("tenant");
@@ -42,6 +43,13 @@ export async function POST(request: NextRequest) {
       body,
     },
   });
+
+  await markMarketingReplies({
+    tenantId: tenant.id,
+    phone,
+    body,
+    conversationId: conversation.id,
+  }).catch(() => 0);
 
   return NextResponse.json({ ok: true });
 }

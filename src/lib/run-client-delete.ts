@@ -21,6 +21,9 @@ export async function deleteTenantClients(tenantId: string, clientIds: string[])
       where: { tenantId, clientId: { in: ids } },
       data: { clientId: null },
     });
+    if (typeof prisma.marketingRecipient?.deleteMany === "function") {
+      await prisma.marketingRecipient.deleteMany({ where: { tenantId, clientId: { in: ids } } });
+    }
     if (typeof prisma.campaignSend?.deleteMany === "function") {
       await prisma.campaignSend.deleteMany({ where: { tenantId, clientId: { in: ids } } });
     } else {
