@@ -14,6 +14,7 @@ function keep(current: string | null, next: string) {
 function revalidateIntegrations() {
   revalidatePath("/plataforma/integracoes");
   revalidatePath("/whatsapp");
+  revalidatePath("/marketing");
   revalidatePath("/ia");
   revalidatePath("/configuracoes");
   revalidatePath("/notas");

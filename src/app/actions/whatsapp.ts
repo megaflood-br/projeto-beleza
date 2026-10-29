@@ -51,6 +51,7 @@ export async function sendWhatsApp(formData: FormData) {
   });
 
   revalidatePath("/whatsapp");
+  revalidatePath("/marketing");
   return { ok: true, mocked: !(isEvolutionConfigured(config) && tenant.evolutionStatus === "open") };
 }
 
@@ -71,6 +72,7 @@ export async function connectWhatsAppInstance() {
   try {
     const result = await provisionWhatsAppInstance(session.tenantId);
     revalidatePath("/whatsapp");
+    revalidatePath("/marketing");
     return { ok: true as const, qr: result.qr };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Não foi possível gerar o QR Code." };
@@ -96,5 +98,6 @@ export async function disconnectWhatsAppInstance() {
     data: { evolutionStatus: "close", evolutionNumber: null },
   });
   revalidatePath("/whatsapp");
+  revalidatePath("/marketing");
   return { ok: true as const };
 }

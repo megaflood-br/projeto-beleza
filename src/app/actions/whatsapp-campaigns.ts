@@ -25,6 +25,7 @@ export async function toggleWhatsAppCampaign(formData: FormData) {
   if (!row) return { error: "Campanha não encontrada." };
   await prisma.automation.update({ where: { id }, data: { active } });
   revalidatePath("/whatsapp");
+  revalidatePath("/marketing");
   return { ok: true as const };
 }
 
@@ -39,6 +40,7 @@ export async function saveWhatsAppCampaign(formData: FormData) {
   if (!row) return { error: "Campanha não encontrada." };
   await prisma.automation.update({ where: { id }, data: { template, active } });
   revalidatePath("/whatsapp");
+  revalidatePath("/marketing");
   return { ok: true as const };
 }
 
@@ -90,6 +92,7 @@ export async function sendCampaignTest(formData: FormData) {
     if ("reason" in result) return { error: result.reason };
     try {
       revalidatePath("/whatsapp");
+      revalidatePath("/marketing");
     } catch {
       /* cache miss after a successful send should not hide the result */
     }
@@ -117,5 +120,6 @@ export async function refreshWhatsAppCampaigns() {
   await ensureWhatsAppCampaigns(session.tenantId);
   const due = await runDueCampaigns(session.tenantId);
   revalidatePath("/whatsapp");
+  revalidatePath("/marketing");
   return { ok: true as const, sent: due.sent };
 }
