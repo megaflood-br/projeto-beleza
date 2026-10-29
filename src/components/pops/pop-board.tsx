@@ -9,6 +9,7 @@ import { PopDocument, type PopDocumentModel } from "@/components/pops/pop-docume
 import { popByKey, popSignerLabel, type SalonCompany } from "@/lib/pops";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export type PopRow = PopDocumentModel & {
   id: string;
@@ -54,17 +55,25 @@ export function PopBoard({
       <div>
         <h1 className="font-display text-3xl">POPs</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Procedimentos operacionais no padrão de vigilância sanitária. Dados da empresa vêm do cadastro do salão. Estética assina o
-          responsável técnico; cabelo, unhas, cílios e demais serviços de salão assinam o responsável da empresa.
+          Procedimentos operacionais no padrão de vigilância sanitária. Logo e responsável técnico ficam em{" "}
+          <Link href="/configuracoes?tab=salao" className="font-medium text-wine hover:underline">
+            Configurações
+          </Link>
+          . Estética assina o RT; cabelo, unhas e cílios assinam o responsável da empresa.
         </p>
       </div>
 
-      <Card className="text-sm text-ink-soft">
-        <p className="font-medium text-ink">{company.legalName}</p>
-        <p>
-          {company.document ? `CNPJ ${company.document}` : "CNPJ não informado no cadastro fiscal."}
-          {company.address || company.city ? ` · ${[company.address, company.city, company.uf].filter(Boolean).join(" · ")}` : ""}
-        </p>
+      <Card className="flex items-center gap-4 text-sm text-ink-soft">
+        {company.logoUrl ? (
+          <img src={company.logoUrl} alt="" className="h-12 w-auto max-w-[7rem] object-contain" />
+        ) : null}
+        <div>
+          <p className="font-medium text-ink">{company.legalName}</p>
+          <p>
+            {company.document ? `CNPJ ${company.document}` : "CNPJ não informado no cadastro fiscal."}
+            {company.address || company.city ? ` · ${[company.address, company.city, company.uf].filter(Boolean).join(" · ")}` : ""}
+          </p>
+        </div>
       </Card>
 
       {pops.length === 0 ? (
@@ -109,22 +118,23 @@ export function PopBoard({
                       void onSave(new FormData(event.currentTarget));
                     }}
                   >
-                    <Field label={template ? popSignerLabel(template.signer) : "Responsável"}>
-                      <Input
-                        name="responsible"
-                        defaultValue={selected.responsible}
-                        placeholder={
-                          template?.signer === "TECHNICAL"
-                            ? "Nome do responsável técnico habilitado"
-                            : "Nome do dono ou responsável legal da empresa"
-                        }
-                      />
-                    </Field>
                     {template?.signer === "TECHNICAL" ? (
-                      <Field label="Registro profissional">
-                        <Input name="registry" defaultValue={selected.registry} placeholder="CRBM, conselho de classe, nº" />
+                      <p className="text-xs text-ink-soft">
+                        O responsável técnico e o registro vêm de{" "}
+                        <Link href="/configuracoes?tab=salao" className="font-medium text-wine hover:underline">
+                          Configurações
+                        </Link>
+                        .
+                      </p>
+                    ) : (
+                      <Field label="Responsável da empresa">
+                        <Input
+                          name="responsible"
+                          defaultValue={selected.responsible}
+                          placeholder="Nome do dono ou responsável legal da empresa"
+                        />
                       </Field>
-                    ) : null}
+                    )}
                     <Field label="Periodicidade">
                       <Input name="frequency" defaultValue={selected.frequency} />
                     </Field>

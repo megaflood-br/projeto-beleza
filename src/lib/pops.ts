@@ -38,6 +38,7 @@ export type SalonCompany = {
   email: string;
   ie: string;
   im: string;
+  logoUrl: string;
 };
 
 export function salonCompany(tenant: {
@@ -56,6 +57,7 @@ export function salonCompany(tenant: {
   fiscalNumber?: string | null;
   fiscalDistrict?: string | null;
   fiscalZip?: string | null;
+  logoUrl?: string | null;
 }): SalonCompany {
   const street = [tenant.fiscalStreet, tenant.fiscalNumber, tenant.fiscalDistrict].filter(Boolean).join(", ");
   return {
@@ -74,6 +76,28 @@ export function salonCompany(tenant: {
     email: tenant.email || "",
     ie: tenant.fiscalIe || "",
     im: tenant.fiscalIm || "",
+    logoUrl: tenant.logoUrl || "",
+  };
+}
+
+export function effectivePopSigner(
+  signer: PopSigner,
+  row: { responsible?: string | null; registry?: string | null },
+  tenant: {
+    technicalResponsible?: string | null;
+    technicalRegistry?: string | null;
+    companyResponsible?: string | null;
+  },
+) {
+  if (signer === "TECHNICAL") {
+    return {
+      responsible: tenant.technicalResponsible?.trim() || row.responsible?.trim() || "",
+      registry: tenant.technicalRegistry?.trim() || row.registry?.trim() || "",
+    };
+  }
+  return {
+    responsible: row.responsible?.trim() || tenant.companyResponsible?.trim() || "",
+    registry: "",
   };
 }
 

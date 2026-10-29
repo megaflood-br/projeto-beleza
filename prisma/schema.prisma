@@ -17,6 +17,9 @@ model Tenant {
   email               String?
   address             String?
   city                String?
+  logoUrl             String?
+  technicalResponsible String  @default("")
+  technicalRegistry    String  @default("")
   timezone            String   @default("America/Sao_Paulo")
   plan                String   @default("profissional")
   status              String   @default("ACTIVE")

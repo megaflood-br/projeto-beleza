@@ -78,6 +78,7 @@ import {
   popDisclaimer,
   popPublicPath,
   popSignerLabel,
+  effectivePopSigner,
   salonCompany,
   uniquePopSlug,
   POP_CATALOG,
@@ -1007,8 +1008,26 @@ describe("pedidos de fornecedor", () => {
       fiscalNumber: "10",
       city: "Atibaia",
       fiscalUf: "SP",
+      logoUrl: "/uploads/logo/1/marca.png",
     });
     expect(company.tradeName).toBe("Renove Estética e Bem Estar");
     expect(company.address).toContain("Rua das Flores");
+    expect(company.logoUrl).toBe("/uploads/logo/1/marca.png");
+    expect(
+      effectivePopSigner("TECHNICAL", { responsible: "", registry: "" }, { technicalResponsible: "Dra. Ana", technicalRegistry: "CRBM 123" })
+        .responsible,
+    ).toBe("Dra. Ana");
+    expect(
+      effectivePopSigner("TECHNICAL", { responsible: "Outro RT", registry: "CRBM 9" }, { technicalResponsible: "Dra. Ana", technicalRegistry: "CRBM 123" })
+        .registry,
+    ).toBe("CRBM 123");
+    expect(
+      effectivePopSigner("TECHNICAL", { responsible: "Outro RT", registry: "CRBM 9" }, { technicalResponsible: "", technicalRegistry: "" })
+        .responsible,
+    ).toBe("Outro RT");
+    expect(
+      effectivePopSigner("COMPANY", { responsible: "" }, { companyResponsible: "Maria Dona", technicalResponsible: "Dra. Ana" })
+        .responsible,
+    ).toBe("Maria Dona");
   });
 });

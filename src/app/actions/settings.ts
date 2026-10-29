@@ -6,6 +6,7 @@ import { requireTenant } from "@/lib/tenant";
 import { parseBRLToCents } from "@/lib/money";
 import { normalizeCentsPerPoint } from "@/lib/cashback";
 import { resolveCityLabel } from "@/lib/br-cities";
+import { saveTenantLogo } from "@/lib/product-upload";
 
 function toInt(raw: FormDataEntryValue | null, fallback: number) {
   const value = Number(String(raw ?? "").replace(",", "."));
@@ -17,7 +18,9 @@ function checked(formData: FormData, key: string) {
 }
 
 export async function saveSettings(formData: FormData) {
-  const { session } = await requireTenant();
+  const { session, tenant } = await requireTenant();
+  const logoRaw = String(formData.get("logoUrl") ?? "").trim();
+  const logoUrl = await saveTenantLogo(session.tenantId, logoRaw || null, tenant.logoUrl);
   await prisma.tenant.update({
     where: { id: session.tenantId },
     data: {
@@ -30,11 +33,16 @@ export async function saveSettings(formData: FormData) {
       openTime: String(formData.get("openTime") ?? "08:00"),
       closeTime: String(formData.get("closeTime") ?? "20:00"),
       reminderHours: Number(formData.get("reminderHours") ?? 24),
+      technicalResponsible: String(formData.get("technicalResponsible") ?? "").trim(),
+      technicalRegistry: String(formData.get("technicalRegistry") ?? "").trim(),
+      logoUrl,
     },
   });
   revalidatePath("/configuracoes");
   revalidatePath("/agenda");
   revalidatePath("/fornecedores");
+  revalidatePath("/pops");
+  revalidatePath("/pop", "layout");
   return { ok: true };
 }
 

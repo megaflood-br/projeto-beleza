@@ -31,6 +31,8 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   return Boolean(
     productFields?.some((field) => field.name === "imageUrl") &&
       tenantFields?.some((field) => field.name === "servedCities") &&
+      tenantFields?.some((field) => field.name === "logoUrl") &&
+      tenantFields?.some((field) => field.name === "technicalResponsible") &&
       campaignFields?.some((field) => field.name === "serviceId") &&
       popFields?.some((field) => field.name === "registry"),
   );

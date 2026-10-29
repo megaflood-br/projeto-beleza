@@ -38,6 +38,9 @@ export function PopDocument({
   return (
     <article className="print-root rounded-2xl bg-white px-8 py-10 text-slate-900 shadow-2xl print:rounded-none print:px-0 print:py-0 print:shadow-none">
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5">
+        {company.logoUrl ? (
+          <img src={company.logoUrl} alt={`Logo ${company.tradeName}`} className="h-16 w-auto max-w-[10rem] object-contain" />
+        ) : null}
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold tracking-[0.2em] text-slate-500 uppercase">Procedimento operacional padrão</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">{pop.title}</h1>
