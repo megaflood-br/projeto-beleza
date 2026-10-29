@@ -75,7 +75,9 @@ import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEv
 import {
   fillPopText,
   matchServicePop,
+  popDisclaimer,
   popPublicPath,
+  popSignerLabel,
   salonCompany,
   uniquePopSlug,
   POP_CATALOG,
@@ -972,11 +974,25 @@ describe("pedidos de fornecedor", () => {
 
   it("monta POP com dados da empresa e casa serviço com o modelo da vigilância", () => {
     expect(POP_CATALOG.length).toBeGreaterThanOrEqual(7);
+    expect(POP_CATALOG.every((item) => item.signer === "COMPANY")).toBe(true);
     expect(matchServicePop("Depilação com cera").key).toBe("servico-depilacao");
+    expect(matchServicePop("Depilação com cera").signer).toBe("COMPANY");
     expect(matchServicePop("Esmaltação em gel").key).toBe("servico-unhas");
+    expect(matchServicePop("Manicure").signer).toBe("COMPANY");
+    expect(matchServicePop("Corte feminino").signer).toBe("COMPANY");
+    expect(matchServicePop("Extensão de cílios").key).toBe("servico-cilios");
+    expect(matchServicePop("Extensão de cílios").signer).toBe("COMPANY");
     expect(matchServicePop("Limpeza de pele").key).toBe("servico-estetica-facial");
-    expect(matchServicePop("Corte feminino").key).toBe("servico-cabelo");
+    expect(matchServicePop("Limpeza de pele").signer).toBe("TECHNICAL");
+    expect(matchServicePop("Massagem modeladora").signer).toBe("TECHNICAL");
+    expect(matchServicePop("Micropigmentação de sobrancelha").key).toBe("servico-micropigmentacao");
+    expect(matchServicePop("Micropigmentação de sobrancelha").signer).toBe("TECHNICAL");
+    expect(matchServicePop("Depilação a laser").signer).toBe("TECHNICAL");
     expect(matchServicePop("Day spa exclusivo").key).toBe("servico-geral");
+    expect(popSignerLabel("COMPANY")).toBe("Responsável da empresa");
+    expect(popSignerLabel("TECHNICAL")).toBe("Responsável técnico");
+    expect(popDisclaimer("COMPANY")).toContain("responsável da empresa");
+    expect(popDisclaimer("TECHNICAL")).toContain("responsável técnico");
     expect(fillPopText("POP do {{salao}} para {{servico}}", { salao: "Renove", servico: "depilação" })).toBe(
       "POP do Renove para depilação",
     );

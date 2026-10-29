@@ -27,10 +27,12 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   const productFields = models?.SupplierProduct?.fields;
   const tenantFields = models?.Tenant?.fields;
   const campaignFields = models?.MarketingCampaign?.fields;
+  const popFields = models?.SalonPop?.fields;
   return Boolean(
     productFields?.some((field) => field.name === "imageUrl") &&
       tenantFields?.some((field) => field.name === "servedCities") &&
-      campaignFields?.some((field) => field.name === "serviceId"),
+      campaignFields?.some((field) => field.name === "serviceId") &&
+      popFields?.some((field) => field.name === "registry"),
   );
 }
 

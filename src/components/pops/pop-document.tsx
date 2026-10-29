@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import { fillPopText, type PopTemplate, type SalonCompany } from "@/lib/pops";
+import { fillPopText, popDisclaimer, popSignerLabel, type PopTemplate, type SalonCompany } from "@/lib/pops";
 
 export type PopDocumentModel = {
   title: string;
   code: string;
   revision: number;
   responsible: string;
+  registry?: string;
   products: string;
   frequency: string;
   notes: string;
@@ -31,6 +32,8 @@ export function PopDocument({
     servico: pop.serviceName || template.area,
     empresa: company.legalName,
   };
+  const signerLabel = popSignerLabel(template.signer);
+  const technical = template.signer === "TECHNICAL";
 
   return (
     <article className="print-root rounded-2xl bg-white px-8 py-10 text-slate-900 shadow-2xl print:rounded-none print:px-0 print:py-0 print:shadow-none">
@@ -39,7 +42,7 @@ export function PopDocument({
           <p className="text-[11px] font-semibold tracking-[0.2em] text-slate-500 uppercase">Procedimento operacional padrão</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">{pop.title}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {pop.code} · Revisão {pop.revision} · {template.area}
+            {pop.code} · Revisão {pop.revision} · {template.area} · {signerLabel}
           </p>
         </div>
         {qr ? (
@@ -73,7 +76,8 @@ export function PopDocument({
           {[company.phone !== "—" ? company.phone : "", company.email].filter(Boolean).join(" · ") || "—"}
         </p>
         <p>
-          <span className="font-medium text-slate-500">Responsável:</span> {pop.responsible || "—"}
+          <span className="font-medium text-slate-500">{signerLabel}:</span> {pop.responsible || "—"}
+          {technical && pop.registry ? ` · ${pop.registry}` : ""}
         </p>
         <p>
           <span className="font-medium text-slate-500">Periodicidade:</span> {fillPopText(pop.frequency || template.defaultFrequency, vars)}
@@ -120,12 +124,30 @@ export function PopDocument({
         </ul>
       </Section>
 
+      <section className="mt-10 break-inside-avoid">
+        <h2 className="text-sm font-semibold tracking-wide text-slate-800 uppercase">Aprovação</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          {company.city ? `${company.city}${company.uf ? `/${company.uf}` : ""}, ` : ""}
+          data: ______ / ______ / __________
+        </p>
+        <div className="mt-8 max-w-sm">
+          <div className="border-t border-slate-800 pt-2 text-sm">
+            <p className="font-medium">{pop.responsible || "Nome: ________________________________"}</p>
+            <p className="text-slate-600">{signerLabel}</p>
+            {technical ? (
+              <p className="text-slate-600">Registro profissional: {pop.registry || "________________"}</p>
+            ) : (
+              <p className="text-slate-600">{company.legalName}</p>
+            )}
+            <p className="mt-6 text-slate-500">Assinatura</p>
+          </div>
+        </div>
+      </section>
+
       <p className="mt-8 text-xs leading-relaxed text-slate-500">
-        Documento operacional do estabelecimento, montado com os dados do cadastro. Não substitui responsável técnico nem ato da
-        Vigilância Sanitária. Última atualização: {pop.updatedAt}.
+        {popDisclaimer(template.signer)} Última atualização: {pop.updatedAt}.
         {publicUrl ? ` Consulta: ${publicUrl}` : ""}
       </p>
-
     </article>
   );
 }

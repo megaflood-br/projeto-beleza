@@ -6,7 +6,7 @@ import { PrintButton } from "@/components/pops/print-button";
 import { Button, Card, Field, Input, Textarea } from "@/components/ui";
 import { saveSalonPop } from "@/app/actions/pops";
 import { PopDocument, type PopDocumentModel } from "@/components/pops/pop-document";
-import { popByKey, type SalonCompany } from "@/lib/pops";
+import { popByKey, popSignerLabel, type SalonCompany } from "@/lib/pops";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -54,8 +54,8 @@ export function PopBoard({
       <div>
         <h1 className="font-display text-3xl">POPs</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Procedimentos operacionais no padrão de vigilância sanitária. Os dados da empresa vêm do cadastro do salão. Cada POP tem
-          impressão e QR individual.
+          Procedimentos operacionais no padrão de vigilância sanitária. Dados da empresa vêm do cadastro do salão. Estética assina o
+          responsável técnico; cabelo, unhas, cílios e demais serviços de salão assinam o responsável da empresa.
         </p>
       </div>
 
@@ -94,7 +94,7 @@ export function PopBoard({
                 </a>
                 {canManage ? (
                   <Button type="button" variant="outline" onClick={() => setEditing((value) => !value)}>
-                    {editing ? "Fechar edição" : "Responsável e produtos"}
+                    {editing ? "Fechar edição" : "Assinatura e produtos"}
                   </Button>
                 ) : null}
               </div>
@@ -102,15 +102,29 @@ export function PopBoard({
               {editing && canManage ? (
                 <Card>
                   <form
+                    key={selected.id}
                     className="grid gap-3"
                     onSubmit={(event) => {
                       event.preventDefault();
                       void onSave(new FormData(event.currentTarget));
                     }}
                   >
-                    <Field label="Responsável">
-                      <Input name="responsible" defaultValue={selected.responsible} placeholder="Nome do responsável técnico ou do salão" />
+                    <Field label={template ? popSignerLabel(template.signer) : "Responsável"}>
+                      <Input
+                        name="responsible"
+                        defaultValue={selected.responsible}
+                        placeholder={
+                          template?.signer === "TECHNICAL"
+                            ? "Nome do responsável técnico habilitado"
+                            : "Nome do dono ou responsável legal da empresa"
+                        }
+                      />
                     </Field>
+                    {template?.signer === "TECHNICAL" ? (
+                      <Field label="Registro profissional">
+                        <Input name="registry" defaultValue={selected.registry} placeholder="CRBM, conselho de classe, nº" />
+                      </Field>
+                    ) : null}
                     <Field label="Periodicidade">
                       <Input name="frequency" defaultValue={selected.frequency} />
                     </Field>
@@ -168,7 +182,7 @@ function PopList({
         >
           <div className="truncate text-sm font-medium">{row.title}</div>
           <div className="text-xs text-ink-soft">
-            {row.code} · rev. {row.revision}
+            {row.code} · rev. {row.revision} · {popSignerLabel(popByKey(row.templateKey)?.signer ?? "COMPANY")}
             {row.serviceName ? ` · ${row.serviceName}` : ""}
           </div>
         </button>

@@ -45,6 +45,7 @@ export default async function PublicPopPage({ params }: { params: Promise<{ slug
           code: template.code,
           revision: row.revision,
           responsible: row.responsible,
+          registry: row.registry,
           products: row.products,
           frequency: row.frequency,
           notes: row.notes,

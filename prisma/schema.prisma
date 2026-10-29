@@ -821,6 +821,7 @@ model SalonPop {
   slug        String
   title       String
   responsible String   @default("")
+  registry    String   @default("")
   products    String   @default("")
   frequency   String   @default("")
   notes       String   @default("")

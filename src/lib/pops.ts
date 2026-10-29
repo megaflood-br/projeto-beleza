@@ -4,9 +4,13 @@ import { formatPhoneBR, slugify } from "@/lib/utils";
 export const POP_KINDS = ["GERAL", "SERVICO"] as const;
 export type PopKind = (typeof POP_KINDS)[number];
 
+export const POP_SIGNERS = ["COMPANY", "TECHNICAL"] as const;
+export type PopSigner = (typeof POP_SIGNERS)[number];
+
 export type PopTemplate = {
   key: string;
   kind: PopKind;
+  signer: PopSigner;
   code: string;
   title: string;
   area: string;
@@ -103,13 +107,29 @@ const REFS_BASE = [
 ];
 
 function pop(
-  partial: Omit<PopTemplate, "references" | "kind"> & { kind?: PopKind; references?: string[] },
+  partial: Omit<PopTemplate, "references" | "kind" | "signer"> & {
+    kind?: PopKind;
+    signer?: PopSigner;
+    references?: string[];
+  },
 ): PopTemplate {
   return {
     kind: "GERAL",
+    signer: "COMPANY",
     references: REFS_BASE,
     ...partial,
   };
+}
+
+export function popSignerLabel(signer: PopSigner) {
+  return signer === "TECHNICAL" ? "Responsável técnico" : "Responsável da empresa";
+}
+
+export function popDisclaimer(signer: PopSigner) {
+  if (signer === "TECHNICAL") {
+    return "Procedimento de estética. Este POP exige responsável técnico habilitado. Não substitui alvará da Vigilância Sanitária.";
+  }
+  return "Serviço de salão de beleza. A aprovação é a assinatura do responsável da empresa. Procedimentos de estética exigem responsável técnico nos respectivos POPs.";
 }
 
 export const POP_CATALOG: PopTemplate[] = [
@@ -282,7 +302,7 @@ export const SERVICE_POP_TEMPLATES: PopTemplate[] = [
     code: "POP-S01",
     title: "Procedimento de depilação",
     area: "Depilação",
-    match: ["depil", "cera", "laser", "line", "buço", "virilha"],
+    match: ["depil", "cera", "line", "buço", "virilha"],
     objective: "Executar a depilação com biossegurança, reduzindo risco de queimadura, infecção e contaminação cruzada.",
     application: "Profissionais que realizam {{servico}} no {{salao}}.",
     defaultFrequency: "A cada sessão. Troca de espátula e proteção a cada cliente.",
@@ -369,6 +389,7 @@ export const SERVICE_POP_TEMPLATES: PopTemplate[] = [
   pop({
     key: "servico-estetica-facial",
     kind: "SERVICO",
+    signer: "TECHNICAL",
     code: "POP-S05",
     title: "Procedimento de estética facial",
     area: "Estética",
@@ -391,10 +412,11 @@ export const SERVICE_POP_TEMPLATES: PopTemplate[] = [
   pop({
     key: "servico-estetica-corporal",
     kind: "SERVICO",
+    signer: "TECHNICAL",
     code: "POP-S06",
     title: "Procedimento de estética corporal e massagem",
     area: "Estética",
-    match: ["massagem", "drenagem", "corporal", "modeladora", "criolipolise", "endermologia", "ventosa"],
+    match: ["massagem", "drenagem", "corporal", "modeladora", "criolipolise", "endermologia", "ventosa", "laser", "luz pulsada", "depilacao a laser", "depilação a laser"],
     objective: "Atender com lençol/campo limpo, óleo em dose individual e maca desinfetada.",
     application: "Profissionais de {{servico}} no {{salao}}.",
     defaultFrequency: "Rouparia e campo por cliente. Desinfecção da maca a cada troca.",
@@ -415,7 +437,7 @@ export const SERVICE_POP_TEMPLATES: PopTemplate[] = [
     code: "POP-S07",
     title: "Procedimento de sobrancelha e henna",
     area: "Estética",
-    match: ["sobrancelha", "henna", "brow", "design de sobrancelha", "micropigmentacao", "micropigmentação"],
+    match: ["sobrancelha", "henna", "brow", "design de sobrancelha"],
     objective: "Executar design e tintura com pinça processada e produto de uso individual na mistura.",
     application: "Profissionais de {{servico}} no {{salao}}.",
     defaultFrequency: "Pinça esterilizada ou desinfetada de alto nível por cliente. Aplicadores descartáveis.",
@@ -450,6 +472,53 @@ export const SERVICE_POP_TEMPLATES: PopTemplate[] = [
     hygiene: ["Descartar produto vencido, ressecado ou com alteração de cheiro/cor."],
     disposal: ["Spatulas e lenços: comum. Com secreção ocular: branco."],
     records: ["Controle de validade da maleta. Lavagem de pincéis."],
+  }),
+  pop({
+    key: "servico-cilios",
+    kind: "SERVICO",
+    code: "POP-S09",
+    title: "Procedimento de cílios",
+    area: "Cílios",
+    match: ["cilio", "cílio", "lash", "extensao de cilios", "extensão de cílios", "alongamento de cilios"],
+    objective: "Aplicar, alongar ou permanente de cílios com higiene da estação, cola de uso controlado e sem reutilizar descartável.",
+    application: "Profissionais de {{servico}} no {{salao}}.",
+    defaultFrequency: "Descartáveis e pad por cliente. Pinça processada a cada atendimento.",
+    defaultProducts: "Fita, pad, microbrush, cola para cílios com registro, pinça, álcool 70%, luva quando indicado.",
+    steps: [
+      "Perguntar alergia a cola/resina, blefarite, cirurgia ocular recente ou lente de contato.",
+      "Higienizar as mãos. Proteger a pálpebra inferior com pad novo.",
+      "Pinça processada (POP-03/04). Microbrush e fita de uso único.",
+      "Cola em godê individual — a sobra não volta ao frasco.",
+      "Não aplicar sobre inflamação, ferida ou secreção ocular.",
+      "Orientar: não molhar no prazo do fabricante, não puxar fios, sinais de alerta (ardência, edema).",
+    ],
+    hygiene: ["Maca, luminária e apoio: álcool 70% entre clientes. Não soprar a cola na direção do olho."],
+    disposal: ["Pads, fita e microbrush: comum. Com secreção ocular: saco branco. Pinça para processamento."],
+    records: ["Anamnese de alergia. Lote da cola quando o fabricante indicar."],
+  }),
+  pop({
+    key: "servico-micropigmentacao",
+    kind: "SERVICO",
+    signer: "TECHNICAL",
+    code: "POP-S10",
+    title: "Procedimento de micropigmentação",
+    area: "Estética",
+    match: ["micropigment", "nanopigment", "dermopigment"],
+    objective: "Executar micropigmentação com biossegurança, material estéril/descartável e responsável técnico habilitado.",
+    application: "Profissionais habilitados de {{servico}} no {{salao}}.",
+    defaultFrequency: "Kit estéril/descartável por cliente. Barreira no equipamento a cada atendimento.",
+    defaultProducts: "Agulha/cartucho estéril de uso único, tinta com registro, luva, campos, antisséptico, filme barreira, coletor de perfurocortante.",
+    steps: [
+      "Anamnese completa (coagulopatia, gestação, queloide, alergia, medicamentos, herpes).",
+      "Termo de consentimento. Fotos se o protocolo do {{salao}} prever.",
+      "Higienizar mãos, luva, campo. Barreira no derma pen/máquina.",
+      "Abrir agulha/cartucho na frente da cliente. Uso único — não reencapar.",
+      "Tinta em godê individual. Descartar sobra.",
+      "Ao término, agulha no coletor grupo E. Superfícies desinfetadas. Orientar cuidados e sinais de infecção.",
+    ],
+    hygiene: ["Proibido reutilizar cartucho, agulha ou biqueira. Bancada: desinfecção entre clientes."],
+    disposal: ["Agulha/cartucho: coletor amarelo. Gaze com sangue: saco branco."],
+    records: ["Anamnese, termo, lote da tinta e da agulha, identificação do responsável técnico."],
   }),
 ];
 
@@ -486,10 +555,17 @@ export function normalizePopNeedle(value: string) {
 
 export function matchServicePop(serviceName: string) {
   const haystack = normalizePopNeedle(serviceName);
-  const found = SERVICE_POP_TEMPLATES.find((template) =>
-    (template.match ?? []).some((keyword) => haystack.includes(normalizePopNeedle(keyword))),
-  );
-  return found ?? SERVICE_POP_FALLBACK;
+  let best: PopTemplate | null = null;
+  let bestLen = 0;
+  for (const template of SERVICE_POP_TEMPLATES) {
+    for (const keyword of template.match ?? []) {
+      const needle = normalizePopNeedle(keyword);
+      if (!needle || !haystack.includes(needle) || needle.length < bestLen) continue;
+      best = template;
+      bestLen = needle.length;
+    }
+  }
+  return best ?? SERVICE_POP_FALLBACK;
 }
 
 export function popPublicPath(tenantSlug: string, popSlug: string) {

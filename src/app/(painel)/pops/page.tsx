@@ -25,6 +25,7 @@ export default async function PopsPage() {
         code: template?.code ?? "POP",
         revision: row.revision,
         responsible: row.responsible,
+        registry: row.registry,
         products: row.products,
         frequency: row.frequency,
         notes: row.notes,

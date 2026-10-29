@@ -23,6 +23,7 @@ export async function saveSalonPop(formData: FormData) {
   if (!row) return { error: "POP não encontrado." };
   const template = popByKey(row.templateKey);
   const responsible = String(formData.get("responsible") ?? "").trim();
+  const registry = String(formData.get("registry") ?? "").trim();
   const products = String(formData.get("products") ?? "").trim();
   const frequency = String(formData.get("frequency") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
@@ -31,6 +32,7 @@ export async function saveSalonPop(formData: FormData) {
     where: { id },
     data: {
       responsible,
+      registry: template?.signer === "TECHNICAL" ? registry : "",
       products: products || template?.defaultProducts || row.products,
       frequency: frequency || template?.defaultFrequency || row.frequency,
       notes,

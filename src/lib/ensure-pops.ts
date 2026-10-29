@@ -23,7 +23,7 @@ export async function ensureSalonPops(tenantId: string) {
   const used = new Set(existing.map((row) => row.slug));
   const hasGeneral = new Set(existing.filter((row) => !row.serviceId).map((row) => row.templateKey));
   const hasService = new Set(existing.filter((row) => row.serviceId).map((row) => row.serviceId as string));
-  const responsible = owner?.name ?? "";
+  const companyResponsible = owner?.name ?? "";
 
   const create = [];
 
@@ -34,7 +34,7 @@ export async function ensureSalonPops(tenantId: string) {
       templateKey: template.key,
       slug: uniquePopSlug(template.key, used),
       title: template.title,
-      responsible,
+      responsible: template.signer === "TECHNICAL" ? "" : companyResponsible,
       products: template.defaultProducts,
       frequency: template.defaultFrequency,
       notes: "",
@@ -50,7 +50,7 @@ export async function ensureSalonPops(tenantId: string) {
       templateKey: template.key,
       slug: uniquePopSlug(service.name, used),
       title: `${template.code} · ${service.name}`,
-      responsible,
+      responsible: template.signer === "TECHNICAL" ? "" : companyResponsible,
       products: template.defaultProducts,
       frequency: template.defaultFrequency,
       notes: "",
