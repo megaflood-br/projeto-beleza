@@ -9,6 +9,7 @@ import { popByKey } from "@/lib/pops";
 function refreshPops(tenantSlug: string, popSlug: string) {
   try {
     revalidatePath("/pops");
+    revalidatePath("/documentacao");
     revalidatePath(`/pop/${tenantSlug}/${popSlug}`);
   } catch {
     /* ignore */

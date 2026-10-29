@@ -19,6 +19,7 @@ function revalidateIntegrations() {
   revalidatePath("/configuracoes");
   revalidatePath("/notas");
   revalidatePath("/pops");
+  revalidatePath("/documentacao");
 }
 
 export async function saveOpenAiIntegration(formData: FormData) {

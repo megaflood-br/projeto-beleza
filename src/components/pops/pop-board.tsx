@@ -26,10 +26,12 @@ export function PopBoard({
   company,
   pops,
   canManage,
+  embedded = false,
 }: {
   company: SalonCompany;
   pops: PopRow[];
   canManage: boolean;
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState(pops[0]?.id ?? "");
@@ -53,16 +55,18 @@ export function PopBoard({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="font-display text-3xl">POPs</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Procedimentos operacionais no padrão de vigilância sanitária. Logo e responsável técnico ficam em{" "}
-          <Link href="/configuracoes?tab=salao" className="font-medium text-wine hover:underline">
-            Configurações
-          </Link>
-          . Estética assina o RT; cabelo, unhas e cílios assinam o responsável da empresa.
-        </p>
-      </div>
+      {embedded ? null : (
+        <div>
+          <h1 className="font-display text-3xl">POPs</h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            Procedimentos operacionais no padrão de vigilância sanitária. Logo e responsável técnico ficam em{" "}
+            <Link href="/configuracoes?tab=salao" className="font-medium text-wine hover:underline">
+              Configurações
+            </Link>
+            . Estética assina o RT; cabelo, unhas e cílios assinam o responsável da empresa.
+          </p>
+        </div>
+      )}
 
       <Card className="flex items-center gap-4 text-sm text-ink-soft">
         {company.logoUrl ? (
@@ -74,6 +78,15 @@ export function PopBoard({
             {company.document ? `CNPJ ${company.document}` : "CNPJ não informado no cadastro fiscal."}
             {company.address || company.city ? ` · ${[company.address, company.city, company.uf].filter(Boolean).join(" · ")}` : ""}
           </p>
+          {embedded ? (
+            <p className="mt-1 text-xs">
+              Logo e responsável técnico em{" "}
+              <Link href="/configuracoes?tab=salao" className="font-medium text-wine hover:underline">
+                Configurações
+              </Link>
+              . Estética assina o RT; cabelo, unhas e cílios assinam o responsável da empresa.
+            </p>
+          ) : null}
         </div>
       </Card>
 

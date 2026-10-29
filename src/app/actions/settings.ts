@@ -42,6 +42,7 @@ export async function saveSettings(formData: FormData) {
   revalidatePath("/agenda");
   revalidatePath("/fornecedores");
   revalidatePath("/pops");
+  revalidatePath("/documentacao");
   revalidatePath("/pop", "layout");
   return { ok: true };
 }
