@@ -4,7 +4,6 @@ import { normalizeWhatsAppPhone, whatsappPhoneCandidates } from "@/lib/whatsapp-
 
 export const MARKETING_TABS = [
   { id: "listas", label: "Listas", description: "Segmente quem já fez um serviço, escolha os clientes e envie. Pendente, enviado, respondido e resolvido no Kanban." },
-  { id: "inbox", label: "Inbox", description: "Conversas do WhatsApp do salão." },
   { id: "campanhas", label: "Campanhas", description: "Mensagens automáticas de aniversário, lembrete, retorno e cobrança." },
   { id: "conexao", label: "Conexão", description: "QR Code e status do WhatsApp do salão." },
 ] as const;
@@ -17,6 +16,10 @@ export function isMarketingTab(value: string | undefined): value is MarketingTab
 
 export function parseMarketingTab(value?: string | null): MarketingTab {
   return value && isMarketingTab(value) ? value : "listas";
+}
+
+export function atendimentoPath(id?: string | null) {
+  return id ? `/atendimento?c=${encodeURIComponent(id)}` : "/atendimento";
 }
 
 export function marketingPath(tab: MarketingTab = "listas", id?: string | null) {

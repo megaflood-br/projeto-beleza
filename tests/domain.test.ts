@@ -104,6 +104,7 @@ import {
   nextCampaignStatus,
   parseMarketingTab,
   marketingPath,
+  atendimentoPath,
   parseRecipientIds,
   phonesMatch,
   pickMarketingAudience,
@@ -284,11 +285,14 @@ describe("comandas", () => {
     expect(parseSettingsTab("outro")).toBe("salao");
     expect(parseWhatsAppTab("campanhas")).toBe("campanhas");
     expect(parseWhatsAppTab("outro")).toBe("inbox");
-    expect(parseMarketingTab("inbox")).toBe("inbox");
+    expect(parseMarketingTab("inbox")).toBe("listas");
     expect(parseMarketingTab("conexao")).toBe("conexao");
+    expect(parseMarketingTab("campanhas")).toBe("campanhas");
     expect(parseMarketingTab("outro")).toBe("listas");
-    expect(marketingPath("inbox", "abc")).toBe("/marketing?tab=inbox&c=abc");
+    expect(marketingPath("conexao")).toBe("/marketing?tab=conexao");
     expect(marketingPath("listas")).toBe("/marketing");
+    expect(atendimentoPath("abc")).toBe("/atendimento?c=abc");
+    expect(atendimentoPath()).toBe("/atendimento");
     expect(normalizeCampaignTrigger("APPOINTMENT_CREATED")).toBe("INFORMED");
     expect(CAMPAIGN_CATALOG).toHaveLength(13);
     expect(renderCampaignTemplate("Oi {{nome}} no {{salao}}{{profissional}}", { nome: "Ana", salao: "Aurora", profissional: "Bruno" })).toBe(

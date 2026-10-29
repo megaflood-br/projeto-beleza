@@ -184,7 +184,7 @@ function CampaignDrawer({
           </Field>
           {!connected ? (
             <p className="text-sm text-amber-700">
-              Conecte o WhatsApp na aba Conexão para o teste sair no celular. Sem conexão, a mensagem só aparece no Inbox.
+              Conecte o WhatsApp na aba Conexão para o teste sair no celular. Sem conexão, a mensagem só aparece no Atendimento.
             </p>
           ) : null}
           {error ? <p className="text-sm text-red-600">{error}</p> : null}

@@ -31,6 +31,7 @@ function refreshMarketing() {
   try {
     revalidatePath("/marketing");
     revalidatePath("/whatsapp");
+    revalidatePath("/atendimento");
   } catch {
     /* cache miss after a successful write should not hide the result */
   }

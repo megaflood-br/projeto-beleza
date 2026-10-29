@@ -22,6 +22,7 @@ import {
   Bell,
   Megaphone,
   FolderOpen,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { stopImpersonation } from "@/app/actions/platform";
@@ -32,25 +33,26 @@ import { SidebarLayout, type SidebarNavItem } from "@/components/sidebar-layout"
 
 const NAV: SidebarNavItem[] = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
+  { href: "/ia", label: "Assistente IA", icon: Sparkles },
+  { href: "/atendimento", label: "Atendimento", icon: MessageCircle },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/comandas", label: "Comandas", icon: Receipt },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/anamneses", label: "Anamnese", icon: ClipboardList },
   { href: "/documentacao", label: "Documentação", icon: FolderOpen },
-  { href: "/servicos", label: "Serviços", icon: Scissors },
   { href: "/equipe", label: "Equipe", icon: Users },
   { href: "/usuarios", label: "Usuários", icon: UserCog },
-  { href: "/estoque", label: "Estoque", icon: Boxes },
-  { href: "/fornecedores", label: "Fornecedores", icon: Truck },
-  { href: "/comandas", label: "Comandas", icon: Receipt },
-  { href: "/promocoes", label: "Promoções", icon: Tag },
-  { href: "/notas", label: "Notas fiscais", icon: FileText },
-  { href: "/comissoes", label: "Comissões", icon: Percent },
   { href: "/metas", label: "Metas", icon: Target },
+  { href: "/comissoes", label: "Comissões", icon: Percent },
   { href: "/financeiro", label: "Financeiro", icon: Wallet },
-  { href: "/cadastros", label: "Cadastros", icon: Landmark },
+  { href: "/notas", label: "Notas fiscais", icon: FileText },
+  { href: "/estoque", label: "Estoque", icon: Boxes },
+  { href: "/servicos", label: "Serviços", icon: Scissors },
+  { href: "/promocoes", label: "Promoções", icon: Tag },
+  { href: "/fornecedores", label: "Fornecedores", icon: Truck },
   { href: "/marketing", label: "Marketing", icon: Megaphone },
+  { href: "/cadastros", label: "Cadastros", icon: Landmark },
   { href: "/suporte", label: "Suporte", icon: Headphones },
-  { href: "/ia", label: "Assistente IA", icon: Sparkles },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
