@@ -1,3 +1,5 @@
+import { publicAppOrigin } from "@/lib/public-url";
+
 export const WHATSAPP_TABS = [
   { id: "inbox", label: "Inbox", description: "Conversas do número do salão." },
   { id: "campanhas", label: "Campanhas", description: "Mensagens automáticas de aniversário, lembrete, retorno e cobrança." },
@@ -188,8 +190,8 @@ export function renderCampaignTemplate(template: string, vars: Record<string, st
 }
 
 export function bookingLink(publicAppUrl: string, slug: string) {
-  const base = publicAppUrl.replace(/\/$/, "");
-  return base ? `${base}/agendar/${slug}` : `/agendar/${slug}`;
+  const base = publicAppOrigin(publicAppUrl);
+  return `${base}/agendar/${slug}`;
 }
 
 export function appointmentPin(appointmentId: string) {

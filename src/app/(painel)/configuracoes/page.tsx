@@ -29,6 +29,9 @@ export default async function ConfigPage({
         closeTime: tenant.closeTime,
         reminderHours: tenant.reminderHours,
         slug: tenant.slug,
+        logoUrl: tenant.logoUrl ?? "",
+        technicalResponsible: tenant.technicalResponsible ?? "",
+        technicalRegistry: tenant.technicalRegistry ?? "",
       }}
       cashback={tenantCashbackConfig(tenant)}
       fiscal={{

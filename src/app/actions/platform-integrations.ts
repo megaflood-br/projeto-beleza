@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requirePlatformAdmin } from "@/lib/tenant";
+import { publicAppOrigin } from "@/lib/public-url";
 
 function keep(current: string | null, next: string) {
   const value = next.trim();
@@ -13,9 +14,11 @@ function keep(current: string | null, next: string) {
 function revalidateIntegrations() {
   revalidatePath("/plataforma/integracoes");
   revalidatePath("/whatsapp");
+  revalidatePath("/marketing");
   revalidatePath("/ia");
   revalidatePath("/configuracoes");
   revalidatePath("/notas");
+  revalidatePath("/pops");
 }
 
 export async function saveOpenAiIntegration(formData: FormData) {
@@ -45,7 +48,7 @@ export async function saveEvolutionIntegration(formData: FormData) {
     data: {
       evolutionUrl: keep(tenant.evolutionUrl, String(formData.get("evolutionUrl") ?? "")),
       evolutionApiKey: keep(tenant.evolutionApiKey, String(formData.get("evolutionApiKey") ?? "")),
-      publicAppUrl: String(formData.get("publicAppUrl") ?? "").trim().replace(/\/$/, "") || null,
+      publicAppUrl: publicAppOrigin(String(formData.get("publicAppUrl") ?? ""), false) || null,
     },
   });
   revalidateIntegrations();

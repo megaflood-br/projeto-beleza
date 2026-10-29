@@ -16,6 +16,9 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   if (typeof (client as { marketingCampaign?: { findMany?: unknown } }).marketingCampaign?.findMany !== "function") {
     return false;
   }
+  if (typeof (client as { salonPop?: { findMany?: unknown } }).salonPop?.findMany !== "function") {
+    return false;
+  }
   const models = (
     client as unknown as {
       _runtimeDataModel?: { models?: Record<string, { fields?: { name?: string }[] }> };
@@ -24,10 +27,14 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   const productFields = models?.SupplierProduct?.fields;
   const tenantFields = models?.Tenant?.fields;
   const campaignFields = models?.MarketingCampaign?.fields;
+  const popFields = models?.SalonPop?.fields;
   return Boolean(
     productFields?.some((field) => field.name === "imageUrl") &&
       tenantFields?.some((field) => field.name === "servedCities") &&
-      campaignFields?.some((field) => field.name === "serviceId"),
+      tenantFields?.some((field) => field.name === "logoUrl") &&
+      tenantFields?.some((field) => field.name === "technicalResponsible") &&
+      campaignFields?.some((field) => field.name === "serviceId") &&
+      popFields?.some((field) => field.name === "registry"),
   );
 }
 

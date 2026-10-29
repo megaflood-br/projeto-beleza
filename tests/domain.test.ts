@@ -73,12 +73,27 @@ import {
 } from "@/lib/support";
 import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEvolutionState } from "@/lib/evolution";
 import {
+  fillPopText,
+  matchServicePop,
+  popDisclaimer,
+  popPublicPath,
+  popPublicUrl,
+  absolutePopUrl,
+  popSignerLabel,
+  effectivePopSigner,
+  salonCompany,
+  uniquePopSlug,
+  POP_CATALOG,
+} from "@/lib/pops";
+import {
   clientHasTag,
   isEligibleMarketingClient,
   isInactiveSince,
   isMarketingReply,
   marketingLane,
   nextCampaignStatus,
+  parseMarketingTab,
+  marketingPath,
   parseRecipientIds,
   phonesMatch,
   pickMarketingAudience,
@@ -259,6 +274,11 @@ describe("comandas", () => {
     expect(parseSettingsTab("outro")).toBe("salao");
     expect(parseWhatsAppTab("campanhas")).toBe("campanhas");
     expect(parseWhatsAppTab("outro")).toBe("inbox");
+    expect(parseMarketingTab("inbox")).toBe("inbox");
+    expect(parseMarketingTab("conexao")).toBe("conexao");
+    expect(parseMarketingTab("outro")).toBe("listas");
+    expect(marketingPath("inbox", "abc")).toBe("/marketing?tab=inbox&c=abc");
+    expect(marketingPath("listas")).toBe("/marketing");
     expect(normalizeCampaignTrigger("APPOINTMENT_CREATED")).toBe("INFORMED");
     expect(CAMPAIGN_CATALOG).toHaveLength(13);
     expect(renderCampaignTemplate("Oi {{nome}} no {{salao}}{{profissional}}", { nome: "Ana", salao: "Aurora", profissional: "Bruno" })).toBe(
@@ -622,6 +642,9 @@ describe("integrações da plataforma", () => {
     expect(evolutionWebhookUrl("https://app.megabeauty.com.br/", "studio-aurora")).toBe(
       "https://app.megabeauty.com.br/api/webhooks/evolution?tenant=studio-aurora",
     );
+    expect(evolutionWebhookUrl("https://beauty.megaflood.cloud/api/webhooks/evolution", "renove")).toBe(
+      "https://beauty.megaflood.cloud/api/webhooks/evolution?tenant=renove",
+    );
     expect(evolutionWebhookUrl("", "studio-aurora")).toBe("");
   });
 
@@ -960,5 +983,69 @@ describe("pedidos de fornecedor", () => {
       waiting: 2,
       total: 5,
     });
+  });
+
+  it("monta POP com dados da empresa e casa serviço com o modelo da vigilância", () => {
+    expect(POP_CATALOG.length).toBeGreaterThanOrEqual(7);
+    expect(POP_CATALOG.every((item) => item.signer === "COMPANY")).toBe(true);
+    expect(matchServicePop("Depilação com cera").key).toBe("servico-depilacao");
+    expect(matchServicePop("Depilação com cera").signer).toBe("COMPANY");
+    expect(matchServicePop("Esmaltação em gel").key).toBe("servico-unhas");
+    expect(matchServicePop("Manicure").signer).toBe("COMPANY");
+    expect(matchServicePop("Corte feminino").signer).toBe("COMPANY");
+    expect(matchServicePop("Extensão de cílios").key).toBe("servico-cilios");
+    expect(matchServicePop("Extensão de cílios").signer).toBe("COMPANY");
+    expect(matchServicePop("Limpeza de pele").key).toBe("servico-estetica-facial");
+    expect(matchServicePop("Limpeza de pele").signer).toBe("TECHNICAL");
+    expect(matchServicePop("Massagem modeladora").signer).toBe("TECHNICAL");
+    expect(matchServicePop("Micropigmentação de sobrancelha").key).toBe("servico-micropigmentacao");
+    expect(matchServicePop("Micropigmentação de sobrancelha").signer).toBe("TECHNICAL");
+    expect(matchServicePop("Depilação a laser").signer).toBe("TECHNICAL");
+    expect(matchServicePop("Day spa exclusivo").key).toBe("servico-geral");
+    expect(popSignerLabel("COMPANY")).toBe("Responsável da empresa");
+    expect(popSignerLabel("TECHNICAL")).toBe("Responsável técnico");
+    expect(popDisclaimer("COMPANY")).toContain("responsável da empresa");
+    expect(popDisclaimer("TECHNICAL")).toContain("responsável técnico");
+    expect(fillPopText("POP do {{salao}} para {{servico}}", { salao: "Renove", servico: "depilação" })).toBe(
+      "POP do Renove para depilação",
+    );
+    expect(popPublicPath("renove", "lavagem-maos")).toBe("/pop/renove/lavagem-maos");
+    expect(popPublicUrl("https://beauty.megaflood.cloud/api/webhooks/evolution", "renove", "manicure")).toBe(
+      "https://beauty.megaflood.cloud/pop/renove/manicure",
+    );
+    expect(absolutePopUrl("https://beauty.megaflood.cloud/api/webhooks/evolution/pop/renove/manicure")).toBe(
+      "https://beauty.megaflood.cloud/pop/renove/manicure",
+    );
+    const used = new Set(["limpeza-de-pele"]);
+    expect(uniquePopSlug("Limpeza de pele", used)).toBe("limpeza-de-pele-2");
+    const company = salonCompany({
+      name: "Renove Estética Ltda",
+      tradeName: "Renove Estética e Bem Estar",
+      fiscalCnpj: "12345678000190",
+      fiscalStreet: "Rua das Flores",
+      fiscalNumber: "10",
+      city: "Atibaia",
+      fiscalUf: "SP",
+      logoUrl: "/uploads/logo/1/marca.png",
+    });
+    expect(company.tradeName).toBe("Renove Estética e Bem Estar");
+    expect(company.address).toContain("Rua das Flores");
+    expect(company.logoUrl).toBe("/uploads/logo/1/marca.png");
+    expect(
+      effectivePopSigner("TECHNICAL", { responsible: "", registry: "" }, { technicalResponsible: "Dra. Ana", technicalRegistry: "CRBM 123" })
+        .responsible,
+    ).toBe("Dra. Ana");
+    expect(
+      effectivePopSigner("TECHNICAL", { responsible: "Outro RT", registry: "CRBM 9" }, { technicalResponsible: "Dra. Ana", technicalRegistry: "CRBM 123" })
+        .registry,
+    ).toBe("CRBM 123");
+    expect(
+      effectivePopSigner("TECHNICAL", { responsible: "Outro RT", registry: "CRBM 9" }, { technicalResponsible: "", technicalRegistry: "" })
+        .responsible,
+    ).toBe("Outro RT");
+    expect(
+      effectivePopSigner("COMPANY", { responsible: "" }, { companyResponsible: "Maria Dona", technicalResponsible: "Dra. Ana" })
+        .responsible,
+    ).toBe("Maria Dona");
   });
 });

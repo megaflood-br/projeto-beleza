@@ -17,6 +17,9 @@ model Tenant {
   email               String?
   address             String?
   city                String?
+  logoUrl             String?
+  technicalResponsible String  @default("")
+  technicalRegistry    String  @default("")
   timezone            String   @default("America/Sao_Paulo")
   plan                String   @default("profissional")
   status              String   @default("ACTIVE")
@@ -115,6 +118,7 @@ model Tenant {
   ordersAsSupplier   SupplierOrder[] @relation("OrdersAsSupplier")
   marketingCampaigns MarketingCampaign[]
   marketingRecipients MarketingRecipient[]
+  salonPops          SalonPop[]
 
   @@index([slug])
   @@index([kind])
@@ -316,6 +320,7 @@ model Service {
   packages       Package[]
   comandaItems   ComandaItem[]
   promotions     PromotionItem[]
+  salonPops      SalonPop[]
 
   @@index([tenantId])
 }
@@ -807,6 +812,29 @@ model MarketingRecipient {
   @@index([tenantId, status])
   @@index([tenantId, phone])
   @@index([campaignId, status])
+}
+
+model SalonPop {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  serviceId   String?
+  service     Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  templateKey String
+  slug        String
+  title       String
+  responsible String   @default("")
+  registry    String   @default("")
+  products    String   @default("")
+  frequency   String   @default("")
+  notes       String   @default("")
+  revision    Int      @default(1)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, templateKey])
 }
 
 model AnamnesisForm {

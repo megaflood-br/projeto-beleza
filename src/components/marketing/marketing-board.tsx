@@ -198,18 +198,11 @@ export function MarketingBoard({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="font-display text-3xl">Marketing</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Segmente quem já fez um serviço, escolha os clientes e envie um a um. Pendente, enviado, respondido e resolvido ficam no Kanban.
-        </p>
-      </div>
-
       {!connected ? (
         <Card className="border-amber-200 bg-amber-50 text-amber-950">
           <p className="text-sm">
             WhatsApp desconectado. Em produção o envio só sai com a conexão aberta.{" "}
-            <Link href="/whatsapp?tab=conexao" className="font-medium underline">
+            <Link href="/marketing?tab=conexao" className="font-medium underline">
               Abrir conexão
             </Link>
           </p>
@@ -471,7 +464,7 @@ function RecipientCard({
   onToggle?: () => void;
   action?: React.ReactNode;
 }) {
-  const href = row.conversationId ? `/whatsapp?c=${row.conversationId}` : "/whatsapp";
+  const href = row.conversationId ? `/marketing?tab=inbox&c=${row.conversationId}` : "/marketing?tab=inbox";
   return (
     <article className="rounded-xl border border-line bg-white p-3">
       <div className="flex items-start gap-2">

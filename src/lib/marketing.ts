@@ -2,6 +2,31 @@ import { prisma } from "@/lib/db";
 import { calendarDate, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
 import { normalizeWhatsAppPhone, whatsappPhoneCandidates } from "@/lib/whatsapp-campaigns";
 
+export const MARKETING_TABS = [
+  { id: "listas", label: "Listas", description: "Segmente quem já fez um serviço, escolha os clientes e envie. Pendente, enviado, respondido e resolvido no Kanban." },
+  { id: "inbox", label: "Inbox", description: "Conversas do WhatsApp do salão." },
+  { id: "campanhas", label: "Campanhas", description: "Mensagens automáticas de aniversário, lembrete, retorno e cobrança." },
+  { id: "conexao", label: "Conexão", description: "QR Code e status do WhatsApp do salão." },
+] as const;
+
+export type MarketingTab = (typeof MARKETING_TABS)[number]["id"];
+
+export function isMarketingTab(value: string | undefined): value is MarketingTab {
+  return MARKETING_TABS.some((tab) => tab.id === value);
+}
+
+export function parseMarketingTab(value?: string | null): MarketingTab {
+  return value && isMarketingTab(value) ? value : "listas";
+}
+
+export function marketingPath(tab: MarketingTab = "listas", id?: string | null) {
+  const params = new URLSearchParams();
+  if (tab !== "listas") params.set("tab", tab);
+  if (id) params.set("c", id);
+  const query = params.toString();
+  return query ? `/marketing?${query}` : "/marketing";
+}
+
 export const MARKETING_BATCH = 50;
 export const MARKETING_CAP = 400;
 export const MARKETING_SEND_MAX = 15;

@@ -123,10 +123,12 @@ function EvolutionForm({
         <Field label="API key global">
           <Input name="evolutionApiKey" type="password" placeholder={evolutionMasked || "chave da Evolution"} />
         </Field>
-        <Field label="URL pública do MegaBeauty (webhook)">
-          <Input name="publicAppUrl" defaultValue={publicAppUrl ?? ""} placeholder="https://app.megabeauty.com.br" />
+        <Field label="URL pública do MegaBeauty">
+          <Input name="publicAppUrl" defaultValue={publicAppUrl ?? ""} placeholder="https://beauty.megaflood.cloud" />
         </Field>
-        <p className="text-xs text-ink-soft">Os salões não veem estas chaves. Em WhatsApp, cada um gera o QR da própria instância.</p>
+        <p className="text-xs text-ink-soft">
+          Só o endereço do site, sem /api/webhooks. O webhook da Evolution é montado sozinho. Os salões não veem estas chaves.
+        </p>
         <Button>Salvar WhatsApp</Button>
       </form>
     </Card>

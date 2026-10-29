@@ -14,7 +14,6 @@ import {
   Wallet,
   Receipt,
   Landmark,
-  MessageCircle,
   Sparkles,
   Settings,
   Target,
@@ -22,6 +21,7 @@ import {
   Tag,
   Bell,
   Megaphone,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { stopImpersonation } from "@/app/actions/platform";
@@ -35,6 +35,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/anamneses", label: "Anamnese", icon: ClipboardList },
+  { href: "/pops", label: "POPs", icon: ShieldCheck },
   { href: "/servicos", label: "Serviços", icon: Scissors },
   { href: "/equipe", label: "Equipe", icon: Users },
   { href: "/usuarios", label: "Usuários", icon: UserCog },
@@ -47,7 +48,6 @@ const NAV: SidebarNavItem[] = [
   { href: "/metas", label: "Metas", icon: Target },
   { href: "/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/cadastros", label: "Cadastros", icon: Landmark },
-  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { href: "/marketing", label: "Marketing", icon: Megaphone },
   { href: "/suporte", label: "Suporte", icon: Headphones },
   { href: "/ia", label: "Assistente IA", icon: Sparkles },

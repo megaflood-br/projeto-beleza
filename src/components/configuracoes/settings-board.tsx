@@ -8,6 +8,7 @@ import { formatCnpj, type FiscalConfig } from "@/lib/fiscal";
 import { parseIssuerAddress } from "@/lib/contora";
 import { SETTINGS_TABS, type SettingsTab } from "@/lib/settings";
 import { ImportClientsForm } from "@/components/configuracoes/import-clients";
+import { SalonLogoField } from "@/components/configuracoes/salon-logo-field";
 import { SalonCityField } from "@/components/fornecedor/city-picker";
 import { resolveCityLabel } from "@/lib/br-cities";
 import type { CashbackConfig } from "@/lib/cashback";
@@ -23,6 +24,9 @@ export type SalonSettingsValue = {
   closeTime: string;
   reminderHours: number;
   slug: string;
+  logoUrl: string;
+  technicalResponsible: string;
+  technicalRegistry: string;
 };
 
 export function SettingsBoard({
@@ -91,6 +95,24 @@ function SalonForm({ salon }: { salon: SalonSettingsValue }) {
         <Field label="Nome fantasia">
           <Input name="tradeName" defaultValue={salon.tradeName ?? ""} />
         </Field>
+        <SalonLogoField defaultUrl={salon.logoUrl} />
+        <Field label="Responsável técnico (estética)">
+          <Input
+            name="technicalResponsible"
+            defaultValue={salon.technicalResponsible}
+            placeholder="Nome do RT, se o salão oferece estética"
+          />
+        </Field>
+        <Field label="Registro do responsável técnico">
+          <Input
+            name="technicalRegistry"
+            defaultValue={salon.technicalRegistry}
+            placeholder="CRBM, conselho de classe, nº"
+          />
+        </Field>
+        <p className="text-xs text-ink-soft">
+          O RT entra só nos POPs de estética. Cabelo, unhas e cílios continuam com a assinatura do responsável da empresa.
+        </p>
         <Field label="Telefone">
           <Input name="phone" defaultValue={salon.phone ?? ""} />
         </Field>
