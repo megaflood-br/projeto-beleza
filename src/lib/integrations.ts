@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { publicAppOrigin } from "@/lib/public-url";
 
 export const INTEGRATION_TABS = [
   { id: "openai", label: "OpenAI", description: "Chave usada pelo assistente de todos os salões." },
@@ -42,7 +43,7 @@ export async function resolvePlatformIntegrations(): Promise<PlatformIntegration
   const contoraApiToken = hq?.contoraApiToken || process.env.CONTORA_API_TOKEN || "";
   const evolutionUrl = hq?.evolutionUrl || process.env.EVOLUTION_API_URL || "";
   const evolutionApiKey = hq?.evolutionApiKey || process.env.EVOLUTION_API_KEY || "";
-  const publicAppUrl = (hq?.publicAppUrl || process.env.APP_URL || "").replace(/\/$/, "");
+  const publicAppUrl = publicAppOrigin(hq?.publicAppUrl || process.env.APP_URL || "");
   return {
     openaiApiKey,
     contoraApiToken,
@@ -61,8 +62,9 @@ export function instanceNameForTenant(slug: string) {
 }
 
 export function evolutionWebhookUrl(publicAppUrl: string, slug: string) {
-  if (!publicAppUrl) return "";
-  return `${publicAppUrl.replace(/\/$/, "")}/api/webhooks/evolution?tenant=${encodeURIComponent(slug)}`;
+  const origin = publicAppOrigin(publicAppUrl, false);
+  if (!origin) return "";
+  return `${origin}/api/webhooks/evolution?tenant=${encodeURIComponent(slug)}`;
 }
 
 export function maskSecret(value: string | null | undefined) {

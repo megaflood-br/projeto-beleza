@@ -1,4 +1,5 @@
 import { formatCnpj } from "@/lib/fiscal";
+import { publicAppOrigin } from "@/lib/public-url";
 import { formatPhoneBR, slugify } from "@/lib/utils";
 
 export const POP_KINDS = ["GERAL", "SERVICO"] as const;
@@ -598,14 +599,24 @@ export function popPublicPath(tenantSlug: string, popSlug: string) {
 
 export function popPublicUrl(publicAppUrl: string, tenantSlug: string, popSlug: string) {
   const path = popPublicPath(tenantSlug, popSlug);
-  const base = (publicAppUrl || process.env.APP_URL || "").replace(/\/$/, "");
-  return base ? `${base}${path}` : path;
+  const base = publicAppOrigin(publicAppUrl);
+  return `${base}${path}`;
 }
 
 export function absolutePopUrl(url: string) {
   if (!url) return "";
-  if (/^https?:\/\//i.test(url)) return url;
-  const base = (process.env.APP_URL || "https://beauty.megaflood.cloud").replace(/\/$/, "");
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const parsed = new URL(url);
+      const popPath = parsed.pathname.match(/\/pop\/.*$/);
+      if (popPath) return `${parsed.origin}${popPath[0]}`;
+      if (parsed.pathname.includes("/api/webhooks")) return parsed.origin;
+      return `${parsed.origin}${parsed.pathname}`;
+    } catch {
+      return url;
+    }
+  }
+  const base = publicAppOrigin("");
   return `${base}${url.startsWith("/") ? url : `/${url}`}`;
 }
 

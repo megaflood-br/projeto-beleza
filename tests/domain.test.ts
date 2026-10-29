@@ -77,6 +77,8 @@ import {
   matchServicePop,
   popDisclaimer,
   popPublicPath,
+  popPublicUrl,
+  absolutePopUrl,
   popSignerLabel,
   effectivePopSigner,
   salonCompany,
@@ -633,6 +635,9 @@ describe("integrações da plataforma", () => {
     expect(evolutionWebhookUrl("https://app.megabeauty.com.br/", "studio-aurora")).toBe(
       "https://app.megabeauty.com.br/api/webhooks/evolution?tenant=studio-aurora",
     );
+    expect(evolutionWebhookUrl("https://beauty.megaflood.cloud/api/webhooks/evolution", "renove")).toBe(
+      "https://beauty.megaflood.cloud/api/webhooks/evolution?tenant=renove",
+    );
     expect(evolutionWebhookUrl("", "studio-aurora")).toBe("");
   });
 
@@ -998,6 +1003,12 @@ describe("pedidos de fornecedor", () => {
       "POP do Renove para depilação",
     );
     expect(popPublicPath("renove", "lavagem-maos")).toBe("/pop/renove/lavagem-maos");
+    expect(popPublicUrl("https://beauty.megaflood.cloud/api/webhooks/evolution", "renove", "manicure")).toBe(
+      "https://beauty.megaflood.cloud/pop/renove/manicure",
+    );
+    expect(absolutePopUrl("https://beauty.megaflood.cloud/api/webhooks/evolution/pop/renove/manicure")).toBe(
+      "https://beauty.megaflood.cloud/pop/renove/manicure",
+    );
     const used = new Set(["limpeza-de-pele"]);
     expect(uniquePopSlug("Limpeza de pele", used)).toBe("limpeza-de-pele-2");
     const company = salonCompany({
