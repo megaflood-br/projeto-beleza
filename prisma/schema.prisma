@@ -119,6 +119,7 @@ model Tenant {
   marketingCampaigns MarketingCampaign[]
   marketingRecipients MarketingRecipient[]
   salonPops          SalonPop[]
+  salonDocuments     SalonDocument[]
 
   @@index([slug])
   @@index([kind])
@@ -194,6 +195,7 @@ model Professional {
   productRequests  ProductRequest[]
   anamneses        Anamnesis[]
   goals            ProfessionalGoal[]
+  documents        SalonDocument[]
 
   @@index([tenantId])
 }
@@ -835,6 +837,28 @@ model SalonPop {
 
   @@unique([tenantId, slug])
   @@index([tenantId, templateKey])
+}
+
+model SalonDocument {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  kind           String
+  title          String
+  number         String    @default("")
+  issuer         String    @default("")
+  issuedAt       DateTime?
+  expiresAt      DateTime?
+  fileUrl        String
+  fileName       String    @default("")
+  notes          String    @default("")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId, kind])
+  @@index([professionalId])
 }
 
 model AnamnesisForm {

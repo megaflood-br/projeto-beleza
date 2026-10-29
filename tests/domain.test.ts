@@ -86,6 +86,16 @@ import {
   POP_CATALOG,
 } from "@/lib/pops";
 import {
+  compareDocuments,
+  documentFileHref,
+  documentationPath,
+  documentValidity,
+  downloadFileName,
+  kindForTab,
+  parseDocumentKind,
+  parseDocumentationTab,
+} from "@/lib/documentation";
+import {
   clientHasTag,
   isEligibleMarketingClient,
   isInactiveSince,
@@ -1047,5 +1057,24 @@ describe("pedidos de fornecedor", () => {
       effectivePopSigner("COMPANY", { responsible: "" }, { companyResponsible: "Maria Dona", technicalResponsible: "Dra. Ana" })
         .responsible,
     ).toBe("Maria Dona");
+    expect(parseDocumentationTab("certificado")).toBe("certificado");
+    expect(parseDocumentationTab("clcb")).toBe("clcb");
+    expect(parseDocumentationTab("outro")).toBe("outro");
+    expect(parseDocumentationTab("inbox")).toBe("pops");
+    expect(documentationPath("pops")).toBe("/documentacao");
+    expect(documentationPath("alvara")).toBe("/documentacao?tab=alvara");
+    expect(kindForTab("certificado")).toBe("CERTIFICADO");
+    expect(parseDocumentKind("contrato")).toBe("CONTRATO");
+    expect(parseDocumentKind("x")).toBe(null);
+    expect(documentFileHref("abc", true)).toBe("/documentacao/arquivo/abc?download=1");
+    expect(downloadFileName("CLCB 2026/A.pdf")).toBe("CLCB 2026 A.pdf");
+    const today = calendarDate();
+    expect(documentValidity(null)).toBe("none");
+    expect(documentValidity(shiftCalendarDate(today, -1))).toBe("expired");
+    expect(documentValidity(shiftCalendarDate(today, 10))).toBe("expiring");
+    expect(documentValidity(shiftCalendarDate(today, 60))).toBe("valid");
+    expect(
+      compareDocuments({ title: "B", expiresAt: shiftCalendarDate(today, 60) }, { title: "A", expiresAt: shiftCalendarDate(today, -1) }),
+    ).toBeGreaterThan(0);
   });
 });
