@@ -6,6 +6,7 @@ import { resolvePlatformIntegrations } from "@/lib/integrations";
 import { PopDocument } from "@/components/pops/pop-document";
 import { formatMediumDate } from "@/lib/dates";
 import { PrintButton } from "@/components/pops/print-button";
+import { DownloadQrButton } from "@/components/pops/download-qr-button";
 import { uploadToDataUrl } from "@/lib/product-upload";
 
 export default async function PublicPopPage({ params }: { params: Promise<{ slug: string; popSlug: string }> }) {
@@ -39,7 +40,10 @@ export default async function PublicPopPage({ params }: { params: Promise<{ slug
           <p className="text-sm font-medium text-ink-soft">POP · {company.tradeName}</p>
           <h1 className="font-display text-2xl">{row.title}</h1>
         </div>
-        <PrintButton />
+        <div className="flex flex-wrap gap-2">
+          <PrintButton />
+          <DownloadQrButton qr={qr} title={row.title} code={template.code} />
+        </div>
       </div>
       <PopDocument
         company={company}

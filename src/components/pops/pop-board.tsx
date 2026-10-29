@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { QrCode, ShieldCheck } from "lucide-react";
 import { PrintButton } from "@/components/pops/print-button";
+import { DownloadQrButton } from "@/components/pops/download-qr-button";
 import { Button, Card, Field, Input, Textarea } from "@/components/ui";
 import { saveSalonPop } from "@/app/actions/pops";
 import { PopDocument, type PopDocumentModel } from "@/components/pops/pop-document";
@@ -92,6 +93,7 @@ export function PopBoard({
             <div className="space-y-3">
               <div className="no-print flex flex-wrap gap-2">
                 <PrintButton />
+                <DownloadQrButton qr={selected.qr} title={selected.title} code={selected.code} />
                 <a
                   href={selected.publicUrl}
                   target="_blank"
