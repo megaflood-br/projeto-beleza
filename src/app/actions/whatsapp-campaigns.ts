@@ -25,6 +25,7 @@ export async function toggleWhatsAppCampaign(formData: FormData) {
   if (!row) return { error: "Campanha não encontrada." };
   await prisma.automation.update({ where: { id }, data: { active } });
   revalidatePath("/whatsapp");
+  revalidatePath("/atendimento");
   revalidatePath("/marketing");
   return { ok: true as const };
 }
@@ -40,6 +41,7 @@ export async function saveWhatsAppCampaign(formData: FormData) {
   if (!row) return { error: "Campanha não encontrada." };
   await prisma.automation.update({ where: { id }, data: { template, active } });
   revalidatePath("/whatsapp");
+  revalidatePath("/atendimento");
   revalidatePath("/marketing");
   return { ok: true as const };
 }
@@ -92,6 +94,7 @@ export async function sendCampaignTest(formData: FormData) {
     if ("reason" in result) return { error: result.reason };
     try {
       revalidatePath("/whatsapp");
+      revalidatePath("/atendimento");
       revalidatePath("/marketing");
     } catch {
       /* cache miss after a successful send should not hide the result */
@@ -100,7 +103,7 @@ export async function sendCampaignTest(formData: FormData) {
       return {
         ok: true as const,
         mocked: true,
-        message: `WhatsApp não está conectado. A mensagem para ${formatPhoneBR(phone)} foi gravada no Inbox, mas não saiu no celular.`,
+        message: `WhatsApp não está conectado. A mensagem para ${formatPhoneBR(phone)} foi gravada no Atendimento, mas não saiu no celular.`,
       };
     }
     return {
@@ -120,6 +123,7 @@ export async function refreshWhatsAppCampaigns() {
   await ensureWhatsAppCampaigns(session.tenantId);
   const due = await runDueCampaigns(session.tenantId);
   revalidatePath("/whatsapp");
+  revalidatePath("/atendimento");
   revalidatePath("/marketing");
   return { ok: true as const, sent: due.sent };
 }

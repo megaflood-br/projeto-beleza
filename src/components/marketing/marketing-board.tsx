@@ -150,7 +150,7 @@ export function MarketingBoard({
     setPicked((current) => current.filter((id) => !ids.includes(id)));
     setMessage(
       result.mocked
-        ? `${result.sent} mensagens gravadas no Inbox. WhatsApp não está conectado, então nada saiu no celular.`
+        ? `${result.sent} mensagens gravadas no Atendimento. WhatsApp não está conectado, então nada saiu no celular.`
         : `${result.sent} enviada${result.sent === 1 ? "" : "s"}. ${result.pending} ainda pendente${result.pending === 1 ? "" : "s"}.`,
     );
     await refresh(selected.id);
@@ -464,7 +464,7 @@ function RecipientCard({
   onToggle?: () => void;
   action?: React.ReactNode;
 }) {
-  const href = row.conversationId ? `/marketing?tab=inbox&c=${row.conversationId}` : "/marketing?tab=inbox";
+  const href = row.conversationId ? `/atendimento?c=${row.conversationId}` : "/atendimento";
   return (
     <article className="rounded-xl border border-line bg-white p-3">
       <div className="flex items-start gap-2">

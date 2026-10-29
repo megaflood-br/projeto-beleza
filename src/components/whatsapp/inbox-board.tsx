@@ -31,7 +31,7 @@ export function InboxBoard({
             conversations.map((conversation) => (
               <a
                 key={conversation.id}
-                href={`/marketing?tab=inbox&c=${conversation.id}`}
+                href={`/atendimento?c=${conversation.id}`}
                 className={`block border-b border-line px-4 py-3 ${selected?.id === conversation.id ? "bg-sand" : ""}`}
               >
                 <div className="truncate font-medium">{conversation.client?.name ?? formatPhoneBR(conversation.phone)}</div>

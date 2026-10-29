@@ -1,16 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { canManageTeam } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { readWhatsAppLive } from "@/lib/whatsapp-live";
-import { syncMarketingReplies } from "@/lib/marketing";
-import { MARKETING_TABS, parseMarketingTab } from "@/lib/marketing";
+import { atendimentoPath, MARKETING_TABS, parseMarketingTab, syncMarketingReplies } from "@/lib/marketing";
 import { MarketingBoard } from "@/components/marketing/marketing-board";
 import { WhatsAppConnect } from "@/components/whatsapp/whatsapp-connect";
 import { CampaignsBoard } from "@/components/whatsapp/campaigns-board";
-import { InboxBoard } from "@/components/whatsapp/inbox-board";
 import { ensureWhatsAppCampaigns } from "@/lib/ensure-campaigns";
 import { runDueCampaigns } from "@/lib/run-due-campaigns";
 
@@ -21,6 +20,7 @@ export default async function MarketingPage({
 }) {
   const { session } = await requireTenant();
   const params = await searchParams;
+  if (params.tab === "inbox") redirect(atendimentoPath(params.c));
   const tab = parseMarketingTab(params.tab);
   const selectedId = typeof params.c === "string" ? params.c : null;
   const current = MARKETING_TABS.find((item) => item.id === tab) ?? MARKETING_TABS[0];
@@ -28,7 +28,7 @@ export default async function MarketingPage({
   const connected = live.state === "open";
 
   return (
-    <div className={tab === "inbox" ? "flex h-full min-h-0 flex-col gap-4" : "space-y-4"}>
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-3xl">Marketing</h1>
         <p className="text-ink-soft">{current.description}</p>
@@ -52,9 +52,7 @@ export default async function MarketingPage({
         })}
       </div>
 
-      {tab === "inbox" ? (
-        <InboxPanel tenantId={session.tenantId} selectedId={selectedId} live={live} />
-      ) : tab === "campanhas" ? (
+      {tab === "campanhas" ? (
         <CampaignsPanel tenantId={session.tenantId} canManage={canManageTeam(session.role)} connected={connected} />
       ) : tab === "conexao" ? (
         <div className="max-w-xl">
@@ -144,34 +142,6 @@ async function ListsPanel({
           replyPreview: row.replyPreview,
           conversationId: row.conversationId,
         })),
-      }))}
-    />
-  );
-}
-
-async function InboxPanel({
-  tenantId,
-  selectedId,
-  live,
-}: {
-  tenantId: string;
-  selectedId: string | null;
-  live: Awaited<ReturnType<typeof readWhatsAppLive>>;
-}) {
-  const conversations = await prisma.conversation.findMany({
-    where: { tenantId },
-    include: { client: true, messages: { orderBy: { createdAt: "asc" } } },
-    orderBy: { lastMessageAt: "desc" },
-  });
-  return (
-    <InboxBoard
-      live={live}
-      selectedId={selectedId}
-      conversations={conversations.map((conversation) => ({
-        id: conversation.id,
-        phone: conversation.phone,
-        client: conversation.client ? { name: conversation.client.name } : null,
-        messages: conversation.messages,
       }))}
     />
   );

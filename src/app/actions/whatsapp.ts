@@ -51,6 +51,7 @@ export async function sendWhatsApp(formData: FormData) {
   });
 
   revalidatePath("/whatsapp");
+  revalidatePath("/atendimento");
   revalidatePath("/marketing");
   return { ok: true, mocked: !(isEvolutionConfigured(config) && tenant.evolutionStatus === "open") };
 }
@@ -72,6 +73,7 @@ export async function connectWhatsAppInstance() {
   try {
     const result = await provisionWhatsAppInstance(session.tenantId);
     revalidatePath("/whatsapp");
+    revalidatePath("/atendimento");
     revalidatePath("/marketing");
     return { ok: true as const, qr: result.qr };
   } catch (error) {
@@ -98,6 +100,7 @@ export async function disconnectWhatsAppInstance() {
     data: { evolutionStatus: "close", evolutionNumber: null },
   });
   revalidatePath("/whatsapp");
+  revalidatePath("/atendimento");
   revalidatePath("/marketing");
   return { ok: true as const };
 }
