@@ -5,7 +5,7 @@ import { ImageIcon } from "lucide-react";
 import { savePlatformBrand } from "@/app/actions/platform-brand";
 import { Button, Card, Field, Input } from "@/components/ui";
 import { readBrandLogo } from "@/lib/product-photo";
-import { SYSTEM_LOGO, SYSTEM_PRIMARY } from "@/lib/branding";
+import { SYSTEM_LOGO, SYSTEM_LOGO_DARK, SYSTEM_PRIMARY } from "@/lib/branding";
 import { useRouter } from "next/navigation";
 
 export function AppearanceBoard({
@@ -52,13 +52,11 @@ export function AppearanceBoard({
           <Field label="Logo do sistema">
             <input type="hidden" name="logoUrl" value={url} />
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex h-20 w-52 items-center justify-center overflow-hidden rounded-xl border border-line bg-white">
-                {url ? (
-                  <img src={url} alt="Logo MegaBeauty" className="max-h-full max-w-full object-contain p-2" />
-                ) : (
-                  <ImageIcon size={22} className="text-slate-400" />
-                )}
-              </div>
+              {url ? (
+                <img src={url} alt="Logo MegaBeauty" className="h-14 w-auto max-w-[14rem] object-contain" />
+              ) : (
+                <ImageIcon size={22} className="text-slate-400" />
+              )}
               <div className="space-y-2">
                 <input
                   ref={fileRef}
@@ -86,7 +84,7 @@ export function AppearanceBoard({
                     </Button>
                   ) : null}
                 </div>
-                <p className="text-xs text-ink-soft">PNG com fundo claro fica melhor. Aparece no login, na home e no menu.</p>
+                <p className="text-xs text-ink-soft">PNG sem fundo ou fundo transparente. No menu escuro o logo fica solto, sem moldura.</p>
               </div>
             </div>
           </Field>
@@ -115,8 +113,8 @@ export function AppearanceBoard({
           <div className="rounded-xl border border-line bg-sand/60 p-4">
             <p className="text-xs font-medium text-ink-soft uppercase tracking-wide">Prévia</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <div className="rounded-md bg-slate-950 px-3 py-2">
-                {url ? <img src={url} alt="" className="h-8 w-auto max-w-[10rem] rounded bg-white object-contain p-1" /> : null}
+              <div className="flex items-center bg-slate-950 px-3 py-3">
+                {url ? <img src={url === SYSTEM_LOGO ? SYSTEM_LOGO_DARK : url} alt="" className="h-8 w-auto max-w-[10rem] object-contain" /> : null}
               </div>
               <span className="inline-flex rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ background: color }}>
                 Botão primário

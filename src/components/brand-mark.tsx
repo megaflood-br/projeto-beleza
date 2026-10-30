@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useBrand } from "@/components/branding-provider";
+import { SYSTEM_LOGO, SYSTEM_LOGO_DARK } from "@/lib/branding";
 
 export function BrandMark({
   className,
@@ -13,9 +14,12 @@ export function BrandMark({
   onDark?: boolean;
 }) {
   const { logoUrl } = useBrand();
+  const src = onDark && (!logoUrl || logoUrl === SYSTEM_LOGO) ? SYSTEM_LOGO_DARK : logoUrl;
   return (
-    <div className={cn("inline-flex items-center", onDark && "rounded-md bg-white px-2 py-1", className)}>
-      <img src={logoUrl} alt="MegaBeauty" className={cn("h-8 w-auto max-w-[11rem] object-contain object-left", imgClassName)} />
-    </div>
+    <img
+      src={src}
+      alt="MegaBeauty"
+      className={cn("h-8 w-auto max-w-[11rem] object-contain object-left", className, imgClassName)}
+    />
   );
 }

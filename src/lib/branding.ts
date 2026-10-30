@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 
 export const SYSTEM_PRIMARY = "#ff0447";
 export const SYSTEM_LOGO = "/branding/logo.png";
+export const SYSTEM_LOGO_DARK = "/branding/logo-dark.png";
 export const LEGACY_PRIMARY = "#2563eb";
 
 export type SystemBrand = {
