@@ -19,7 +19,7 @@ export function BrandMark({
     <img
       src={src}
       alt="MegaBeauty"
-      className={cn("h-8 w-auto max-w-[11rem] object-contain object-left", className, imgClassName)}
+      className={cn("h-12 w-auto max-w-[16rem] object-contain object-left", className, imgClassName)}
     />
   );
 }

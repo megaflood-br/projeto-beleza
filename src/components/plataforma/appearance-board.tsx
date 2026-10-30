@@ -53,7 +53,7 @@ export function AppearanceBoard({
             <input type="hidden" name="logoUrl" value={url} />
             <div className="flex flex-wrap items-center gap-4">
               {url ? (
-                <img src={url} alt="Logo MegaBeauty" className="h-14 w-auto max-w-[14rem] object-contain" />
+                <img src={url} alt="Logo MegaBeauty" className="h-16 w-auto max-w-[18rem] object-contain" />
               ) : (
                 <ImageIcon size={22} className="text-slate-400" />
               )}
@@ -114,7 +114,7 @@ export function AppearanceBoard({
             <p className="text-xs font-medium text-ink-soft uppercase tracking-wide">Prévia</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <div className="flex items-center bg-slate-950 px-3 py-3">
-                {url ? <img src={url === SYSTEM_LOGO ? SYSTEM_LOGO_DARK : url} alt="" className="h-8 w-auto max-w-[10rem] object-contain" /> : null}
+                {url ? <img src={url === SYSTEM_LOGO ? SYSTEM_LOGO_DARK : url} alt="" className="h-16 w-auto max-w-none object-contain" /> : null}
               </div>
               <span className="inline-flex rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ background: color }}>
                 Botão primário

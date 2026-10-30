@@ -73,10 +73,10 @@ export function SidebarLayout({
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
-          <div className="flex items-center gap-2">
+        <div className="px-4 py-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
+          <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <BrandMark onDark />
+              <BrandMark onDark imgClassName="h-auto w-full max-h-28 max-w-none object-contain object-left" />
             </div>
             {headerAction ? <div className="text-slate-300 hover:[&_a]:bg-white/10">{headerAction}</div> : null}
             <button
