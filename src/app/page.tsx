@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 
 const FEATURES = [
   { title: "Agenda lotada, sem conflito", text: "Colunas por profissional, horários livres e agendamento online 24h para a cliente marcar sozinha." },
@@ -9,19 +10,11 @@ const FEATURES = [
   { title: "Promoções que enchem o dia fraco", text: "Desconto por dia da semana, preço certo na comanda e no agendamento online." },
 ];
 
-function Logo({ className = "text-xl" }: { className?: string }) {
-  return (
-    <div className={`font-semibold tracking-tight ${className}`}>
-      Mega<span className="text-wine">Beauty</span>
-    </div>
-  );
-}
-
 export default function HomePage() {
   return (
     <main className="min-h-dvh bg-cream">
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-6 sm:py-6 pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <Logo />
+        <BrandMark imgClassName="h-10 max-w-[14rem] sm:h-12 sm:max-w-[16rem]" />
         <div className="flex shrink-0 gap-2 sm:gap-3">
           <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink">
             Entrar

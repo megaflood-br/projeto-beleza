@@ -3,13 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { registerAction } from "@/app/actions/auth";
+import { BrandMark } from "@/components/brand-mark";
 import { Button, Field, Input } from "@/components/ui";
 
 export default function CadastroPage() {
   const [error, setError] = useState<string | null>(null);
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center p-6 pt-[max(2rem,env(safe-area-inset-top))] sm:p-8">
-      <h1 className="font-display text-3xl sm:text-4xl">Abra seu salão no MegaBeauty</h1>
+      <BrandMark imgClassName="h-10 max-w-[14rem]" />
+      <h1 className="mt-6 font-display text-3xl sm:text-4xl">Abra seu salão no MegaBeauty</h1>
       <p className="mt-2 text-ink-soft">Crie sua conta e organize agenda, clientes e caixa em poucos minutos.</p>
       <form
         className="mt-8 grid gap-3"

@@ -111,6 +111,7 @@ import {
   renderMarketingBody,
   summarizeMarketing,
 } from "@/lib/marketing";
+import { brandTheme, mixHex, parseHexColor, resolveSystemPrimary, SYSTEM_PRIMARY } from "@/lib/branding";
 import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, parseIntegrationTab } from "@/lib/integrations";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
@@ -292,6 +293,14 @@ describe("comandas", () => {
     expect(marketingPath("conexao")).toBe("/marketing?tab=conexao");
     expect(marketingPath("listas")).toBe("/marketing");
     expect(atendimentoPath("abc")).toBe("/atendimento?c=abc");
+    expect(parseHexColor("#FF0447")).toBe("#ff0447");
+    expect(parseHexColor("#f47")).toBe("#ff4477");
+    expect(parseHexColor("azul")).toBe(SYSTEM_PRIMARY);
+    expect(resolveSystemPrimary("#2563EB")).toBe(SYSTEM_PRIMARY);
+    expect(resolveSystemPrimary("#00aa88")).toBe("#00aa88");
+    expect(mixHex("#ff0447", "#000000", 0.22)).toBe("#c70337");
+    expect(brandTheme("#ff0447").wine).toBe("#ff0447");
+    expect(brandTheme("#ff0447").wineDeep).toBe("#c70337");
     expect(atendimentoPath()).toBe("/atendimento");
     expect(normalizeCampaignTrigger("APPOINTMENT_CREATED")).toBe("INFORMED");
     expect(CAMPAIGN_CATALOG).toHaveLength(13);
