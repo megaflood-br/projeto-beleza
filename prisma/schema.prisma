@@ -74,6 +74,14 @@ model Tenant {
   fiscalCertificateAt      DateTime?
   fiscalCertificateUntil   DateTime?
   kind                String   @default("SALON")
+  partnerId             String?
+  partner               Partner? @relation("ReferredTenants", fields: [partnerId], references: [id], onDelete: SetNull)
+  asaasCustomerId       String?
+  asaasSubscriptionId   String?
+  billingStatus         String    @default("NONE")
+  asaasApiKey           String?
+  asaasWebhookToken     String?
+  asaasBaseUrl          String?
   deliveryMinCents    Int      @default(0)
   deliveryFeeCents    Int      @default(0)
   supplierPayMethods  String   @default("PIX,CASH")
@@ -120,9 +128,12 @@ model Tenant {
   marketingRecipients MarketingRecipient[]
   salonPops          SalonPop[]
   salonDocuments     SalonDocument[]
+  ownedPartner       Partner? @relation("PartnerTenant")
+  platformInvoices   PlatformInvoice[]
 
   @@index([slug])
   @@index([kind])
+  @@index([partnerId])
 }
 
 model User {
@@ -146,6 +157,7 @@ model User {
   callsAccepted     SupportCall[]    @relation("CallAcceptor")
   supportPresence   SupportPresence?
   supplierOrders    SupplierOrder[]
+  partner           Partner?
 
   @@index([tenantId])
 }
@@ -1111,4 +1123,99 @@ model SupplierOrderItem {
   quantity  Float
   unitCents Int
   lineCents Int
+}
+
+model Partner {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  tenant        Tenant   @relation("PartnerTenant", fields: [tenantId], references: [id], onDelete: Cascade)
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug          String   @unique
+  commissionBps Int      @default(2000)
+  holdDays      Int      @default(30)
+  pixKey        String?
+  pixKeyType    String?
+  bankName      String?
+  bankAgency    String?
+  bankAccount   String?
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  brand         PartnerBrand?
+  referred      Tenant[] @relation("ReferredTenants")
+  commissions   PartnerCommission[]
+  payouts       PartnerPayout[]
+
+  @@index([status])
+}
+
+model PartnerBrand {
+  id         String  @id @default(cuid())
+  partnerId  String  @unique
+  partner    Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  name       String
+  logoUrl    String?
+  faviconUrl String?
+  primary    String  @default("#ff0447")
+  secondary  String  @default("#0f172a")
+  customHost String? @unique
+}
+
+model PlatformInvoice {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  partnerId      String?
+  asaasPaymentId String?   @unique
+  asaasEventId   String?   @unique
+  amountCents    Int
+  status         String    @default("PENDING")
+  paidAt         DateTime?
+  rawPayload     String    @default("{}")
+  createdAt      DateTime  @default(now())
+  commissions    PartnerCommission[]
+
+  @@index([tenantId, createdAt])
+  @@index([partnerId, status])
+}
+
+model PartnerCommission {
+  id              String    @id @default(cuid())
+  partnerId       String
+  partner         Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  tenantId        String
+  invoiceId       String?
+  invoice         PlatformInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  payoutId        String?
+  payout          PartnerPayout? @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  type            String    @default("SALE")
+  saleCents       Int
+  commissionBps   Int
+  commissionCents Int
+  status          String    @default("PENDING")
+  availableAt     DateTime?
+  paidAt          DateTime?
+  note            String?
+  createdAt       DateTime  @default(now())
+
+  @@index([partnerId, status, createdAt])
+  @@index([tenantId])
+  @@index([invoiceId])
+}
+
+model PartnerPayout {
+  id          String    @id @default(cuid())
+  partnerId   String
+  partner     Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  amountCents Int
+  status      String    @default("REQUESTED")
+  receiptUrl  String?
+  paidAt      DateTime?
+  paidById    String?
+  note        String?
+  createdAt   DateTime  @default(now())
+  lines       PartnerCommission[]
+
+  @@index([partnerId, createdAt])
 }

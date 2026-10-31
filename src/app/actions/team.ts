@@ -120,7 +120,7 @@ export async function upsertProfessional(formData: FormData) {
     const userEmail = String(formData.get("userEmail") ?? "").trim().toLowerCase();
     const userRole = String(formData.get("userRole") ?? "PROFESSIONAL") as Role;
     const userPassword = String(formData.get("userPassword") ?? "").trim();
-    if (!ROLES.includes(userRole) || userRole === "SUPER_ADMIN" || userRole === "SUPPLIER") return { error: "Perfil de acesso inválido." };
+    if (!ROLES.includes(userRole) || userRole === "SUPER_ADMIN" || userRole === "SUPPLIER" || userRole === "PARTNER") return { error: "Perfil de acesso inválido." };
 
     const linkedUser = await prisma.user.findFirst({ where: { professionalId } });
     if (linkedUser) {
@@ -183,7 +183,7 @@ export async function inviteTeamUser(formData: FormData) {
   const password = String(formData.get("password") ?? "demo1234");
 
   if (!name || !email) return { error: "Nome e e-mail são obrigatórios." };
-  if (!ROLES.includes(role) || role === "SUPER_ADMIN" || role === "SUPPLIER") return { error: "Perfil inválido." };
+  if (!ROLES.includes(role) || role === "SUPER_ADMIN" || role === "SUPPLIER" || role === "PARTNER") return { error: "Perfil inválido." };
   const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) return { error: "E-mail já cadastrado." };
 

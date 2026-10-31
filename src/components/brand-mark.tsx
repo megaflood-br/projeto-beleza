@@ -13,12 +13,12 @@ export function BrandMark({
   imgClassName?: string;
   onDark?: boolean;
 }) {
-  const { logoUrl } = useBrand();
+  const { logoUrl, name } = useBrand();
   const src = onDark && (!logoUrl || logoUrl === SYSTEM_LOGO) ? SYSTEM_LOGO_DARK : logoUrl;
   return (
     <img
       src={src}
-      alt="MegaBeauty"
+      alt={name || "MegaBeauty"}
       className={cn("h-12 w-auto max-w-[16rem] object-contain object-left", className, imgClassName)}
     />
   );

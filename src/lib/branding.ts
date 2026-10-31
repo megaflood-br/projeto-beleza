@@ -1,8 +1,7 @@
-import { prisma } from "@/lib/db";
-
 export const SYSTEM_PRIMARY = "#ff0447";
 export const SYSTEM_LOGO = "/branding/logo.png";
 export const SYSTEM_LOGO_DARK = "/branding/logo-dark.png";
+export const SYSTEM_BRAND_NAME = "MegaBeauty";
 export const LEGACY_PRIMARY = "#2563eb";
 
 export type SystemBrand = {
@@ -11,6 +10,10 @@ export type SystemBrand = {
   wine: string;
   wineDeep: string;
   goldSoft: string;
+  name: string;
+  faviconUrl: string | null;
+  secondary: string;
+  partnerSlug: string | null;
 };
 
 export function parseHexColor(value: string | null | undefined, fallback = SYSTEM_PRIMARY) {
@@ -52,26 +55,32 @@ export function brandTheme(primary?: string | null): SystemBrand {
     wine,
     wineDeep: mixHex(wine, "#000000", 0.22),
     goldSoft: mixHex(wine, "#ffffff", 0.86),
+    name: SYSTEM_BRAND_NAME,
+    faviconUrl: null,
+    secondary: "#0f172a",
+    partnerSlug: null,
   };
 }
 
-export function brandCssVars(brand: Pick<SystemBrand, "wine" | "wineDeep" | "goldSoft">) {
-  return `--wine:${brand.wine};--wine-deep:${brand.wineDeep};--gold-soft:${brand.goldSoft};`;
+export function brandFromPartner(input: {
+  name: string;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
+  primary?: string | null;
+  secondary?: string | null;
+  slug?: string | null;
+}): SystemBrand {
+  const theme = brandTheme(input.primary);
+  return {
+    ...theme,
+    logoUrl: input.logoUrl || SYSTEM_LOGO,
+    name: input.name.trim() || SYSTEM_BRAND_NAME,
+    faviconUrl: input.faviconUrl || null,
+    secondary: parseHexColor(input.secondary, "#0f172a"),
+    partnerSlug: input.slug ?? null,
+  };
 }
 
-export async function loadSystemBrand(): Promise<SystemBrand> {
-  const fallback = brandTheme(SYSTEM_PRIMARY);
-  try {
-    if (typeof prisma.tenant?.findFirst !== "function") return fallback;
-    const hq = await prisma.tenant.findFirst({
-      where: { isPlatform: true },
-      select: { logoUrl: true, accentColor: true },
-    });
-    return {
-      ...brandTheme(hq?.accentColor),
-      logoUrl: hq?.logoUrl || SYSTEM_LOGO,
-    };
-  } catch {
-    return fallback;
-  }
+export function brandCssVars(brand: Pick<SystemBrand, "wine" | "wineDeep" | "goldSoft" | "secondary">) {
+  return `--wine:${brand.wine};--wine-deep:${brand.wineDeep};--gold-soft:${brand.goldSoft};--brand-secondary:${brand.secondary ?? "#0f172a"};`;
 }

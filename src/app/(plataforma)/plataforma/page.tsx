@@ -13,7 +13,7 @@ export default async function PlataformaPage() {
   await requirePlatformAdmin();
   const catalog = await listPlatformPlans();
   const tenants = await prisma.tenant.findMany({
-    where: { isPlatform: false, kind: { not: "SUPPLIER" } },
+    where: { isPlatform: false, kind: { notIn: ["SUPPLIER", "PARTNER"] } },
     include: {
       users: { orderBy: { createdAt: "asc" } },
       _count: { select: { users: true, clients: true, appointments: true } },

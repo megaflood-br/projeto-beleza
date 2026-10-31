@@ -10,11 +10,13 @@ import {
   verifyPassword,
   type SessionUser,
 } from "@/lib/auth";
+import { cookies } from "next/headers";
 import { slugify } from "@/lib/utils";
 import type { Role } from "@/lib/constants";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
 import { ensureAnamnesisForms } from "@/lib/anamnesis";
 import { resolveSignupPlan } from "@/lib/plans";
+import { firstTouchPartnerId, PARTNER_REF_COOKIE, sanitizePartnerSlug } from "@/lib/partners";
 
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") ?? "")
@@ -65,6 +67,11 @@ export async function registerAction(formData: FormData) {
   if (slugTaken) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
   const signupPlan = await resolveSignupPlan();
+  const ref = sanitizePartnerSlug((await cookies()).get(PARTNER_REF_COOKIE)?.value);
+  const partner = ref
+    ? await prisma.partner.findUnique({ where: { slug: ref }, select: { id: true, status: true } })
+    : null;
+  const partnerId = firstTouchPartnerId(null, partner?.status === "ACTIVE" ? partner.id : null);
   const tenant = await prisma.tenant.create({
     data: {
       name: salon,
@@ -72,6 +79,8 @@ export async function registerAction(formData: FormData) {
       email,
       plan: signupPlan?.slug ?? "profissional",
       status: "TRIAL",
+      billingStatus: "TRIAL",
+      partnerId,
       trialEndsAt: new Date(Date.now() + (signupPlan?.trialDays ?? 14) * 86_400_000),
       users: {
         create: {

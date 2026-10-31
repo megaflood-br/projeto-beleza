@@ -1,6 +1,6 @@
 import { requirePlatformAdmin } from "@/lib/tenant";
 import { AppearanceBoard } from "@/components/plataforma/appearance-board";
-import { loadSystemBrand } from "@/lib/branding";
+import { loadSystemBrand } from "@/lib/load-system-brand";
 
 export default async function PlataformaAparenciaPage() {
   await requirePlatformAdmin();

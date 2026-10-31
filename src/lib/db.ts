@@ -22,6 +22,9 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   if (typeof (client as { salonDocument?: { findMany?: unknown } }).salonDocument?.findMany !== "function") {
     return false;
   }
+  if (typeof (client as { partner?: { findUnique?: unknown } }).partner?.findUnique !== "function") {
+    return false;
+  }
   const models = (
     client as unknown as {
       _runtimeDataModel?: { models?: Record<string, { fields?: { name?: string }[] }> };
@@ -37,6 +40,7 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
       tenantFields?.some((field) => field.name === "servedCities") &&
       tenantFields?.some((field) => field.name === "logoUrl") &&
       tenantFields?.some((field) => field.name === "technicalResponsible") &&
+      tenantFields?.some((field) => field.name === "partnerId") &&
       campaignFields?.some((field) => field.name === "serviceId") &&
       popFields?.some((field) => field.name === "registry") &&
       documentFields?.some((field) => field.name === "kind"),
