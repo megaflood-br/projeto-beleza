@@ -59,7 +59,18 @@ import {
   parseQuestions,
   serializeQuestions,
 } from "@/lib/anamnesis";
-import { isPlatformAdmin } from "@/lib/auth";
+import { homePath, isPlatformAdmin } from "@/lib/auth";
+import {
+  commissionCents,
+  conversionRate as partnerConversionRate,
+  firstTouchPartnerId,
+  hostSlugFromHost,
+  parseCommissionPercent,
+  partnerAffiliatePath,
+  sanitizePartnerSlug,
+  summarizePartnerLedger,
+} from "@/lib/partners";
+import { nextCommissionStatusAfterRefund, shouldCreateReversal } from "@/lib/partner-commission";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
 import { featuresFromText, formatPlanPrice, nextPlanSlug, parsePlanFeatures, planLabel, serializePlanFeatures } from "@/lib/plans";
 import {
@@ -1089,5 +1100,45 @@ describe("pedidos de fornecedor", () => {
     expect(
       compareDocuments({ title: "B", expiresAt: shiftCalendarDate(today, 60) }, { title: "A", expiresAt: shiftCalendarDate(today, -1) }),
     ).toBeGreaterThan(0);
+  });
+});
+
+describe("parceiros", () => {
+  it("sanitiza slug e reserva caminhos do sistema", () => {
+    expect(sanitizePartnerSlug("Ana Silva")).toBe("ana-silva");
+    expect(sanitizePartnerSlug("www")).toBe("");
+    expect(sanitizePartnerSlug("plataforma")).toBe("");
+    expect(sanitizePartnerSlug("a")).toBe("");
+  });
+
+  it("calcula comissão em bps sem arredondar para cima", () => {
+    expect(parseCommissionPercent("20")).toBe(2000);
+    expect(parseCommissionPercent("30")).toBe(3000);
+    expect(commissionCents(19900, 2000)).toBe(3980);
+    expect(commissionCents(100, 2000)).toBe(20);
+    expect(commissionCents(0, 2000)).toBe(0);
+  });
+
+  it("mantém first-touch e resolve host do subdomínio", () => {
+    expect(firstTouchPartnerId(null, "p1")).toBe("p1");
+    expect(firstTouchPartnerId("p1", "p2")).toBe("p1");
+    expect(hostSlugFromHost("ana.beauty.megaflood.cloud", "beauty.megaflood.cloud")).toBe("ana");
+    expect(hostSlugFromHost("beauty.megaflood.cloud", "beauty.megaflood.cloud")).toBe("");
+    expect(partnerAffiliatePath("ana-silva")).toBe("/cadastro?ref=ana-silva");
+  });
+
+  it("resume saldo e converte indicados em taxa", () => {
+    expect(
+      summarizePartnerLedger([
+        { status: "AVAILABLE", type: "SALE", commissionCents: 1000 },
+        { status: "PENDING", type: "SALE", commissionCents: 400 },
+        { status: "PAID", type: "SALE", commissionCents: 200 },
+        { status: "CANCELED", type: "SALE", commissionCents: 999 },
+      ]),
+    ).toEqual({ earned: 1600, available: 1000, pending: 400, paid: 200 });
+    expect(partnerConversionRate(10, 3)).toBe(30);
+    expect(nextCommissionStatusAfterRefund("PENDING")).toBe("CANCELED");
+    expect(shouldCreateReversal("PAID")).toBe(true);
+    expect(homePath("PARTNER", "PARTNER")).toBe("/parceiro");
   });
 });

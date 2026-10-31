@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button, Card, Field, Input } from "@/components/ui";
-import { saveContoraIntegration, saveEvolutionIntegration, saveOpenAiIntegration } from "@/app/actions/platform-integrations";
+import { saveAsaasIntegration, saveContoraIntegration, saveEvolutionIntegration, saveOpenAiIntegration } from "@/app/actions/platform-integrations";
 import { cn, formAction } from "@/lib/utils";
 import { INTEGRATION_TABS, type IntegrationTab } from "@/lib/integrations";
 
@@ -13,6 +13,10 @@ export type PlatformIntegrationValue = {
   hasOpenAi: boolean;
   hasContora: boolean;
   hasEvolution: boolean;
+  hasAsaas: boolean;
+  asaasMasked: string;
+  asaasWebhookMasked: string;
+  asaasBaseUrl: string | null;
 };
 
 export function IntegrationsBoard({
@@ -37,7 +41,8 @@ export function IntegrationsBoard({
           const configured =
             (item.id === "openai" && value.hasOpenAi) ||
             (item.id === "contora" && value.hasContora) ||
-            (item.id === "evolution" && value.hasEvolution);
+            (item.id === "evolution" && value.hasEvolution) ||
+            (item.id === "asaas" && value.hasAsaas);
           return (
             <Link
               key={item.id}
@@ -63,6 +68,12 @@ export function IntegrationsBoard({
           evolutionUrl={value.evolutionUrl}
           evolutionMasked={value.evolutionMasked}
           publicAppUrl={value.publicAppUrl}
+        />
+      ) : tab === "asaas" ? (
+        <AsaasForm
+          masked={value.asaasMasked}
+          webhookMasked={value.asaasWebhookMasked}
+          baseUrl={value.asaasBaseUrl}
         />
       ) : (
         <OpenAiForm masked={value.openaiMasked} />
@@ -130,6 +141,36 @@ function EvolutionForm({
           Só o endereço do site, sem /api/webhooks. O webhook da Evolution é montado sozinho. Os salões não veem estas chaves.
         </p>
         <Button>Salvar WhatsApp</Button>
+      </form>
+    </Card>
+  );
+}
+
+function AsaasForm({
+  masked,
+  webhookMasked,
+  baseUrl,
+}: {
+  masked: string;
+  webhookMasked: string;
+  baseUrl: string | null;
+}) {
+  return (
+    <Card>
+      <form action={formAction(saveAsaasIntegration)} className="grid gap-3">
+        <Field label="API key">
+          <Input name="asaasApiKey" type="password" placeholder={masked || "$aact_..."} />
+        </Field>
+        <Field label="Token do webhook">
+          <Input name="asaasWebhookToken" type="password" placeholder={webhookMasked || "token enviado no header"} />
+        </Field>
+        <Field label="URL da API">
+          <Input name="asaasBaseUrl" defaultValue={baseUrl ?? "https://api.asaas.com/v3"} />
+        </Field>
+        <p className="text-xs text-ink-soft">
+          Webhook: <span className="font-mono">/api/webhooks/asaas</span>. Em toda fatura paga de um salão indicado, o sistema lança a comissão vitalícia do parceiro.
+        </p>
+        <Button>Salvar Asaas</Button>
       </form>
     </Card>
   );

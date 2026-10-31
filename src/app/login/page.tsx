@@ -4,10 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { loginAction } from "@/app/actions/auth";
 import { BrandMark } from "@/components/brand-mark";
+import { useBrand } from "@/components/branding-provider";
 import { Button, Field, Input } from "@/components/ui";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
+  const { name } = useBrand();
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
@@ -19,7 +21,7 @@ export default function LoginPage() {
             Agenda, comandas, comissões, estoque e WhatsApp no mesmo lugar — feito para donos de salão, não para planilha.
           </p>
         </div>
-        <p className="text-sm text-slate-400">Ainda não é cliente? Abra sua conta e comece hoje.</p>
+        <p className="text-sm text-slate-400">Ainda não é cliente? Abra sua conta no {name} e comece hoje.</p>
       </section>
       <section className="flex min-h-dvh items-center justify-center bg-cream p-6 pt-[max(2rem,env(safe-area-inset-top))] lg:min-h-0 lg:p-8">
         <form

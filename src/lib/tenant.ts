@@ -22,6 +22,7 @@ export async function requireTenant() {
   const tenant = await prisma.tenant.findUnique({ where: { id: session.tenantId } });
   if (!tenant) redirect("/login");
   if (tenant.kind === "SUPPLIER") redirect("/fornecedor");
+  if (tenant.kind === "PARTNER") redirect("/parceiro");
   if (tenant.status === "SUSPENDED" && !session.impersonatorId) {
     redirect("/login?suspended=1");
   }
@@ -41,10 +42,28 @@ export async function requireSupplier() {
   return { session, tenant };
 }
 
+export async function requirePartner() {
+  const session = await requireSession();
+  if (isPlatformAdmin(session.role) && !session.impersonatorId) {
+    redirect("/plataforma");
+  }
+  const tenant = await prisma.tenant.findUnique({ where: { id: session.tenantId } });
+  if (!tenant || tenant.kind !== "PARTNER") redirect("/dashboard");
+  if (tenant.status === "SUSPENDED" && !session.impersonatorId) {
+    redirect("/login?suspended=1");
+  }
+  const partner = await prisma.partner.findUnique({
+    where: { tenantId: tenant.id },
+    include: { brand: true },
+  });
+  if (!partner) redirect("/dashboard");
+  return { session, tenant, partner };
+}
+
 export async function requirePlatformAdmin() {
   const session = await requireSession();
   if (!isPlatformAdmin(session.role) || session.impersonatorId) {
-    redirect("/dashboard");
+    redirect(session.impersonatorId ? "/dashboard" : homePath(session.role));
   }
   const tenant = await prisma.tenant.findUnique({ where: { id: session.tenantId } });
   if (!tenant?.isPlatform) redirect("/dashboard");

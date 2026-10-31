@@ -1,4 +1,4 @@
-export const TENANT_KINDS = ["SALON", "SUPPLIER", "PLATFORM"] as const;
+export const TENANT_KINDS = ["SALON", "SUPPLIER", "PLATFORM", "PARTNER"] as const;
 export type TenantKind = (typeof TENANT_KINDS)[number];
 
 export const SUPPLIER_ORDER_STATUSES = ["SUBMITTED", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"] as const;

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
+import { loadSystemBrand } from "@/lib/load-system-brand";
 
 const FEATURES = [
   { title: "Agenda lotada, sem conflito", text: "Colunas por profissional, horários livres e agendamento online 24h para a cliente marcar sozinha." },
@@ -10,7 +11,8 @@ const FEATURES = [
   { title: "Promoções que enchem o dia fraco", text: "Desconto por dia da semana, preço certo na comanda e no agendamento online." },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const brand = await loadSystemBrand();
   return (
     <main className="min-h-dvh bg-cream">
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-6 sm:py-6 pt-[max(1.25rem,env(safe-area-inset-top))]">
@@ -31,7 +33,7 @@ export default function HomePage() {
             Sua agenda, seu caixa e suas clientes em um só sistema.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-ink-soft">
-            Pare de gerir o salão no papel e no WhatsApp pessoal. O MegaBeauty organiza horários, comandas, equipe e fidelização — para você faturar mais com menos retrabalho.
+            Pare de gerir o salão no papel e no WhatsApp pessoal. O {brand.name} organiza horários, comandas, equipe e fidelização — para você faturar mais com menos retrabalho.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/cadastro" className="rounded-lg bg-wine px-6 py-3 text-sm font-medium text-white">

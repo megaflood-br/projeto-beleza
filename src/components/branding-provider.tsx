@@ -9,6 +9,10 @@ const BrandingContext = createContext<SystemBrand>({
   wine: SYSTEM_PRIMARY,
   wineDeep: "#c70337",
   goldSoft: "#ffdce5",
+  name: "MegaBeauty",
+  faviconUrl: null,
+  secondary: "#0f172a",
+  partnerSlug: null,
 });
 
 export function BrandingProvider({ brand, children }: { brand: SystemBrand; children: ReactNode }) {
