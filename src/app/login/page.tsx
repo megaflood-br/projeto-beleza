@@ -12,7 +12,7 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
       <section className="hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <BrandMark onDark imgClassName="h-16 max-w-[22rem]" />
+        <BrandMark onDark imgClassName="h-auto w-full max-w-md object-left" />
         <div>
           <h1 className="font-display text-5xl leading-tight">O sistema do seu salão, do horário ao caixa.</h1>
           <p className="mt-4 max-w-md text-slate-300">
@@ -31,7 +31,7 @@ export default function LoginPage() {
           }}
         >
           <div className="lg:hidden">
-            <BrandMark imgClassName="h-12 max-w-[16rem]" />
+            <BrandMark imgClassName="h-16 max-w-[20rem]" />
           </div>
           <h2 className="font-display text-3xl">Entrar</h2>
           <Field label="E-mail">
