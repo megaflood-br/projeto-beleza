@@ -33,7 +33,7 @@ export async function saveTenantLogo(tenantId: string, raw: string | null, previ
     await removeOwned(previous);
     return null;
   }
-  if (raw.startsWith("/uploads/")) return raw;
+  if (raw.startsWith("/uploads/") || raw.startsWith("/branding/")) return raw;
   const match = raw.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
   if (!match) return previous ?? null;
   const dir = path.join(uploadRoot(), "logo", tenantId);

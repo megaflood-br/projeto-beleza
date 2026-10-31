@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
+import { BrandMark } from "@/components/brand-mark";
 import { cn } from "@/lib/utils";
 
 export type SidebarNavItem = {
@@ -72,10 +73,10 @@ export function SidebarLayout({
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1 text-lg font-semibold tracking-tight">
-              Mega<span className="text-blue-400">Beauty</span>
+        <div className="px-4 py-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <BrandMark onDark imgClassName="h-auto w-full max-h-28 max-w-none object-contain object-left" />
             </div>
             {headerAction ? <div className="text-slate-300 hover:[&_a]:bg-white/10">{headerAction}</div> : null}
             <button
@@ -100,7 +101,7 @@ export function SidebarLayout({
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
-                  active ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white",
+                  active ? "bg-wine text-white" : "text-slate-300 hover:bg-white/5 hover:text-white",
                 )}
               >
                 <Icon size={18} />

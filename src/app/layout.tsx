@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { PwaRegister } from "@/components/pwa-register";
+import { BrandingProvider } from "@/components/branding-provider";
+import { brandCssVars, loadSystemBrand, SYSTEM_PRIMARY } from "@/lib/branding";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,16 +30,20 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#020617",
+  themeColor: SYSTEM_PRIMARY,
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const brand = await loadSystemBrand();
   return (
     <html lang="pt-BR" className={`${inter.variable} h-full antialiased`}>
       <body className={`${inter.className} min-h-full bg-cream text-ink`}>
-        {children}
-        <PwaRegister />
+        <style>{`:root{${brandCssVars(brand)}}`}</style>
+        <BrandingProvider brand={brand}>
+          {children}
+          <PwaRegister />
+        </BrandingProvider>
       </body>
     </html>
   );

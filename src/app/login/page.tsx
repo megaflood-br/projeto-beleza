@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { loginAction } from "@/app/actions/auth";
+import { BrandMark } from "@/components/brand-mark";
 import { Button, Field, Input } from "@/components/ui";
 
 export default function LoginPage() {
@@ -11,9 +12,7 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
       <section className="hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="text-2xl font-semibold tracking-tight">
-          Mega<span className="text-blue-400">Beauty</span>
-        </div>
+        <BrandMark onDark imgClassName="h-auto w-full max-w-md object-left" />
         <div>
           <h1 className="font-display text-5xl leading-tight">O sistema do seu salão, do horário ao caixa.</h1>
           <p className="mt-4 max-w-md text-slate-300">
@@ -31,8 +30,8 @@ export default function LoginPage() {
             if (result?.error) setError(result.error);
           }}
         >
-          <div className="text-xl font-semibold tracking-tight lg:hidden">
-            Mega<span className="text-blue-400">Beauty</span>
+          <div className="lg:hidden">
+            <BrandMark imgClassName="h-16 max-w-[20rem]" />
           </div>
           <h2 className="font-display text-3xl">Entrar</h2>
           <Field label="E-mail">

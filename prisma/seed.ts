@@ -78,6 +78,8 @@ async function main() {
       status: "ACTIVE",
       isPlatform: true,
       kind: "PLATFORM",
+      accentColor: "#ff0447",
+      logoUrl: "/branding/logo.png",
     },
   });
   const admin = await prisma.user.create({
