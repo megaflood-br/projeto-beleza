@@ -12,12 +12,14 @@ export async function savePlatformBrand(formData: FormData) {
   const primary = parseHexColor(String(formData.get("accentColor") ?? ""), SYSTEM_PRIMARY);
   const logoRaw = String(formData.get("logoUrl") ?? "").trim();
   const logoDarkRaw = String(formData.get("logoDarkUrl") ?? "").trim();
+  const faviconRaw = String(formData.get("faviconUrl") ?? "").trim();
   const logoUrl = (await saveTenantLogo(tenant.id, logoRaw || SYSTEM_LOGO, tenant.logoUrl)) || SYSTEM_LOGO;
   const logoDarkUrl =
     (await saveTenantLogo(`${tenant.id}-dark`, logoDarkRaw || SYSTEM_LOGO_DARK, tenant.logoDarkUrl)) || SYSTEM_LOGO_DARK;
+  const faviconUrl = await saveTenantLogo(`${tenant.id}-favicon`, faviconRaw || null, tenant.faviconUrl);
   await prisma.tenant.update({
     where: { id: tenant.id },
-    data: { accentColor: primary, logoUrl, logoDarkUrl },
+    data: { accentColor: primary, logoUrl, logoDarkUrl, faviconUrl },
   });
   revalidatePath("/", "layout");
   revalidatePath("/plataforma/aparencia");

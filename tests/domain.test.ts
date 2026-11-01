@@ -102,6 +102,7 @@ import {
   summarizePartnerLedger,
 } from "@/lib/partners";
 import { nextCommissionStatusAfterRefund, shouldCreateReversal } from "@/lib/partner-commission";
+import { getPitchDeck, listPitchDecks, megaWhatsAppHref, PITCH_CTA_LABEL, pitchDeckSlugs } from "@/lib/pitch-decks";
 import { publicAppOrigin } from "@/lib/public-url";
 import { LANDING_CATALOG, LANDING_STEPS, landingCatalogTitles } from "@/lib/landing-catalog";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
@@ -155,7 +156,7 @@ import {
   renderMarketingBody,
   summarizeMarketing,
 } from "@/lib/marketing";
-import { brandTheme, mixHex, parseHexColor, resolveSystemPrimary, SYSTEM_PRIMARY } from "@/lib/branding";
+import { brandFromPartner, brandTheme, mixHex, parseHexColor, resolveSystemPrimary, SYSTEM_PRIMARY } from "@/lib/branding";
 import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, parseIntegrationTab } from "@/lib/integrations";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
@@ -453,6 +454,7 @@ describe("comandas", () => {
     expect(mixHex("#ff0447", "#000000", 0.22)).toBe("#c70337");
     expect(brandTheme("#ff0447").wine).toBe("#ff0447");
     expect(brandTheme("#ff0447").wineDeep).toBe("#c70337");
+    expect(brandTheme("#ff0447").faviconUrl).toBeNull();
     expect(atendimentoPath()).toBe("/atendimento");
     expect(normalizeCampaignTrigger("APPOINTMENT_CREATED")).toBe("INFORMED");
     expect(CAMPAIGN_CATALOG).toHaveLength(13);
@@ -1264,11 +1266,14 @@ describe("parceiros", () => {
     expect(sanitizePartnerSlug("www")).toBe("");
     expect(sanitizePartnerSlug("plataforma")).toBe("");
     expect(sanitizePartnerSlug("p")).toBe("");
+    expect(sanitizePartnerSlug("apresentacao")).toBe("");
     expect(sanitizePartnerSlug("a")).toBe("");
     expect(partnerRefForBrand({ pathname: "/", cookieRef: "teste" })).toBe("");
     expect(partnerRefForBrand({ pathname: "/", headerRef: "teste" })).toBe("teste");
+    expect(partnerRefForBrand({ pathname: "/apresentacao/salao", cookieRef: "teste" })).toBe("");
     expect(partnerRefForBrand({ pathname: "/cadastro", cookieRef: "teste" })).toBe("teste");
     expect(isPublicBrandPath("/cadastro")).toBe(true);
+    expect(isPublicBrandPath("/apresentacao/parceiros")).toBe(true);
     expect(isPublicBrandPath("/parceiro/aparencia")).toBe(false);
     expect(partnerBrandIsLive("PENDING", true)).toBe(true);
     expect(partnerBrandIsLive("PENDING", false)).toBe(false);
@@ -1343,6 +1348,9 @@ describe("parceiros", () => {
     );
     expect(landingCatalogTitles()).toHaveLength(24);
     expect(LANDING_STEPS).toHaveLength(3);
+    expect(brandFromPartner({ name: "Parceiro", faviconUrl: "/uploads/logo/x-favicon/icon.png" }).faviconUrl).toBe(
+      "/uploads/logo/x-favicon/icon.png",
+    );
     expect(brandLogoSrc({ logoUrl: SYSTEM_LOGO, logoDarkUrl: SYSTEM_LOGO_DARK }, true)).toBe(SYSTEM_LOGO_DARK);
     expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: "/uploads/dark.png" }, true)).toBe("/uploads/dark.png");
     expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: null }, true)).toBe("/uploads/light.png");
@@ -1362,5 +1370,31 @@ describe("parceiros", () => {
     expect(nextCommissionStatusAfterRefund("PENDING")).toBe("CANCELED");
     expect(shouldCreateReversal("PAID")).toBe(true);
     expect(homePath("PARTNER", "PARTNER")).toBe("/parceiro");
+  });
+});
+
+describe("apresentações", () => {
+  it("mantém os três decks com capa e fechamento", () => {
+    expect(pitchDeckSlugs()).toEqual(["salao", "fornecedores", "parceiros"]);
+    expect(listPitchDecks()).toHaveLength(3);
+    for (const slug of pitchDeckSlugs()) {
+      const deck = getPitchDeck(slug);
+      expect(deck?.slides[0]?.kind).toBe("cover");
+      expect(deck?.slides.at(-1)?.kind).toBe("close");
+      expect((deck?.slides.length ?? 0) >= 8).toBe(true);
+    }
+    expect(getPitchDeck("salao")?.slides[0]?.title).toMatch(/WhatsApp da recepção/);
+    expect(getPitchDeck("salao")?.slides[0]?.image).toContain("/apresentacao/");
+    expect(getPitchDeck("fornecedores")?.slides[0]?.title).toMatch(/estoque de cada salão/);
+    expect(getPitchDeck("parceiros")?.slides[0]?.title).toMatch(/sua marca/);
+    expect(getPitchDeck("inexistente")).toBeNull();
+    expect(listPitchDecks().every((deck) => deck.coverImage.startsWith("/apresentacao/"))).toBe(true);
+    expect(megaWhatsAppHref("reunião")).toContain("https://wa.me/5511985521672");
+    for (const slug of pitchDeckSlugs()) {
+      const deck = getPitchDeck(slug);
+      expect(deck?.cta).toBe(PITCH_CTA_LABEL);
+      expect(deck?.ctaHref).toContain("https://wa.me/5511985521672");
+      expect(deck?.ctaHref).not.toContain("/cadastro");
+    }
   });
 });

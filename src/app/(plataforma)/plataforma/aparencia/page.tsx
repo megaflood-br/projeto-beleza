@@ -19,7 +19,12 @@ export default async function PlataformaAparenciaPage() {
 
   return (
     <div className="space-y-10">
-      <AppearanceBoard logoUrl={brand.logoUrl} logoDarkUrl={brand.logoDarkUrl || ""} primary={brand.primary} />
+      <AppearanceBoard
+        logoUrl={brand.logoUrl}
+        logoDarkUrl={brand.logoDarkUrl || ""}
+        faviconUrl={brand.faviconUrl || ""}
+        primary={brand.primary}
+      />
       <PlatformLandingBoard
         kicker={tenant.landingKicker || copy.kicker}
         headline={tenant.landingHeadline || copy.headline}

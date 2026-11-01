@@ -4,7 +4,7 @@ import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/constants";
 import { hostSlugFromHost, PARTNER_REF_COOKIE, partnerSlugFromPath, sanitizePartnerSlug } from "@/lib/partners";
 
-const PUBLIC_PREFIXES = ["/login", "/cadastro", "/agendar", "/anamnese", "/p", "/pop", "/api/webhooks", "/api/health", "/uploads"];
+const PUBLIC_PREFIXES = ["/login", "/cadastro", "/agendar", "/anamnese", "/p", "/pop", "/apresentacao", "/api/webhooks", "/api/health", "/uploads"];
 
 function isPublic(pathname: string) {
   if (pathname === "/") return true;

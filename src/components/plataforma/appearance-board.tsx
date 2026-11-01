@@ -5,23 +5,27 @@ import { ImageIcon } from "lucide-react";
 import { savePlatformBrand } from "@/app/actions/platform-brand";
 import { Button, Card, Field, Input } from "@/components/ui";
 import { readBrandLogo } from "@/lib/product-photo";
-import { SYSTEM_LOGO, SYSTEM_LOGO_DARK, SYSTEM_PRIMARY } from "@/lib/branding";
+import { SYSTEM_FAVICON, SYSTEM_LOGO, SYSTEM_LOGO_DARK, SYSTEM_PRIMARY } from "@/lib/branding";
 import { useRouter } from "next/navigation";
 
 export function AppearanceBoard({
   logoUrl,
   logoDarkUrl,
+  faviconUrl,
   primary,
 }: {
   logoUrl: string;
   logoDarkUrl: string;
+  faviconUrl: string;
   primary: string;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const darkRef = useRef<HTMLInputElement>(null);
+  const iconRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState(logoUrl || SYSTEM_LOGO);
   const [darkUrl, setDarkUrl] = useState(logoDarkUrl || SYSTEM_LOGO_DARK);
+  const [icon, setIcon] = useState(faviconUrl || "");
   const [color, setColor] = useState(primary || SYSTEM_PRIMARY);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -31,6 +35,7 @@ export function AppearanceBoard({
     setError(null);
     formData.set("logoUrl", url);
     formData.set("logoDarkUrl", darkUrl);
+    formData.set("faviconUrl", icon);
     formData.set("accentColor", color);
     await savePlatformBrand(formData);
     setBusy(false);
@@ -42,7 +47,7 @@ export function AppearanceBoard({
       <div>
         <h1 className="font-display text-3xl">Aparência</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Logo, cor e landing da home oficial. A identidade de cada salão continua nas configurações da empresa.
+          Logo, favicon, cor e landing da home oficial. A identidade de cada salão continua nas configurações da empresa.
         </p>
       </div>
 
@@ -130,6 +135,48 @@ export function AppearanceBoard({
             </div>
           </Field>
 
+          <Field label="Favicon">
+            <input type="hidden" name="faviconUrl" value={icon} />
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-white ring-1 ring-line">
+                {icon ? (
+                  <img src={icon} alt="" className="h-10 w-10 object-contain" />
+                ) : (
+                  <img src={SYSTEM_FAVICON} alt="" className="h-10 w-10 object-contain opacity-60" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <input
+                  ref={iconRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    void readBrandLogo(file)
+                      .then((next) => {
+                        setError(null);
+                        setIcon(next);
+                      })
+                      .catch((err: Error) => setError(err.message));
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="h-8 px-3 text-xs" onClick={() => iconRef.current?.click()}>
+                    {icon ? "Trocar" : "Enviar favicon"}
+                  </Button>
+                  {icon ? (
+                    <Button type="button" variant="ghost" className="h-8 px-3 text-xs" onClick={() => setIcon("")}>
+                      Padrão
+                    </Button>
+                  ) : null}
+                </div>
+                <p className="text-xs text-ink-soft">Ícone da aba do navegador. PNG quadrado, de preferência 192×192 ou 512×512.</p>
+              </div>
+            </div>
+          </Field>
+
           <Field label="Cor primária">
             <div className="flex flex-wrap items-center gap-3">
               <input
@@ -162,6 +209,9 @@ export function AppearanceBoard({
               </div>
               <span className="inline-flex rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ background: color }}>
                 Botão primário
+              </span>
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white ring-1 ring-line">
+                <img src={icon || SYSTEM_FAVICON} alt="" className="h-6 w-6 object-contain" />
               </span>
               <span className="text-sm font-medium" style={{ color }}>
                 Link de exemplo
