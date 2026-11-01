@@ -63,7 +63,7 @@ export function PartnerLandingBoard({
       <div>
         <h1 className="font-display text-3xl">Landing page</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Página pública com a sua marca. Quem chega por ela já entra no seu link de indicação.
+          Página pública com a sua marca, o catálogo do sistema e o seu link de indicação.
         </p>
         <a href={previewUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-medium text-wine">
           Abrir /p/{slug}

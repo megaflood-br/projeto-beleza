@@ -86,6 +86,7 @@ import {
 } from "@/lib/partners";
 import { nextCommissionStatusAfterRefund, shouldCreateReversal } from "@/lib/partner-commission";
 import { publicAppOrigin } from "@/lib/public-url";
+import { LANDING_CATALOG, LANDING_STEPS, landingCatalogTitles } from "@/lib/landing-catalog";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
 import { featuresFromText, formatPlanPrice, nextPlanSlug, parsePlanFeatures, planLabel, serializePlanFeatures } from "@/lib/plans";
 import {
@@ -1172,6 +1173,37 @@ describe("parceiros", () => {
     expect(resolveHqLanding("MegaBeauty", {}).features).toHaveLength(6);
     expect(resolveHqLanding("MegaBeauty", { headline: "Home nova", kicker: "CRM" }).headline).toBe("Home nova");
     expect(resolveHqLanding("MegaBeauty", { headline: "Home nova", kicker: "CRM" }).kicker).toBe("CRM");
+    expect(LANDING_CATALOG.map((group) => group.id)).toEqual(["atendimento", "operacao", "gestao", "crescimento"]);
+    expect(landingCatalogTitles()).toEqual(
+      expect.arrayContaining([
+        "Agenda",
+        "Atendimento WhatsApp",
+        "Comandas",
+        "Clientes",
+        "Anamnese",
+        "Equipe",
+        "Usuários",
+        "Serviços",
+        "Estoque",
+        "Fornecedores",
+        "Promoções",
+        "Cadastros",
+        "Painel",
+        "Financeiro",
+        "Comissões",
+        "Metas",
+        "Notas fiscais",
+        "Cashback",
+        "Marketing",
+        "Documentação e POPs",
+        "Assistente IA",
+        "Avisos",
+        "Suporte",
+        "Configurações",
+      ]),
+    );
+    expect(landingCatalogTitles()).toHaveLength(24);
+    expect(LANDING_STEPS).toHaveLength(3);
     expect(brandLogoSrc({ logoUrl: SYSTEM_LOGO, logoDarkUrl: SYSTEM_LOGO_DARK }, true)).toBe(SYSTEM_LOGO_DARK);
     expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: "/uploads/dark.png" }, true)).toBe("/uploads/dark.png");
     expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: null }, true)).toBe("/uploads/light.png");

@@ -59,7 +59,7 @@ export function PlatformLandingBoard({
       <div>
         <h2 className="font-display text-2xl">Landing page</h2>
         <p className="mt-1 text-sm text-ink-soft">
-          Texto, capa e blocos da home pública do MegaBeauty. Os parceiros continuam com a landing deles.
+          Título, capa e destaques da home. O catálogo completo das funcionalidades do sistema já aparece na landing.
         </p>
         <a href="/" target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-medium text-wine">
           Abrir a home

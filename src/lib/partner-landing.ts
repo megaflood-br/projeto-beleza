@@ -1,6 +1,17 @@
 import { prisma } from "@/lib/db";
 import { SYSTEM_BRAND_NAME } from "@/lib/branding";
+import { formatPlanPrice, listPlatformPlans, parsePlanFeatures } from "@/lib/plans";
 import { partnerBrandIsLive, resolveHqLanding, resolvePartnerLanding } from "@/lib/partners";
+
+export type LandingPlanCard = {
+  name: string;
+  slug: string;
+  description: string;
+  price: string;
+  trialDays: number;
+  features: string[];
+  highlighted: boolean;
+};
 
 export type PartnerLandingPage = {
   slug: string;
@@ -83,4 +94,22 @@ export async function loadHqLanding(name = SYSTEM_BRAND_NAME): Promise<PartnerLa
     imageUrl: hq?.landingImageUrl ?? null,
     ...copy,
   };
+}
+
+export async function loadLandingPlans(): Promise<LandingPlanCard[]> {
+  try {
+    if (typeof prisma.platformPlan?.findMany !== "function") return [];
+    const rows = await listPlatformPlans(true);
+    return rows.map((plan) => ({
+      name: plan.name,
+      slug: plan.slug,
+      description: plan.description || "",
+      price: formatPlanPrice(plan.priceCents, plan.interval),
+      trialDays: plan.trialDays,
+      features: parsePlanFeatures(plan.features),
+      highlighted: plan.highlighted,
+    }));
+  } catch {
+    return [];
+  }
 }
