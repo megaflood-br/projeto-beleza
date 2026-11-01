@@ -221,7 +221,7 @@ export function toEvolutionNumber(value: string) {
 export function evolutionSendFailure(error: unknown) {
   const raw = error instanceof Error ? error.message : "";
   if (/404/i.test(raw) || /not found/i.test(raw)) {
-    return "WhatsApp não encontrou a conexão do salão. Abra a aba Conexão e leia o QR de novo.";
+    return "WhatsApp não encontrou a conexão do salão. Abra Configurações → WhatsApp e leia o QR de novo.";
   }
   if (/401|403|unauthorized|forbidden/i.test(raw)) {
     return "A API do WhatsApp recusou a chave. Confira a integração Evolution na plataforma.";

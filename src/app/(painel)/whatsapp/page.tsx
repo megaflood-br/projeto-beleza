@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { parseWhatsAppTab } from "@/lib/whatsapp-campaigns";
 import { atendimentoPath, marketingPath } from "@/lib/marketing";
+import { settingsPath } from "@/lib/settings";
 
 export default async function WhatsAppRedirectPage({
   searchParams,
@@ -10,5 +11,6 @@ export default async function WhatsAppRedirectPage({
   const params = await searchParams;
   const tab = parseWhatsAppTab(params.tab);
   if (tab === "inbox") redirect(atendimentoPath(params.c));
-  redirect(marketingPath(tab, params.c));
+  if (tab === "conexao") redirect(settingsPath("whatsapp"));
+  redirect(marketingPath("campanhas", params.c));
 }

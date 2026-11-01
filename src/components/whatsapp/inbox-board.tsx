@@ -2,8 +2,7 @@ import { Button, Card, Textarea } from "@/components/ui";
 import { sendWhatsApp } from "@/app/actions/whatsapp";
 import { formatTime } from "@/lib/dates";
 import { formAction, formatPhoneBR } from "@/lib/utils";
-import { WhatsAppConnect } from "@/components/whatsapp/whatsapp-connect";
-import type { WhatsAppLive } from "@/lib/whatsapp-live";
+import { InboxClientPanel, type InboxClientProfile } from "@/components/whatsapp/inbox-client-panel";
 
 type InboxConversation = {
   id: string;
@@ -15,16 +14,16 @@ type InboxConversation = {
 export function InboxBoard({
   conversations,
   selectedId,
-  live,
+  profile,
 }: {
   conversations: InboxConversation[];
   selectedId: string | null;
-  live: WhatsAppLive;
+  profile: InboxClientProfile | null;
 }) {
   const selected = conversations.find((row) => row.id === selectedId) ?? conversations[0];
 
   return (
-    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)_minmax(16rem,20rem)]">
+    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)_minmax(18rem,22rem)]">
       <Card className="flex max-h-56 min-h-0 flex-col overflow-hidden p-0 lg:max-h-none">
         <div className="min-h-0 flex-1 overflow-y-auto">
           {conversations.length ? (
@@ -69,8 +68,8 @@ export function InboxBoard({
         ) : null}
       </Card>
 
-      <Card className="hidden min-h-0 overflow-y-auto lg:block">
-        <WhatsAppConnect initial={live} />
+      <Card className="min-h-0 overflow-y-auto p-0">
+        <InboxClientPanel profile={profile} />
       </Card>
     </div>
   );

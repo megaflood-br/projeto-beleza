@@ -29,7 +29,7 @@ export async function sendMarketingRecipient(input: {
   if (!body) return { error: "Mensagem vazia." };
 
   if (!input.connected && !input.allowMock) {
-    return { error: "Conecte o WhatsApp na aba Conexão para disparar." };
+    return { error: "Conecte o WhatsApp em Configurações para disparar." };
   }
 
   const conversation = await prisma.conversation.upsert({
@@ -102,7 +102,7 @@ export async function sendMarketingRecipients(
   };
   const connected = tenant.evolutionStatus === "open" && isEvolutionConfigured(evolution);
   if (!connected && !allowMock) {
-    return { error: "Conecte o WhatsApp na aba Conexão para disparar a campanha." };
+    return { error: "Conecte o WhatsApp em Configurações para disparar a campanha." };
   }
 
   let sent = 0;

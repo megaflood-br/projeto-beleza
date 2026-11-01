@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useBrand } from "@/components/branding-provider";
-import { SYSTEM_LOGO, SYSTEM_LOGO_DARK } from "@/lib/branding";
+import { brandLogoSrc } from "@/lib/branding";
 
 export function BrandMark({
   className,
@@ -13,12 +13,11 @@ export function BrandMark({
   imgClassName?: string;
   onDark?: boolean;
 }) {
-  const { logoUrl } = useBrand();
-  const src = onDark && (!logoUrl || logoUrl === SYSTEM_LOGO) ? SYSTEM_LOGO_DARK : logoUrl;
+  const brand = useBrand();
   return (
     <img
-      src={src}
-      alt="MegaBeauty"
+      src={brandLogoSrc(brand, onDark)}
+      alt={brand.name || "MegaBeauty"}
       className={cn("h-12 w-auto max-w-[16rem] object-contain object-left", className, imgClassName)}
     />
   );

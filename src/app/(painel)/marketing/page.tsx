@@ -3,12 +3,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { canManageTeam } from "@/lib/auth";
-import { Card } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { readWhatsAppLive } from "@/lib/whatsapp-live";
 import { atendimentoPath, MARKETING_TABS, parseMarketingTab, syncMarketingReplies } from "@/lib/marketing";
+import { settingsPath } from "@/lib/settings";
 import { MarketingBoard } from "@/components/marketing/marketing-board";
-import { WhatsAppConnect } from "@/components/whatsapp/whatsapp-connect";
 import { CampaignsBoard } from "@/components/whatsapp/campaigns-board";
 import { ensureWhatsAppCampaigns } from "@/lib/ensure-campaigns";
 import { runDueCampaigns } from "@/lib/run-due-campaigns";
@@ -21,6 +20,7 @@ export default async function MarketingPage({
   const { session } = await requireTenant();
   const params = await searchParams;
   if (params.tab === "inbox") redirect(atendimentoPath(params.c));
+  if (params.tab === "conexao") redirect(settingsPath("whatsapp"));
   const tab = parseMarketingTab(params.tab);
   const selectedId = typeof params.c === "string" ? params.c : null;
   const current = MARKETING_TABS.find((item) => item.id === tab) ?? MARKETING_TABS[0];
@@ -54,12 +54,6 @@ export default async function MarketingPage({
 
       {tab === "campanhas" ? (
         <CampaignsPanel tenantId={session.tenantId} canManage={canManageTeam(session.role)} connected={connected} />
-      ) : tab === "conexao" ? (
-        <div className="max-w-xl">
-          <Card>
-            <WhatsAppConnect initial={live} />
-          </Card>
-        </div>
       ) : (
         <ListsPanel tenantId={session.tenantId} selectedId={selectedId} canManage={canManageTeam(session.role)} connected={connected} />
       )}

@@ -5,6 +5,7 @@ export const INTEGRATION_TABS = [
   { id: "openai", label: "OpenAI", description: "Chave usada pelo assistente de todos os salões." },
   { id: "contora", label: "Contora", description: "Token fiscal da software house para NFS-e e NFC-e." },
   { id: "evolution", label: "WhatsApp", description: "Servidor Evolution e webhook usados por todos os salões." },
+  { id: "asaas", label: "Asaas", description: "Cobrança recorrente dos planos e comissão vitalícia dos parceiros." },
 ] as const;
 
 export type IntegrationTab = (typeof INTEGRATION_TABS)[number]["id"];
@@ -26,6 +27,7 @@ export type PlatformIntegrations = {
   hasOpenAi: boolean;
   hasContora: boolean;
   hasEvolution: boolean;
+  hasAsaas: boolean;
 };
 
 export async function resolvePlatformIntegrations(): Promise<PlatformIntegrations> {
@@ -37,6 +39,7 @@ export async function resolvePlatformIntegrations(): Promise<PlatformIntegration
       evolutionUrl: true,
       evolutionApiKey: true,
       publicAppUrl: true,
+      asaasApiKey: true,
     },
   });
   const openaiApiKey = hq?.openaiApiKey || process.env.OPENAI_API_KEY || "";
@@ -44,6 +47,7 @@ export async function resolvePlatformIntegrations(): Promise<PlatformIntegration
   const evolutionUrl = hq?.evolutionUrl || process.env.EVOLUTION_API_URL || "";
   const evolutionApiKey = hq?.evolutionApiKey || process.env.EVOLUTION_API_KEY || "";
   const publicAppUrl = publicAppOrigin(hq?.publicAppUrl || process.env.APP_URL || "");
+  const asaasApiKey = hq?.asaasApiKey || process.env.ASAAS_API_KEY || "";
   return {
     openaiApiKey,
     contoraApiToken,
@@ -53,6 +57,7 @@ export async function resolvePlatformIntegrations(): Promise<PlatformIntegration
     hasOpenAi: Boolean(openaiApiKey),
     hasContora: Boolean(contoraApiToken),
     hasEvolution: Boolean(evolutionUrl && evolutionApiKey),
+    hasAsaas: Boolean(asaasApiKey),
   };
 }
 

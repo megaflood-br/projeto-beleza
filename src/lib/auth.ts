@@ -21,9 +21,14 @@ export function isSupplierRole(role: Role | string) {
   return role === "SUPPLIER";
 }
 
+export function isPartnerRole(role: Role | string) {
+  return role === "PARTNER";
+}
+
 export function homePath(role: string, kind?: string | null) {
   if (role === "SUPER_ADMIN") return "/plataforma";
   if (kind === "SUPPLIER" || role === "SUPPLIER") return "/fornecedor";
+  if (kind === "PARTNER" || role === "PARTNER") return "/parceiro";
   return "/dashboard";
 }
 

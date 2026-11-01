@@ -12,7 +12,7 @@ import { uploadToDataUrl } from "@/lib/product-upload";
 export default async function PublicPopPage({ params }: { params: Promise<{ slug: string; popSlug: string }> }) {
   const { slug, popSlug } = await params;
   const tenant = await prisma.tenant.findUnique({ where: { slug } });
-  if (!tenant || tenant.kind === "SUPPLIER") notFound();
+  if (!tenant || tenant.kind === "SUPPLIER" || tenant.kind === "PARTNER") notFound();
 
   const row = await prisma.salonPop.findFirst({
     where: { tenantId: tenant.id, slug: popSlug },

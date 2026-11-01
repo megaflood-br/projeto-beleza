@@ -1,4 +1,4 @@
-export const ROLES = ["OWNER", "MANAGER", "RECEPTIONIST", "PROFESSIONAL", "SUPER_ADMIN", "SUPPLIER"] as const;
+export const ROLES = ["OWNER", "MANAGER", "RECEPTIONIST", "PROFESSIONAL", "SUPER_ADMIN", "SUPPLIER", "PARTNER"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -8,6 +8,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   PROFESSIONAL: "Profissional",
   SUPER_ADMIN: "Administrador da plataforma",
   SUPPLIER: "Fornecedor",
+  PARTNER: "Parceiro",
 };
 
 export const TENANT_STATUSES = ["ACTIVE", "TRIAL", "SUSPENDED"] as const;

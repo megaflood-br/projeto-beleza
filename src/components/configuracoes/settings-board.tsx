@@ -10,8 +10,10 @@ import { SETTINGS_TABS, type SettingsTab } from "@/lib/settings";
 import { ImportClientsForm } from "@/components/configuracoes/import-clients";
 import { SalonLogoField } from "@/components/configuracoes/salon-logo-field";
 import { SalonCityField } from "@/components/fornecedor/city-picker";
+import { WhatsAppConnect } from "@/components/whatsapp/whatsapp-connect";
 import { resolveCityLabel } from "@/lib/br-cities";
 import type { CashbackConfig } from "@/lib/cashback";
+import type { WhatsAppLive } from "@/lib/whatsapp-live";
 
 export type SalonSettingsValue = {
   name: string;
@@ -34,12 +36,14 @@ export function SettingsBoard({
   salon,
   cashback,
   fiscal,
+  whatsapp,
   canImport,
 }: {
   tab: SettingsTab;
   salon: SalonSettingsValue;
   cashback: CashbackConfig;
   fiscal: FiscalConfig & { hasPlatformToken: boolean; cscTokenMasked: string };
+  whatsapp: WhatsAppLive;
   canImport: boolean;
 }) {
   const current = SETTINGS_TABS.find((item) => item.id === tab) ?? SETTINGS_TABS[0];
@@ -64,7 +68,9 @@ export function SettingsBoard({
               )}
             >
               {item.label}
-              {(item.id === "cashback" && cashback.enabled) || (item.id === "fiscal" && fiscal.enabled) ? (
+              {(item.id === "cashback" && cashback.enabled) ||
+              (item.id === "fiscal" && fiscal.enabled) ||
+              (item.id === "whatsapp" && whatsapp.state === "open") ? (
                 <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">ativo</span>
               ) : null}
             </Link>
@@ -72,7 +78,11 @@ export function SettingsBoard({
         })}
       </div>
 
-      {tab === "cashback" ? (
+      {tab === "whatsapp" ? (
+        <Card>
+          <WhatsAppConnect initial={whatsapp} />
+        </Card>
+      ) : tab === "cashback" ? (
         <CashbackForm cashback={cashback} />
       ) : tab === "fiscal" ? (
         <FiscalForm fiscal={fiscal} />

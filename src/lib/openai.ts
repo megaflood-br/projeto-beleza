@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { ASSISTANT_SYSTEM_PROMPT } from "@/lib/assistant";
 
 export function createOpenAI(apiKey?: string | null) {
   const key = apiKey || process.env.OPENAI_API_KEY;
@@ -12,6 +13,7 @@ export function fallbackInsight(stats: {
   occupancy: number;
   noShows: number;
   lowStock: number;
+  lowStockNames?: string[];
 }) {
   const hints: string[] = [];
   if (stats.occupancy < 55) {
@@ -26,7 +28,9 @@ export function fallbackInsight(stats: {
       `Houve ${stats.noShows} não comparecimento(s). Ative o lembrete automático 24h antes e peça confirmação com um toque.`,
     );
   }
-  if (stats.lowStock > 0) {
+  if (stats.lowStockNames?.length) {
+    hints.push(`Em baixa agora: ${stats.lowStockNames.join(", ")}. Reponha antes do pico de sábado.`);
+  } else if (stats.lowStock > 0) {
     hints.push(`${stats.lowStock} produto(s) estão no estoque mínimo. Reponha antes do pico de sábado.`);
   }
   if (stats.appointments === 0) {
@@ -57,8 +61,7 @@ export async function chatWithSalonContext(params: {
     messages: [
       {
         role: "system",
-        content:
-          "Você é a assistente da MegaBeauty, um CRM para salões de beleza no Brasil. Responda em português, de forma objetiva, com ações práticas sobre agenda, clientes, estoque, comissões, WhatsApp e faturamento. Use apenas o contexto fornecido.",
+        content: ASSISTANT_SYSTEM_PROMPT,
       },
       { role: "user", content: `Contexto do salão:\n${params.context}\n\nPergunta: ${params.question}` },
     ],

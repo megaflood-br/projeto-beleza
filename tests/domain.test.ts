@@ -2,11 +2,23 @@ import { describe, expect, it } from "vitest";
 import { calculateCommission, consumedProductCents, availableCommission, sumCommissions } from "@/lib/commissions";
 import { hasConflict } from "@/lib/appointments";
 import { formatStockQty, isLowStock, nextStock } from "@/lib/stock";
+import {
+  answerAssistantIntent,
+  answerFreeSlots,
+  answerLowStock,
+  assistantIntent,
+  formatAssistantContext,
+  formatLowStockLine,
+  freeSlotsForProfessional,
+  lowStockProducts,
+  matchProfessional,
+  mentionedPerson,
+} from "@/lib/assistant";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
-import { parseSettingsTab } from "@/lib/settings";
+import { parseSettingsTab, settingsPath } from "@/lib/settings";
 import {
   CAMPAIGN_CATALOG,
   normalizeCampaignTrigger,
@@ -52,14 +64,46 @@ import { applySupplierPromo, bundlePayableQty } from "@/lib/supplier-promo";
 import { buildLowStockAlerts, productsLookAlike } from "@/lib/supplier-alerts";
 import {
   anamnesisDocumentItems,
+  anamnesisInviteMessage,
+  anamnesisInvitePath,
+  anamnesisInviteUrl,
   collectAlerts,
+  createAnamnesisInviteToken,
   DEFAULT_ANAMNESIS_FORMS,
   formatAnamnesisAnswer,
   missingRequired,
   parseQuestions,
+  sanitizeAnamnesisToken,
   serializeQuestions,
 } from "@/lib/anamnesis";
-import { isPlatformAdmin } from "@/lib/auth";
+import { homePath, isPlatformAdmin } from "@/lib/auth";
+import { brandLogoSrc, SYSTEM_LOGO, SYSTEM_LOGO_DARK } from "@/lib/branding";
+import {
+  commissionCents,
+  conversionRate as partnerConversionRate,
+  firstTouchPartnerId,
+  hostSlugFromHost,
+  isPublicBrandPath,
+  parseCommissionPercent,
+  partnerBrandIsLive,
+  partnerAffiliatePath,
+  partnerAffiliateUrl,
+  partnerCustomUrl,
+  partnerHostCandidates,
+  partnerLandingPath,
+  partnerRefForBrand,
+  partnerSlugFromPath,
+  partnerSubdomainUrl,
+  parseLandingFeatures,
+  resolveHqLanding,
+  resolvePartnerLanding,
+  sanitizePartnerHost,
+  sanitizePartnerSlug,
+  summarizePartnerLedger,
+} from "@/lib/partners";
+import { nextCommissionStatusAfterRefund, shouldCreateReversal } from "@/lib/partner-commission";
+import { publicAppOrigin } from "@/lib/public-url";
+import { LANDING_CATALOG, LANDING_STEPS, landingCatalogTitles } from "@/lib/landing-catalog";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
 import { featuresFromText, formatPlanPrice, nextPlanSlug, parsePlanFeatures, planLabel, serializePlanFeatures } from "@/lib/plans";
 import {
@@ -225,6 +269,112 @@ describe("estoque", () => {
   });
 });
 
+describe("assistente", () => {
+  const products = [
+    { name: "Tintura 6.0", stock: 1, minStock: 4, unit: "un" },
+    { name: "Shampoo", stock: 12, minStock: 4, unit: "un" },
+    { name: "Algodão", stock: 0, minStock: 2, unit: "un" },
+  ];
+
+  it("reconhece pergunta de estoque baixo e lista os produtos", () => {
+    expect(assistantIntent("qual produto esta em baixa no estoque?")).toBe("low_stock");
+    expect(assistantIntent("Quais produtos estão em baixa?")).toBe("low_stock");
+    expect(assistantIntent("Como recuperar clientes inativos?")).toBe("general");
+    expect(lowStockProducts(products).map((item) => item.name)).toEqual(["Algodão", "Tintura 6.0"]);
+    expect(answerLowStock(products)).toContain("Algodão");
+    expect(answerLowStock(products)).toContain("Tintura 6.0");
+    expect(answerLowStock(products)).not.toMatch(/verificar a lista|olhar no estoque/i);
+    expect(formatLowStockLine(products[0])).toContain("Tintura 6.0");
+  });
+
+  it("monta contexto com os nomes em baixa e responde a intenção", () => {
+    const snapshot = {
+      salon: "Studio Aurora",
+      dayLabel: "hoje",
+      revenueCents: 15000,
+      occupancy: 40,
+      noShows: 1,
+      appointments: [{ time: "09:00", end: "10:00", client: "Ana", professional: "Bruno", status: "Confirmado" }],
+      products,
+      professionals: [
+        { name: "Bruno", appointmentsToday: 1, workStart: "09:00", workEnd: "19:00", freeSlots: ["11:00"] },
+        { name: "Camila", appointmentsToday: 0, workStart: "09:00", workEnd: "19:00", freeSlots: ["09:00"] },
+      ],
+    };
+    expect(formatAssistantContext(snapshot)).toContain("Tintura 6.0");
+    expect(formatAssistantContext(snapshot)).toContain("Bruno");
+    expect(answerAssistantIntent("low_stock", snapshot)).toContain("Algodão");
+    expect(answerAssistantIntent("idle_team", snapshot)).toContain("Camila");
+    expect(answerAssistantIntent("revenue", snapshot)).toContain("R$");
+    expect(answerAssistantIntent("general", snapshot)).toBe("");
+  });
+
+  it("responde horário livre da profissional sem dizer que não tem a informação", () => {
+    const names = ["Kelly Souza", "Cami"];
+    expect(assistantIntent("tem horário disponível na agenda da Kelly?", names)).toBe("free_slot");
+    expect(assistantIntent("a Kelly tem disponibilidade hoje?", names)).toBe("free_slot");
+    expect(assistantIntent("agenda da Kelly", names)).toBe("free_slot");
+    expect(assistantIntent("a Kelly está livre?", names)).toBe("free_slot");
+    expect(assistantIntent("como está a agenda hoje?", ["Ana Souza", "Kelly Souza"])).toBe("today_agenda");
+    expect(matchProfessional("como está a agenda hoje?", [
+      { name: "Ana Souza", appointmentsToday: 0, workStart: "09:00", workEnd: "19:00", freeSlots: ["09:00"] },
+    ])).toBeNull();
+    expect(mentionedPerson("tem horário disponível na agenda de hoje")).toBe("");
+    expect(mentionedPerson("tem horário na agenda da Kelly")).toBe("kelly");
+
+    const snapshot = {
+      salon: "Studio Aurora",
+      dayLabel: "hoje",
+      revenueCents: 0,
+      occupancy: 20,
+      noShows: 0,
+      appointments: [{ time: "09:00", end: "10:00", client: "Ana", professional: "Kelly Souza", status: "Confirmado" }],
+      products,
+      professionals: [
+        {
+          name: "Kelly Souza",
+          nickname: "Kelly",
+          appointmentsToday: 1,
+          workStart: "09:00",
+          workEnd: "19:00",
+          freeSlots: ["10:00", "10:30", "11:00", "14:00"],
+        },
+        {
+          name: "Camila Ferreira",
+          nickname: "Cami",
+          appointmentsToday: 0,
+          workStart: "09:00",
+          workEnd: "19:00",
+          freeSlots: ["09:00", "09:30"],
+        },
+      ],
+    };
+
+    expect(matchProfessional("agenda da Kelly", snapshot.professionals)?.name).toBe("Kelly Souza");
+    expect(matchProfessional("tem horário com a Cami", snapshot.professionals)?.name).toBe("Camila Ferreira");
+    const answer = answerFreeSlots(snapshot, "tem horário disponível na agenda da Kelly?");
+    expect(answer).toContain("Kelly Souza");
+    expect(answer).toContain("10:00");
+    expect(answer).toContain("Ana");
+    expect(answer).not.toMatch(/não (tenho|tinha) essa informação|abrir a agenda/i);
+    expect(formatAssistantContext(snapshot)).toContain("Kelly Souza");
+    expect(formatAssistantContext(snapshot)).toContain("10:00");
+    expect(answerAssistantIntent("free_slot", snapshot, "tem horário disponível na agenda da Kelly?")).toContain("10:00");
+  });
+
+  it("calcula horários livres fora dos ocupados e do passado", () => {
+    expect(
+      freeSlotsForProfessional({
+        openTime: "09:00",
+        closeTime: "11:00",
+        slotMinutes: 30,
+        nowHHmm: "09:10",
+        busy: [{ start: "10:00", end: "10:30" }],
+      }),
+    ).toEqual(["09:30", "10:30"]);
+  });
+});
+
 describe("helpers", () => {
   it("formata e faz parse de reais", () => {
     expect(formatBRL(12345)).toContain("123,45");
@@ -283,14 +433,16 @@ describe("comandas", () => {
     expect(parseSettingsTab("cashback")).toBe("cashback");
     expect(parseSettingsTab("fiscal")).toBe("fiscal");
     expect(parseSettingsTab("importar")).toBe("importar");
+    expect(parseSettingsTab("whatsapp")).toBe("whatsapp");
     expect(parseSettingsTab("outro")).toBe("salao");
+    expect(settingsPath("whatsapp")).toBe("/configuracoes?tab=whatsapp");
     expect(parseWhatsAppTab("campanhas")).toBe("campanhas");
     expect(parseWhatsAppTab("outro")).toBe("inbox");
     expect(parseMarketingTab("inbox")).toBe("listas");
-    expect(parseMarketingTab("conexao")).toBe("conexao");
+    expect(parseMarketingTab("conexao")).toBe("listas");
     expect(parseMarketingTab("campanhas")).toBe("campanhas");
     expect(parseMarketingTab("outro")).toBe("listas");
-    expect(marketingPath("conexao")).toBe("/marketing?tab=conexao");
+    expect(marketingPath("campanhas")).toBe("/marketing?tab=campanhas");
     expect(marketingPath("listas")).toBe("/marketing");
     expect(atendimentoPath("abc")).toBe("/atendimento?c=abc");
     expect(parseHexColor("#FF0447")).toBe("#ff0447");
@@ -609,6 +761,20 @@ describe("anamnese", () => {
     const parsed = parseQuestions(json);
     expect(parsed.find((q) => q.id === "ppd")?.alertOn).toBe("yes");
     expect(parseQuestions("não-é-json")).toEqual([]);
+  });
+
+  it("monta o link público da ficha para a cliente preencher", () => {
+    const token = createAnamnesisInviteToken();
+    expect(sanitizeAnamnesisToken(token)).toBe(token);
+    expect(sanitizeAnamnesisToken("../x")).toBe("");
+    expect(anamnesisInvitePath(token)).toBe(`/anamnese/${token}`);
+    expect(anamnesisInviteUrl(token, "https://beauty.megaflood.app")).toBe(
+      `https://beauty.megaflood.cloud/anamnese/${token}`,
+    );
+    expect(anamnesisInviteMessage("Desiree Lima", "Renove Estética", "https://x/anamnese/abc")).toContain("Desiree");
+    expect(anamnesisInviteMessage("Desiree Lima", "Renove Estética", "https://x/anamnese/abc")).toContain(
+      "https://x/anamnese/abc",
+    );
   });
 });
 
@@ -1089,5 +1255,112 @@ describe("pedidos de fornecedor", () => {
     expect(
       compareDocuments({ title: "B", expiresAt: shiftCalendarDate(today, 60) }, { title: "A", expiresAt: shiftCalendarDate(today, -1) }),
     ).toBeGreaterThan(0);
+  });
+});
+
+describe("parceiros", () => {
+  it("sanitiza slug e reserva caminhos do sistema", () => {
+    expect(sanitizePartnerSlug("Ana Silva")).toBe("ana-silva");
+    expect(sanitizePartnerSlug("www")).toBe("");
+    expect(sanitizePartnerSlug("plataforma")).toBe("");
+    expect(sanitizePartnerSlug("p")).toBe("");
+    expect(sanitizePartnerSlug("a")).toBe("");
+    expect(partnerRefForBrand({ pathname: "/", cookieRef: "teste" })).toBe("");
+    expect(partnerRefForBrand({ pathname: "/", headerRef: "teste" })).toBe("teste");
+    expect(partnerRefForBrand({ pathname: "/cadastro", cookieRef: "teste" })).toBe("teste");
+    expect(isPublicBrandPath("/cadastro")).toBe(true);
+    expect(isPublicBrandPath("/parceiro/aparencia")).toBe(false);
+    expect(partnerBrandIsLive("PENDING", true)).toBe(true);
+    expect(partnerBrandIsLive("PENDING", false)).toBe(false);
+    expect(partnerBrandIsLive("SUSPENDED", true)).toBe(false);
+  });
+
+  it("calcula comissão em bps sem arredondar para cima", () => {
+    expect(parseCommissionPercent("20")).toBe(2000);
+    expect(parseCommissionPercent("30")).toBe(3000);
+    expect(commissionCents(19900, 2000)).toBe(3980);
+    expect(commissionCents(100, 2000)).toBe(20);
+    expect(commissionCents(0, 2000)).toBe(0);
+  });
+
+  it("mantém first-touch e resolve host do subdomínio", () => {
+    expect(firstTouchPartnerId(null, "p1")).toBe("p1");
+    expect(firstTouchPartnerId("p1", "p2")).toBe("p1");
+    expect(hostSlugFromHost("ana.beauty.megaflood.cloud", "beauty.megaflood.cloud")).toBe("ana");
+    expect(hostSlugFromHost("beauty.megaflood.cloud", "beauty.megaflood.cloud")).toBe("");
+    expect(partnerAffiliatePath("ana-silva")).toBe("/cadastro?ref=ana-silva");
+    expect(publicAppOrigin("https://beauty.megaflood.app")).toBe("https://beauty.megaflood.cloud");
+    expect(publicAppOrigin("https://www.beauty.megaflood.app/cadastro")).toBe("https://beauty.megaflood.cloud");
+    expect(partnerAffiliateUrl("teste", "https://beauty.megaflood.app")).toBe(
+      "https://beauty.megaflood.cloud/cadastro?ref=teste",
+    );
+    expect(partnerSubdomainUrl("teste", "https://beauty.megaflood.app")).toBe("https://teste.beauty.megaflood.cloud");
+    expect(sanitizePartnerHost("https://www.App.MinhaMarca.com.br/cadastro")).toBe("app.minhamarca.com.br");
+    expect(sanitizePartnerHost("beauty.megaflood.cloud")).toBe("");
+    expect(partnerHostCandidates("www.app.minhamarca.com.br:443")).toEqual([
+      "app.minhamarca.com.br",
+      "www.app.minhamarca.com.br",
+    ]);
+    expect(partnerCustomUrl("https://crm.parceiro.com")).toBe("https://crm.parceiro.com");
+    expect(partnerLandingPath("teste")).toBe("/p/teste");
+    expect(partnerSlugFromPath("/p/teste")).toBe("teste");
+    expect(parseLandingFeatures('[{"title":"Agenda","text":"Sem conflito"}]')).toEqual([
+      { title: "Agenda", text: "Sem conflito" },
+    ]);
+    expect(resolvePartnerLanding("Ana Beauty", {}).headline).toContain("Ana Beauty");
+    expect(resolveHqLanding("MegaBeauty", {}).headline).toContain("agenda");
+    expect(resolveHqLanding("MegaBeauty", {}).features).toHaveLength(6);
+    expect(resolveHqLanding("MegaBeauty", { headline: "Home nova", kicker: "CRM" }).headline).toBe("Home nova");
+    expect(resolveHqLanding("MegaBeauty", { headline: "Home nova", kicker: "CRM" }).kicker).toBe("CRM");
+    expect(LANDING_CATALOG.map((group) => group.id)).toEqual(["atendimento", "operacao", "gestao", "crescimento"]);
+    expect(landingCatalogTitles()).toEqual(
+      expect.arrayContaining([
+        "Agenda",
+        "Atendimento WhatsApp",
+        "Comandas",
+        "Clientes",
+        "Anamnese",
+        "Equipe",
+        "Usuários",
+        "Serviços",
+        "Estoque",
+        "Fornecedores",
+        "Promoções",
+        "Cadastros",
+        "Painel",
+        "Financeiro",
+        "Comissões",
+        "Metas",
+        "Notas fiscais",
+        "Cashback",
+        "Marketing",
+        "Documentação e POPs",
+        "Assistente IA",
+        "Avisos",
+        "Suporte",
+        "Configurações",
+      ]),
+    );
+    expect(landingCatalogTitles()).toHaveLength(24);
+    expect(LANDING_STEPS).toHaveLength(3);
+    expect(brandLogoSrc({ logoUrl: SYSTEM_LOGO, logoDarkUrl: SYSTEM_LOGO_DARK }, true)).toBe(SYSTEM_LOGO_DARK);
+    expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: "/uploads/dark.png" }, true)).toBe("/uploads/dark.png");
+    expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: null }, true)).toBe("/uploads/light.png");
+    expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: "/uploads/dark.png" }, false)).toBe("/uploads/light.png");
+  });
+
+  it("resume saldo e converte indicados em taxa", () => {
+    expect(
+      summarizePartnerLedger([
+        { status: "AVAILABLE", type: "SALE", commissionCents: 1000 },
+        { status: "PENDING", type: "SALE", commissionCents: 400 },
+        { status: "PAID", type: "SALE", commissionCents: 200 },
+        { status: "CANCELED", type: "SALE", commissionCents: 999 },
+      ]),
+    ).toEqual({ earned: 1600, available: 1000, pending: 400, paid: 200 });
+    expect(partnerConversionRate(10, 3)).toBe(30);
+    expect(nextCommissionStatusAfterRefund("PENDING")).toBe("CANCELED");
+    expect(shouldCreateReversal("PAID")).toBe(true);
+    expect(homePath("PARTNER", "PARTNER")).toBe("/parceiro");
   });
 });

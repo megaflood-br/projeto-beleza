@@ -9,6 +9,7 @@ import { cashbackExpiry, pointsToCents } from "@/lib/cashback";
 import { safeDispatch } from "@/lib/dispatch-whatsapp-campaign";
 import { parseClientIds } from "@/lib/client-delete";
 import { deleteTenantClients } from "@/lib/run-client-delete";
+import { whatsappPhoneCandidates } from "@/lib/whatsapp-campaigns";
 
 function flag(formData: FormData, key: string, fallback = true) {
   const raw = formData.get(key);
@@ -135,7 +136,63 @@ export async function upsertClient(formData: FormData) {
   revalidatePath("/clientes");
   if (id) revalidatePath(`/clientes/${id}`);
   revalidatePath("/agenda");
+  revalidatePath("/atendimento");
   return { ok: true };
+}
+
+export async function saveInboxClient(formData: FormData) {
+  const { session } = await requireTenant();
+  const conversationId = String(formData.get("conversationId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const email = text(formData, "email");
+  const notes = text(formData, "notes");
+  if (!conversationId) return { error: "Conversa não encontrada." };
+  if (!name) return { error: "Informe o nome da cliente." };
+
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: conversationId, tenantId: session.tenantId },
+  });
+  if (!conversation) return { error: "Conversa não encontrada." };
+
+  const candidates = whatsappPhoneCandidates(conversation.phone);
+  const phone = candidates[0] || digitsOnly(conversation.phone);
+  if (!phone) return { error: "Telefone inválido." };
+
+  const existing =
+    (conversation.clientId
+      ? await prisma.client.findFirst({ where: { id: conversation.clientId, tenantId: session.tenantId } })
+      : null) ??
+    (await prisma.client.findFirst({
+      where: { tenantId: session.tenantId, phone: { in: candidates.length ? candidates : [phone] } },
+    }));
+
+  const client = existing
+    ? await prisma.client.update({
+        where: { id: existing.id },
+        data: { name, email, notes },
+      })
+    : await prisma.client.create({
+        data: {
+          tenantId: session.tenantId,
+          name,
+          phone,
+          email,
+          notes,
+          source: "whatsapp",
+        },
+      });
+
+  if (conversation.clientId !== client.id) {
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { clientId: client.id },
+    });
+  }
+
+  revalidatePath("/atendimento");
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${client.id}`);
+  return { ok: true as const };
 }
 
 export async function addManualCashback(formData: FormData) {

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { addDays } from "date-fns";
 import { prisma } from "@/lib/db";
-import { hashPassword, setSessionCookie } from "@/lib/auth";
+import { hashPassword, homePath, setSessionCookie } from "@/lib/auth";
 import { requirePlatformAdmin, requireSession } from "@/lib/tenant";
 import { slugify } from "@/lib/utils";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
@@ -164,7 +164,7 @@ export async function impersonateTenant(formData: FormData) {
     impersonatorId: session.userId,
     impersonatorName: session.name,
   });
-  redirect(owner.role === "SUPPLIER" || tenant.kind === "SUPPLIER" ? "/fornecedor" : "/dashboard");
+  redirect(homePath(owner.role, tenant.kind));
 }
 
 export async function stopImpersonation() {

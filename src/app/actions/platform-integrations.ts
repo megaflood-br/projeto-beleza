@@ -43,6 +43,20 @@ export async function saveContoraIntegration(formData: FormData) {
   return { ok: true as const };
 }
 
+export async function saveAsaasIntegration(formData: FormData) {
+  const { tenant } = await requirePlatformAdmin();
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: {
+      asaasApiKey: keep(tenant.asaasApiKey, String(formData.get("asaasApiKey") ?? "")),
+      asaasWebhookToken: keep(tenant.asaasWebhookToken, String(formData.get("asaasWebhookToken") ?? "")),
+      asaasBaseUrl: keep(tenant.asaasBaseUrl, String(formData.get("asaasBaseUrl") ?? "")) || tenant.asaasBaseUrl,
+    },
+  });
+  revalidateIntegrations();
+  return { ok: true as const };
+}
+
 export async function saveEvolutionIntegration(formData: FormData) {
   const { tenant } = await requirePlatformAdmin();
   await prisma.tenant.update({

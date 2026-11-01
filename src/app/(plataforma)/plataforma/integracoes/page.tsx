@@ -21,6 +21,10 @@ export default async function PlataformaIntegracoesPage({
         hasOpenAi: Boolean(tenant.openaiApiKey),
         hasContora: Boolean(tenant.contoraApiToken),
         hasEvolution: Boolean(tenant.evolutionUrl && tenant.evolutionApiKey),
+        hasAsaas: Boolean(tenant.asaasApiKey),
+        asaasMasked: tenant.asaasApiKey ? maskSecret(tenant.asaasApiKey) : "",
+        asaasWebhookMasked: tenant.asaasWebhookToken ? maskSecret(tenant.asaasWebhookToken) : "",
+        asaasBaseUrl: tenant.asaasBaseUrl,
       }}
     />
   );

@@ -4,22 +4,24 @@ import { useState } from "react";
 import Link from "next/link";
 import { loginAction } from "@/app/actions/auth";
 import { BrandMark } from "@/components/brand-mark";
+import { useBrand } from "@/components/branding-provider";
 import { Button, Field, Input } from "@/components/ui";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
+  const { name } = useBrand();
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
       <section className="hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <BrandMark onDark imgClassName="h-auto w-full max-w-md object-left" />
-        <div>
+        <BrandMark onDark imgClassName="h-auto w-full max-w-2xl object-contain object-left" />
+        <div className="max-w-2xl">
           <h1 className="font-display text-5xl leading-tight">O sistema do seu salão, do horário ao caixa.</h1>
-          <p className="mt-4 max-w-md text-slate-300">
+          <p className="mt-4 text-slate-300">
             Agenda, comandas, comissões, estoque e WhatsApp no mesmo lugar — feito para donos de salão, não para planilha.
           </p>
         </div>
-        <p className="text-sm text-slate-400">Ainda não é cliente? Abra sua conta e comece hoje.</p>
+        <p className="text-sm text-slate-400">Ainda não é cliente? Abra sua conta no {name} e comece hoje.</p>
       </section>
       <section className="flex min-h-dvh items-center justify-center bg-cream p-6 pt-[max(2rem,env(safe-area-inset-top))] lg:min-h-0 lg:p-8">
         <form

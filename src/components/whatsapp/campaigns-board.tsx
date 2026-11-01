@@ -58,7 +58,7 @@ export function CampaignsBoard({
       <p className="text-sm text-ink-soft">
         {connected
           ? "Com o WhatsApp conectado, as campanhas ligadas saem sozinhas no horário certo."
-          : "As campanhas ficam prontas. Conecte o WhatsApp na aba Conexão para o envio automático."}
+          : "As campanhas ficam prontas. Conecte o WhatsApp em Configurações para o envio automático."}
       </p>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {CAMPAIGN_CATALOG.map((item) => {
@@ -184,7 +184,7 @@ function CampaignDrawer({
           </Field>
           {!connected ? (
             <p className="text-sm text-amber-700">
-              Conecte o WhatsApp na aba Conexão para o teste sair no celular. Sem conexão, a mensagem só aparece no Atendimento.
+              Conecte o WhatsApp em Configurações para o teste sair no celular. Sem conexão, a mensagem só aparece no Atendimento.
             </p>
           ) : null}
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
