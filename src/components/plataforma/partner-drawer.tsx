@@ -60,6 +60,9 @@ export function PartnerDrawer({
             <Field label="Nome da marca do sistema">
               <Input name="brandName" defaultValue={account?.brandName ?? ""} />
             </Field>
+            <Field label="Domínio próprio">
+              <Input name="customHost" defaultValue={account?.customHost ?? ""} placeholder="app.minhamarca.com.br" />
+            </Field>
             <Field label="Cor primária do sistema">
               <Input name="primary" type="color" defaultValue={account?.primary ?? "#ff0447"} className="h-11 w-14 cursor-pointer p-1" />
             </Field>

@@ -15,4 +15,5 @@ export type PartnerAccountRow = {
   earnedCents: number;
   availableCents: number;
   pixKey: string | null;
+  customHost: string;
 };

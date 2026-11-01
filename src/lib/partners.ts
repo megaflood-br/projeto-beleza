@@ -120,6 +120,35 @@ export function partnerBrandIsLive(status: string | null | undefined, publicSurf
   return publicSurface && status === "PENDING";
 }
 
+export function normalizeRequestHost(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .split("/")[0]
+    .split(":")[0]
+    .replace(/\.$/, "");
+}
+
+export function partnerHostCandidates(value: string | null | undefined) {
+  const host = normalizeRequestHost(value).replace(/^www\./, "");
+  if (!host) return [];
+  return [host, `www.${host}`];
+}
+
+export function sanitizePartnerHost(value: string | null | undefined) {
+  const host = normalizeRequestHost(String(value ?? "").replace(/^https?:\/\//, "")).replace(/^www\./, "");
+  if (!host) return "";
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(host)) return "";
+  if (host === "localhost" || host.endsWith(".localhost")) return "";
+  if (host.endsWith("megaflood.cloud") || host.endsWith("megaflood.app")) return "";
+  return host.slice(0, 120);
+}
+
+export function partnerCustomUrl(host: string | null | undefined) {
+  const clean = sanitizePartnerHost(host);
+  return clean ? `https://${clean}` : "";
+}
+
 export function isBillingStatus(value: string | null | undefined): value is BillingStatus {
   return BILLING_STATUSES.includes(value as BillingStatus);
 }

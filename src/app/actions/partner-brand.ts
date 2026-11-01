@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { requirePartner } from "@/lib/tenant";
 import { parseHexColor, SYSTEM_PRIMARY } from "@/lib/branding";
 import { saveTenantLogo } from "@/lib/product-upload";
-import { isPixKeyType } from "@/lib/partners";
+import { isPixKeyType, sanitizePartnerHost } from "@/lib/partners";
 
 export async function savePartnerBrand(formData: FormData) {
   const { partner, tenant } = await requirePartner();
@@ -14,7 +14,19 @@ export async function savePartnerBrand(formData: FormData) {
   const secondary = parseHexColor(String(formData.get("secondary") ?? ""), "#0f172a");
   const logoRaw = String(formData.get("logoUrl") ?? "").trim();
   const faviconRaw = String(formData.get("faviconUrl") ?? "").trim();
+  const customHostRaw = String(formData.get("customHost") ?? "").trim();
+  const customHost = sanitizePartnerHost(customHostRaw);
   if (!name) return { error: "Informe o nome da marca do sistema." };
+  if (customHostRaw && !customHost) {
+    return { error: "Informe um domínio próprio válido, por exemplo app.minhamarca.com.br." };
+  }
+  if (customHost) {
+    const taken = await prisma.partnerBrand.findFirst({
+      where: { customHost, partnerId: { not: partner.id } },
+      select: { id: true },
+    });
+    if (taken) return { error: "Este domínio já está em uso por outro parceiro." };
+  }
 
   const previous = partner.brand;
   const logoUrl = logoRaw ? await saveTenantLogo(tenant.id, logoRaw, previous?.logoUrl) : previous?.logoUrl ?? null;
@@ -24,8 +36,8 @@ export async function savePartnerBrand(formData: FormData) {
 
   await prisma.partnerBrand.upsert({
     where: { partnerId: partner.id },
-    create: { partnerId: partner.id, name, primary, secondary, logoUrl, faviconUrl },
-    update: { name, primary, secondary, logoUrl, faviconUrl },
+    create: { partnerId: partner.id, name, primary, secondary, logoUrl, faviconUrl, customHost },
+    update: { name, primary, secondary, logoUrl, faviconUrl, customHost },
   });
   revalidatePath("/parceiro/aparencia");
   revalidatePath("/cadastro");

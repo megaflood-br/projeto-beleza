@@ -34,6 +34,7 @@ export default async function PlataformaParceirosPage() {
       earnedCents: ledger.earned,
       availableCents: ledger.available,
       pixKey: partner.pixKey,
+      customHost: partner.brand?.customHost || "",
     };
   });
 

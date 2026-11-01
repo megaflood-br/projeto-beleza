@@ -14,12 +14,14 @@ export function PartnerAppearanceBoard({
   faviconUrl,
   primary,
   secondary,
+  customHost,
 }: {
   name: string;
   logoUrl: string;
   faviconUrl: string;
   primary: string;
   secondary: string;
+  customHost: string;
 }) {
   const router = useRouter();
   const logoRef = useRef<HTMLInputElement>(null);
@@ -29,6 +31,7 @@ export function PartnerAppearanceBoard({
   const [icon, setIcon] = useState(faviconUrl || "");
   const [color, setColor] = useState(primary || SYSTEM_PRIMARY);
   const [second, setSecond] = useState(secondary || "#0f172a");
+  const [host, setHost] = useState(customHost || "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -41,6 +44,7 @@ export function PartnerAppearanceBoard({
     formData.set("faviconUrl", icon);
     formData.set("primary", color);
     formData.set("secondary", second);
+    formData.set("customHost", host);
     const result = await savePartnerBrand(formData);
     setBusy(false);
     if (result && "error" in result && result.error) {
@@ -120,6 +124,16 @@ export function PartnerAppearanceBoard({
                 Enviar favicon
               </Button>
             </div>
+          </Field>
+          <Field label="Domínio próprio">
+            <Input
+              value={host}
+              onChange={(event) => setHost(event.target.value)}
+              placeholder="app.minhamarca.com.br"
+            />
+            <p className="mt-1 text-xs text-ink-soft">
+              CNAME deste host para <span className="font-mono">beauty.megaflood.cloud</span>. O visitante abre o seu domínio e vê a sua marca. HTTPS pelo Cloudflare ou no Nginx do servidor.
+            </p>
           </Field>
           <Field label="Cores">
             <div className="flex flex-wrap gap-4">

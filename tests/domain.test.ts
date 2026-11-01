@@ -70,7 +70,10 @@ import {
   partnerBrandIsLive,
   partnerAffiliatePath,
   partnerAffiliateUrl,
+  partnerCustomUrl,
+  partnerHostCandidates,
   partnerSubdomainUrl,
+  sanitizePartnerHost,
   sanitizePartnerSlug,
   summarizePartnerLedger,
 } from "@/lib/partners";
@@ -1141,6 +1144,13 @@ describe("parceiros", () => {
       "https://beauty.megaflood.cloud/cadastro?ref=teste",
     );
     expect(partnerSubdomainUrl("teste", "https://beauty.megaflood.app")).toBe("https://teste.beauty.megaflood.cloud");
+    expect(sanitizePartnerHost("https://www.App.MinhaMarca.com.br/cadastro")).toBe("app.minhamarca.com.br");
+    expect(sanitizePartnerHost("beauty.megaflood.cloud")).toBe("");
+    expect(partnerHostCandidates("www.app.minhamarca.com.br:443")).toEqual([
+      "app.minhamarca.com.br",
+      "www.app.minhamarca.com.br",
+    ]);
+    expect(partnerCustomUrl("https://crm.parceiro.com")).toBe("https://crm.parceiro.com");
   });
 
   it("resume saldo e converte indicados em taxa", () => {

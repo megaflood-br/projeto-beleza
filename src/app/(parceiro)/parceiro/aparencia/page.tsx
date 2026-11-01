@@ -11,6 +11,7 @@ export default async function ParceiroAparenciaPage() {
       faviconUrl={partner.brand?.faviconUrl || ""}
       primary={partner.brand?.primary || SYSTEM_PRIMARY}
       secondary={partner.brand?.secondary || "#0f172a"}
+      customHost={partner.brand?.customHost || ""}
     />
   );
 }

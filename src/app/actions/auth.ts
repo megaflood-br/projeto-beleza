@@ -10,13 +10,30 @@ import {
   verifyPassword,
   type SessionUser,
 } from "@/lib/auth";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { slugify } from "@/lib/utils";
 import type { Role } from "@/lib/constants";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
 import { ensureAnamnesisForms } from "@/lib/anamnesis";
 import { resolveSignupPlan } from "@/lib/plans";
-import { firstTouchPartnerId, PARTNER_REF_COOKIE, sanitizePartnerSlug } from "@/lib/partners";
+import { firstTouchPartnerId, PARTNER_REF_COOKIE, partnerHostCandidates, sanitizePartnerSlug } from "@/lib/partners";
+
+async function resolveSignupPartner() {
+  const jar = await cookies();
+  const headerList = await headers();
+  const ref = sanitizePartnerSlug(headerList.get("x-partner-ref") || jar.get(PARTNER_REF_COOKIE)?.value);
+  if (ref) {
+    const bySlug = await prisma.partner.findUnique({ where: { slug: ref }, select: { id: true, status: true } });
+    if (bySlug) return bySlug;
+  }
+  const candidates = partnerHostCandidates(headerList.get("x-forwarded-host") || headerList.get("host"));
+  if (!candidates.length) return null;
+  const byHost = await prisma.partnerBrand.findFirst({
+    where: { customHost: { in: candidates } },
+    select: { partner: { select: { id: true, status: true } } },
+  });
+  return byHost?.partner ?? null;
+}
 
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") ?? "")
@@ -67,10 +84,7 @@ export async function registerAction(formData: FormData) {
   if (slugTaken) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
   const signupPlan = await resolveSignupPlan();
-  const ref = sanitizePartnerSlug((await cookies()).get(PARTNER_REF_COOKIE)?.value);
-  const partner = ref
-    ? await prisma.partner.findUnique({ where: { slug: ref }, select: { id: true, status: true } })
-    : null;
+  const partner = await resolveSignupPartner();
   const partnerId = firstTouchPartnerId(null, partner?.status === "ACTIVE" ? partner.id : null);
   const tenant = await prisma.tenant.create({
     data: {

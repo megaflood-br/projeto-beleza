@@ -10,6 +10,7 @@ import {
   isPartnerStatus,
   isPixKeyType,
   parseCommissionPercent,
+  sanitizePartnerHost,
   sanitizePartnerSlug,
 } from "@/lib/partners";
 
@@ -37,8 +38,11 @@ export async function savePartnerAccount(formData: FormData) {
   const pixKeyType = isPixKeyType(pixKeyTypeRaw) ? pixKeyTypeRaw : null;
   const brandName = String(formData.get("brandName") ?? "").trim() || name;
   const primary = parseHexColor(String(formData.get("primary") ?? ""), SYSTEM_PRIMARY);
+  const customHostRaw = String(formData.get("customHost") ?? "").trim();
+  const customHost = sanitizePartnerHost(customHostRaw);
 
   if (!name) return { error: "Informe o nome do parceiro." };
+  if (customHostRaw && !customHost) return { error: "Domínio próprio inválido." };
   if (!slug) return { error: "Informe um slug válido para o link." };
   if (!isPartnerStatus(status)) return { error: "Status inválido." };
 
@@ -57,10 +61,17 @@ export async function savePartnerAccount(formData: FormData) {
         pixKeyType,
       },
     });
+    if (customHost) {
+      const hostTaken = await prisma.partnerBrand.findFirst({
+        where: { customHost, partnerId: { not: id } },
+        select: { id: true },
+      });
+      if (hostTaken) return { error: "Este domínio já está em uso por outro parceiro." };
+    }
     await prisma.partnerBrand.upsert({
       where: { partnerId: id },
-      create: { partnerId: id, name: brandName, primary },
-      update: { name: brandName, primary },
+      create: { partnerId: id, name: brandName, primary, customHost },
+      update: { name: brandName, primary, customHost },
     });
     await prisma.tenant.update({
       where: { id: existing.tenantId },
@@ -83,6 +94,9 @@ export async function savePartnerAccount(formData: FormData) {
   if (emailTaken) return { error: "Já existe um usuário com este e-mail." };
   const slugTaken = await prisma.partner.findUnique({ where: { slug } });
   if (slugTaken) return { error: "Este slug já está em uso." };
+  if (customHost && (await prisma.partnerBrand.findFirst({ where: { customHost }, select: { id: true } }))) {
+    return { error: "Este domínio já está em uso por outro parceiro." };
+  }
 
   let tenantSlug = slugify(`parceiro-${slug}`) || "parceiro";
   if (await prisma.tenant.findUnique({ where: { slug: tenantSlug } })) {
@@ -122,6 +136,7 @@ export async function savePartnerAccount(formData: FormData) {
         create: {
           name: brandName,
           primary,
+          customHost,
         },
       },
     },

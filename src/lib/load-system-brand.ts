@@ -6,6 +6,7 @@ import {
   hostSlugFromHost,
   isPublicBrandPath,
   partnerBrandIsLive,
+  partnerHostCandidates,
   PARTNER_REF_COOKIE,
   sanitizePartnerSlug,
 } from "@/lib/partners";
@@ -95,9 +96,10 @@ export async function loadSystemBrand() {
         const branded = await loadPartnerBrandBySlug(slug, publicSurface);
         if (branded) return branded;
       }
-      if (host && !hostSlug) {
-        const byHost = await prisma.partnerBrand.findUnique({
-          where: { customHost: host.split(":")[0].toLowerCase() },
+      const hostCandidates = partnerHostCandidates(host);
+      if (hostCandidates.length) {
+        const byHost = await prisma.partnerBrand.findFirst({
+          where: { customHost: { in: hostCandidates } },
           include: { partner: true },
         });
         if (byHost && partnerBrandIsLive(byHost.partner.status, publicSurface)) {
