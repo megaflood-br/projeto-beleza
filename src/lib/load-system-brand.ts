@@ -7,8 +7,8 @@ import {
   isPublicBrandPath,
   partnerBrandIsLive,
   partnerHostCandidates,
+  partnerRefForBrand,
   PARTNER_REF_COOKIE,
-  sanitizePartnerSlug,
 } from "@/lib/partners";
 import { publicAppOrigin } from "@/lib/public-url";
 
@@ -82,7 +82,6 @@ export async function loadSystemBrand() {
 
     if (!usesSystemChrome) {
       const jar = await cookies();
-      const ref = sanitizePartnerSlug(headerList.get("x-partner-ref") || jar.get(PARTNER_REF_COOKIE)?.value);
       const host = headerList.get("x-forwarded-host") || headerList.get("host") || "";
       let appHost = "";
       try {
@@ -91,7 +90,12 @@ export async function loadSystemBrand() {
         appHost = "";
       }
       const hostSlug = hostSlugFromHost(host, appHost);
-      const slug = ref || hostSlug;
+      const slug = partnerRefForBrand({
+        pathname,
+        headerRef: headerList.get("x-partner-ref"),
+        cookieRef: jar.get(PARTNER_REF_COOKIE)?.value,
+        hostSlug,
+      });
       if (slug) {
         const branded = await loadPartnerBrandBySlug(slug, publicSurface);
         if (branded) return branded;

@@ -73,6 +73,7 @@ import {
   partnerCustomUrl,
   partnerHostCandidates,
   partnerLandingPath,
+  partnerRefForBrand,
   partnerSlugFromPath,
   partnerSubdomainUrl,
   parseLandingFeatures,
@@ -1122,6 +1123,9 @@ describe("parceiros", () => {
     expect(sanitizePartnerSlug("plataforma")).toBe("");
     expect(sanitizePartnerSlug("p")).toBe("");
     expect(sanitizePartnerSlug("a")).toBe("");
+    expect(partnerRefForBrand({ pathname: "/", cookieRef: "teste" })).toBe("");
+    expect(partnerRefForBrand({ pathname: "/", headerRef: "teste" })).toBe("teste");
+    expect(partnerRefForBrand({ pathname: "/cadastro", cookieRef: "teste" })).toBe("teste");
     expect(isPublicBrandPath("/cadastro")).toBe(true);
     expect(isPublicBrandPath("/parceiro/aparencia")).toBe(false);
     expect(partnerBrandIsLive("PENDING", true)).toBe(true);

@@ -116,6 +116,20 @@ export function isPublicBrandPath(pathname: string | null | undefined) {
   return ["/login", "/cadastro", "/agendar", "/p"].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
+export function partnerRefForBrand(input: {
+  pathname?: string | null;
+  headerRef?: string | null;
+  cookieRef?: string | null;
+  hostSlug?: string | null;
+}) {
+  const path = String(input.pathname ?? "").split("?")[0] || "/";
+  const header = sanitizePartnerSlug(input.headerRef);
+  const host = sanitizePartnerSlug(input.hostSlug);
+  const cookie = sanitizePartnerSlug(input.cookieRef);
+  if (path === "/") return header || host || "";
+  return header || host || cookie || "";
+}
+
 export function partnerBrandIsLive(status: string | null | undefined, publicSurface = false) {
   if (status === "ACTIVE") return true;
   return publicSurface && status === "PENDING";
