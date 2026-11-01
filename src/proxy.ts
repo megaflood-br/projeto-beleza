@@ -37,6 +37,7 @@ function stampPartnerRef(request: NextRequest, response: NextResponse) {
 function nextWithPartner(request: NextRequest) {
   const slug = partnerSlugFromRequest(request);
   const headers = new Headers(request.headers);
+  headers.set("x-pathname", request.nextUrl.pathname);
   if (slug) headers.set("x-partner-ref", slug);
   return stampPartnerRef(request, NextResponse.next({ request: { headers } }));
 }

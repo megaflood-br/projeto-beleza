@@ -65,7 +65,9 @@ import {
   conversionRate as partnerConversionRate,
   firstTouchPartnerId,
   hostSlugFromHost,
+  isPublicBrandPath,
   parseCommissionPercent,
+  partnerBrandIsLive,
   partnerAffiliatePath,
   partnerAffiliateUrl,
   partnerSubdomainUrl,
@@ -1112,6 +1114,11 @@ describe("parceiros", () => {
     expect(sanitizePartnerSlug("www")).toBe("");
     expect(sanitizePartnerSlug("plataforma")).toBe("");
     expect(sanitizePartnerSlug("a")).toBe("");
+    expect(isPublicBrandPath("/cadastro")).toBe(true);
+    expect(isPublicBrandPath("/parceiro/aparencia")).toBe(false);
+    expect(partnerBrandIsLive("PENDING", true)).toBe(true);
+    expect(partnerBrandIsLive("PENDING", false)).toBe(false);
+    expect(partnerBrandIsLive("SUSPENDED", true)).toBe(false);
   });
 
   it("calcula comissão em bps sem arredondar para cima", () => {

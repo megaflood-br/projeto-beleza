@@ -2,7 +2,13 @@ import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { brandFromPartner, brandTheme, SYSTEM_LOGO, SYSTEM_PRIMARY } from "@/lib/branding";
-import { hostSlugFromHost, PARTNER_REF_COOKIE, sanitizePartnerSlug } from "@/lib/partners";
+import {
+  hostSlugFromHost,
+  isPublicBrandPath,
+  partnerBrandIsLive,
+  PARTNER_REF_COOKIE,
+  sanitizePartnerSlug,
+} from "@/lib/partners";
 import { publicAppOrigin } from "@/lib/public-url";
 
 async function hqBrand() {
@@ -18,12 +24,12 @@ async function hqBrand() {
   };
 }
 
-async function loadPartnerBrand(partnerId: string) {
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-    include: { brand: true },
-  });
-  if (!partner || partner.status !== "ACTIVE" || !partner.brand) return null;
+function brandOf(partner: {
+  slug: string;
+  status: string;
+  brand: { name: string; logoUrl: string | null; faviconUrl: string | null; primary: string; secondary: string } | null;
+}) {
+  if (!partner.brand) return null;
   return brandFromPartner({
     name: partner.brand.name,
     logoUrl: partner.brand.logoUrl,
@@ -34,13 +40,35 @@ async function loadPartnerBrand(partnerId: string) {
   });
 }
 
+async function loadPartnerBrand(partnerId: string, publicSurface = false) {
+  const partner = await prisma.partner.findUnique({
+    where: { id: partnerId },
+    include: { brand: true },
+  });
+  if (!partner || !partnerBrandIsLive(partner.status, publicSurface)) return null;
+  return brandOf(partner);
+}
+
+async function loadPartnerBrandBySlug(slug: string, publicSurface = false) {
+  const partner = await prisma.partner.findUnique({
+    where: { slug },
+    include: { brand: true },
+  });
+  if (!partner || !partnerBrandIsLive(partner.status, publicSurface)) return null;
+  return brandOf(partner);
+}
+
 export async function loadSystemBrand() {
   try {
     const session = await getSession().catch(() => null);
+    const headerList = await headers();
+    const pathname = headerList.get("x-pathname") || "";
+    const publicSurface = isPublicBrandPath(pathname);
     const usesSystemChrome =
-      session?.role === "SUPER_ADMIN" || session?.role === "PARTNER" || session?.role === "SUPPLIER";
+      !publicSurface &&
+      (session?.role === "SUPER_ADMIN" || session?.role === "PARTNER" || session?.role === "SUPPLIER");
 
-    if (session && !usesSystemChrome) {
+    if (session && !usesSystemChrome && !publicSurface) {
       const tenant = await prisma.tenant.findUnique({
         where: { id: session.tenantId },
         select: { kind: true, partnerId: true },
@@ -53,7 +81,6 @@ export async function loadSystemBrand() {
 
     if (!usesSystemChrome) {
       const jar = await cookies();
-      const headerList = await headers();
       const ref = sanitizePartnerSlug(headerList.get("x-partner-ref") || jar.get(PARTNER_REF_COOKIE)?.value);
       const host = headerList.get("x-forwarded-host") || headerList.get("host") || "";
       let appHost = "";
@@ -65,27 +92,15 @@ export async function loadSystemBrand() {
       const hostSlug = hostSlugFromHost(host, appHost);
       const slug = ref || hostSlug;
       if (slug) {
-        const partner = await prisma.partner.findUnique({
-          where: { slug },
-          include: { brand: true },
-        });
-        if (partner?.status === "ACTIVE" && partner.brand) {
-          return brandFromPartner({
-            name: partner.brand.name,
-            logoUrl: partner.brand.logoUrl,
-            faviconUrl: partner.brand.faviconUrl,
-            primary: partner.brand.primary,
-            secondary: partner.brand.secondary,
-            slug: partner.slug,
-          });
-        }
+        const branded = await loadPartnerBrandBySlug(slug, publicSurface);
+        if (branded) return branded;
       }
       if (host && !hostSlug) {
         const byHost = await prisma.partnerBrand.findUnique({
           where: { customHost: host.split(":")[0].toLowerCase() },
           include: { partner: true },
         });
-        if (byHost?.partner.status === "ACTIVE") {
+        if (byHost && partnerBrandIsLive(byHost.partner.status, publicSurface)) {
           return brandFromPartner({
             name: byHost.name,
             logoUrl: byHost.logoUrl,

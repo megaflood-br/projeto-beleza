@@ -109,6 +109,17 @@ export function isPartnerStatus(value: string | null | undefined): value is Part
   return PARTNER_STATUSES.includes(value as PartnerStatus);
 }
 
+export function isPublicBrandPath(pathname: string | null | undefined) {
+  const path = String(pathname ?? "").split("?")[0] || "/";
+  if (path === "/") return true;
+  return ["/login", "/cadastro", "/agendar"].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
+export function partnerBrandIsLive(status: string | null | undefined, publicSurface = false) {
+  if (status === "ACTIVE") return true;
+  return publicSurface && status === "PENDING";
+}
+
 export function isBillingStatus(value: string | null | undefined): value is BillingStatus {
   return BILLING_STATUSES.includes(value as BillingStatus);
 }

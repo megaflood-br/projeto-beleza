@@ -28,6 +28,8 @@ export async function savePartnerBrand(formData: FormData) {
     update: { name, primary, secondary, logoUrl, faviconUrl },
   });
   revalidatePath("/parceiro/aparencia");
+  revalidatePath("/cadastro");
+  revalidatePath("/login");
   revalidatePath("/", "layout");
   return { ok: true as const };
 }
