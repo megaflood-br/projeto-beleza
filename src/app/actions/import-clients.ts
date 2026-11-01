@@ -2,13 +2,13 @@
 
 import * as XLSX from "xlsx";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { CLIENT_IMPORT_HEADERS } from "@/lib/client-import";
 import { runClientImport } from "@/lib/run-client-import";
 
 export async function importClientsFromXls(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para importar." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "clients", "create")) return { error: "Sem permissão para importar." };
   const file = formData.get("file");
   if (!(file instanceof File)) return { error: "Selecione um arquivo .xls ou .xlsx." };
   return runClientImport(file, session.tenantId);

@@ -6,4 +6,7 @@ export type TenantUserRow = {
   active: boolean;
   professionalId: string | null;
   professionalName: string | null;
+  permissionProfileId: string | null;
+  accessLabel: string | null;
+  agendaLabel: string;
 };

@@ -4,24 +4,33 @@ import { parseDateParam, rangeOfCalendarDate } from "@/lib/dates";
 import { AgendaBoard } from "@/components/agenda/board";
 import type { AgendaAppointment, AgendaClient } from "@/components/agenda/types";
 import type { AppointmentStatus } from "@/lib/constants";
+import { canViewAllAgenda } from "@/lib/permissions";
 
 export default async function AgendaPage({
   searchParams,
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
-  const { session, tenant } = await requireTenant();
+  const { session, tenant, access } = await requireTenant();
   const params = await searchParams;
   const date = parseDateParam(typeof params.date === "string" ? params.date : null);
   const { start, end } = rangeOfCalendarDate(date);
+  const ownOnly = !canViewAllAgenda(access);
+  const scopedProfessionalId = ownOnly ? access.professionalId ?? "__none__" : null;
+  const professionalFilter = scopedProfessionalId ? { professionalId: scopedProfessionalId } : {};
 
   const [professionals, appointments, clients, services] = await Promise.all([
     prisma.professional.findMany({
-      where: { tenantId: session.tenantId, active: true, generateAgenda: true },
+      where: {
+        tenantId: session.tenantId,
+        active: true,
+        generateAgenda: true,
+        ...(scopedProfessionalId ? { id: scopedProfessionalId } : {}),
+      },
       orderBy: { name: "asc" },
     }),
     prisma.appointment.findMany({
-      where: { tenantId: session.tenantId, startAt: { gte: start, lt: end } },
+      where: { tenantId: session.tenantId, startAt: { gte: start, lt: end }, ...professionalFilter },
       include: { client: true, items: { include: { service: true } }, comanda: true },
       orderBy: { startAt: "asc" },
     }),

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { ensureSalonPops } from "@/lib/ensure-pops";
 import { absolutePopUrl, effectivePopSigner, popByKey, popPublicUrl, salonCompany } from "@/lib/pops";
@@ -27,11 +27,11 @@ export default async function DocumentacaoPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const { session, tenant } = await requireTenant();
+  const { session, tenant, access } = await requireTenant();
   const params = await searchParams;
   const tab = parseDocumentationTab(params.tab);
   const current = DOCUMENTATION_TABS.find((item) => item.id === tab) ?? DOCUMENTATION_TABS[0];
-  const canManage = canManageTeam(session.role);
+  const canManage = canAccess(access, "docs", "edit");
 
   return (
     <div className="space-y-4">

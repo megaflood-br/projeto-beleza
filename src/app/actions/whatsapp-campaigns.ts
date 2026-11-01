@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import {
   campaignByTrigger,
   normalizeCampaignTrigger,
@@ -17,8 +17,8 @@ import { calendarDate } from "@/lib/dates";
 import { formatPhoneBR } from "@/lib/utils";
 
 export async function toggleWhatsAppCampaign(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para alterar campanhas." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "marketing", "edit")) return { error: "Sem permissão para alterar campanhas." };
   const id = String(formData.get("id") ?? "");
   const active = String(formData.get("active") ?? "") === "1";
   const row = await prisma.automation.findFirst({ where: { id, tenantId: session.tenantId } });
@@ -31,8 +31,8 @@ export async function toggleWhatsAppCampaign(formData: FormData) {
 }
 
 export async function saveWhatsAppCampaign(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para alterar campanhas." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "marketing", "edit")) return { error: "Sem permissão para alterar campanhas." };
   const id = String(formData.get("id") ?? "");
   const template = String(formData.get("template") ?? "").trim();
   const active = String(formData.get("active") ?? "") === "1";
@@ -47,8 +47,8 @@ export async function saveWhatsAppCampaign(formData: FormData) {
 }
 
 export async function sendCampaignTest(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para enviar." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "marketing", "edit")) return { error: "Sem permissão para enviar." };
   const id = String(formData.get("id") ?? "");
   const phone = normalizeWhatsAppPhone(String(formData.get("phone") ?? ""));
   const templateOverride = String(formData.get("template") ?? "").trim();
@@ -119,7 +119,7 @@ export async function sendCampaignTest(formData: FormData) {
 }
 
 export async function refreshWhatsAppCampaigns() {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
   await ensureWhatsAppCampaigns(session.tenantId);
   const due = await runDueCampaigns(session.tenantId);
   revalidatePath("/whatsapp");

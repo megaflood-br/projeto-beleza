@@ -1,13 +1,13 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canSeeFinance } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { calendarDate, shiftCalendarDate, zonedDateTime } from "@/lib/dates";
 import { toPromoRule, weekdayFromCalendarDate, weekdayHeat } from "@/lib/promotions";
 import { PromoBoard } from "@/components/promocoes/promo-board";
 
 export default async function PromocoesPage() {
-  const { session } = await requireTenant();
-  const canManage = canSeeFinance(session.role);
+  const { session, access } = await requireTenant();
+  const canManage = canAccess(access, "promotions", "edit");
   const today = calendarDate();
   const from = zonedDateTime(shiftCalendarDate(today, -56), "00:00");
 

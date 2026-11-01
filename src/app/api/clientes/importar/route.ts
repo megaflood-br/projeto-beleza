@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { canManageTeam, getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
+import { loadAccess } from "@/lib/access";
+import { canAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { runClientImport } from "@/lib/run-client-import";
 
@@ -14,7 +16,8 @@ export async function POST(request: Request) {
   try {
     const session = await getSession();
     if (!session) return json({ error: "Faça login para importar." }, 401);
-    if (!canManageTeam(session.role)) return json({ error: "Sem permissão para importar." }, 403);
+    const access = await loadAccess(session);
+    if (!canAccess(access, "clients", "create")) return json({ error: "Sem permissão para importar." }, 403);
     const tenant = await prisma.tenant.findUnique({ where: { id: session.tenantId }, select: { id: true, status: true } });
     if (!tenant) return json({ error: "Salão não encontrado." }, 401);
     if (tenant.status === "SUSPENDED" && !session.impersonatorId) {

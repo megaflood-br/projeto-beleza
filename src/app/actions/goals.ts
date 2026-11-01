@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { parseBRLToCents } from "@/lib/money";
 import { calendarMonth, monthStartEnd, parseDateParam } from "@/lib/dates";
 import { goalMetricMeta, isGoalMetric } from "@/lib/goals";
@@ -22,8 +22,8 @@ function parseTarget(metric: string, raw: string) {
 }
 
 export async function saveProfessionalGoal(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "goals", "edit")) return { error: "Sem permissão." };
 
   const id = String(formData.get("id") ?? "");
   const professionalId = String(formData.get("professionalId") ?? "");
@@ -90,8 +90,8 @@ export async function saveProfessionalGoal(formData: FormData) {
 }
 
 export async function deleteProfessionalGoal(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "goals", "edit")) return { error: "Sem permissão." };
   const id = String(formData.get("id") ?? "");
   const goal = await prisma.professionalGoal.findFirst({ where: { id, tenantId: session.tenantId } });
   if (!goal) return { error: "Meta não encontrada." };
@@ -101,8 +101,8 @@ export async function deleteProfessionalGoal(formData: FormData) {
 }
 
 export async function copyGoalsFromPreviousMonth(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "goals", "edit")) return { error: "Sem permissão." };
   const month = calendarMonth(String(formData.get("month") ?? ""));
   const current = monthStartEnd(month);
   const previous = monthStartEnd(String(formData.get("fromMonth") ?? ""));

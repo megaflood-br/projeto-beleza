@@ -25,6 +25,9 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   if (typeof (client as { partner?: { findUnique?: unknown } }).partner?.findUnique !== "function") {
     return false;
   }
+  if (typeof (client as { permissionProfile?: { findMany?: unknown } }).permissionProfile?.findMany !== "function") {
+    return false;
+  }
   const models = (
     client as unknown as {
       _runtimeDataModel?: { models?: Record<string, { fields?: { name?: string }[] }> };

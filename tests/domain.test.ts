@@ -168,6 +168,16 @@ import {
   wouldRemoveLastPlatformAdmin,
 } from "@/lib/users";
 import {
+  agendaScopeLabel,
+  allowedNavHrefs,
+  canAccess,
+  canViewAllAgenda,
+  moduleFromPath,
+  resolveAccess,
+  roleDefaultGrants,
+  serializeAccess,
+} from "@/lib/permissions";
+import {
   applyCatalogPrice,
   bestPromotion,
   parseWeekdays,
@@ -653,6 +663,65 @@ describe("usuários do tenant", () => {
     expect(wouldRemoveLastOwner({ currentRole: "OWNER", nextRole: "MANAGER", ownerCount: 2 })).toBe(false);
     expect(wouldRemoveLastPlatformAdmin({ currentRole: "SUPER_ADMIN", nextActive: false, adminCount: 1 })).toBe(true);
     expect(wouldRemoveLastPlatformAdmin({ currentRole: "SUPER_ADMIN", nextActive: false, adminCount: 2 })).toBe(false);
+  });
+});
+
+describe("permissões do salão", () => {
+  it("profissional vê só a própria agenda e o dono vê todas", () => {
+    const professional = resolveAccess({ role: "PROFESSIONAL", professionalId: "pro-1" });
+    const owner = resolveAccess({ role: "OWNER" });
+    const reception = resolveAccess({ role: "RECEPTIONIST" });
+    expect(canViewAllAgenda(professional)).toBe(false);
+    expect(agendaScopeLabel(professional)).toBe("Só a própria agenda");
+    expect(canAccess(professional, "agenda", "create")).toBe(true);
+    expect(canAccess(professional, "finance")).toBe(false);
+    expect(canAccess(professional, "users")).toBe(false);
+    expect(canViewAllAgenda(reception)).toBe(true);
+    expect(canViewAllAgenda(owner)).toBe(true);
+    expect(owner.isAdmin).toBe(true);
+    expect(canAccess(owner, "finance", "remove")).toBe(true);
+  });
+
+  it("perfil e personalizado substituem o padrão do cargo", () => {
+    const profile = resolveAccess({
+      role: "PROFESSIONAL",
+      professionalId: "pro-1",
+      profile: {
+        id: "p1",
+        name: "Recepção extra",
+        isAdmin: false,
+        grants: serializeAccess({
+          admin: false,
+          modules: { agenda: { access: true, create: true, edit: true, remove: true, viewAll: true } },
+        }),
+      },
+    });
+    expect(profile.profileName).toBe("Recepção extra");
+    expect(canViewAllAgenda(profile)).toBe(true);
+    const custom = resolveAccess({
+      role: "PROFESSIONAL",
+      professionalId: "pro-1",
+      accessJson: serializeAccess({
+        admin: false,
+        modules: { agenda: { access: true, viewAll: false }, clients: { access: true } },
+      }),
+    });
+    expect(custom.custom).toBe(true);
+    expect(canViewAllAgenda(custom)).toBe(false);
+    expect(canAccess(custom, "clients")).toBe(true);
+    expect(canAccess(custom, "comandas")).toBe(false);
+  });
+
+  it("esconde do menu o que não tem acesso", () => {
+    expect(moduleFromPath("/permissoes")).toBe("users");
+    expect(moduleFromPath("/agenda")).toBe("agenda");
+    const professional = resolveAccess({ role: "PROFESSIONAL" });
+    expect(allowedNavHrefs(professional, ["/agenda", "/financeiro", "/usuarios", "/clientes"])).toEqual([
+      "/agenda",
+      "/clientes",
+    ]);
+    expect(roleDefaultGrants("MANAGER").admin).toBe(false);
+    expect(canAccess(resolveAccess({ role: "MANAGER" }), "users", "edit")).toBe(true);
   });
 });
 

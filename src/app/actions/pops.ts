@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { popByKey } from "@/lib/pops";
 
 function refreshPops(tenantSlug: string, popSlug: string) {
@@ -17,8 +17,8 @@ function refreshPops(tenantSlug: string, popSlug: string) {
 }
 
 export async function saveSalonPop(formData: FormData) {
-  const { session, tenant } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para alterar POPs." };
+  const { session, tenant, access } = await requireTenant();
+  if (!canAccess(access, "docs", "edit")) return { error: "Sem permissão para alterar POPs." };
   const id = String(formData.get("id") ?? "");
   const row = await prisma.salonPop.findFirst({ where: { id, tenantId: session.tenantId } });
   if (!row) return { error: "POP não encontrado." };

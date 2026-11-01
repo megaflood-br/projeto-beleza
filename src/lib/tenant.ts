@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession, homePath, isPlatformAdmin, type SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { loadAccess } from "@/lib/access";
 
 export async function requireSession(): Promise<SessionUser> {
   const session = await getSession();
@@ -26,7 +27,8 @@ export async function requireTenant() {
   if (tenant.status === "SUSPENDED" && !session.impersonatorId) {
     redirect("/login?suspended=1");
   }
-  return { session, tenant };
+  const access = await loadAccess(session);
+  return { session, tenant, access };
 }
 
 export async function requireSupplier() {

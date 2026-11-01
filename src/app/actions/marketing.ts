@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { normalizeWhatsAppPhone } from "@/lib/whatsapp-campaigns";
 import {
   MARKETING_AUDIENCE_LABEL,
@@ -55,7 +55,7 @@ async function audienceFromForm(tenantId: string, formData: FormData) {
 }
 
 export async function previewMarketingAudience(formData: FormData) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
   const result = await audienceFromForm(session.tenantId, formData);
   if (!result.ok) return { error: result.error };
   return {
@@ -67,8 +67,8 @@ export async function previewMarketingAudience(formData: FormData) {
 }
 
 export async function createMarketingCampaign(formData: FormData): Promise<MarketingListResult> {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para montar a lista." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "marketing", "edit")) return { error: "Sem permissão para montar a lista." };
 
   const body = String(formData.get("body") ?? "").trim();
   if (body.length < 8) return { error: "Escreva a mensagem que será enviada." };
@@ -121,8 +121,8 @@ export async function createMarketingCampaign(formData: FormData): Promise<Marke
 }
 
 export async function sendMarketingSelected(formData: FormData): Promise<MarketingSendResult> {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para enviar." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "marketing", "edit")) return { error: "Sem permissão para enviar." };
   const campaignId = String(formData.get("campaignId") ?? "");
   const recipientIds = parseRecipientIds([
     String(formData.get("recipientIds") ?? ""),
@@ -136,8 +136,8 @@ export async function sendMarketingSelected(formData: FormData): Promise<Marketi
 }
 
 export async function resolveMarketingRecipient(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "marketing", "edit")) return { error: "Sem permissão." };
   const id = String(formData.get("id") ?? "");
   const resolved = String(formData.get("resolved") ?? "1") !== "0";
   const row = await prisma.marketingRecipient.findFirst({
@@ -156,8 +156,8 @@ export async function resolveMarketingRecipient(formData: FormData) {
 }
 
 export async function deleteMarketingCampaign(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para excluir." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "marketing", "remove")) return { error: "Sem permissão para excluir." };
   const id = String(formData.get("id") ?? "");
   const row = await prisma.marketingCampaign.findFirst({ where: { id, tenantId: session.tenantId }, select: { id: true } });
   if (!row) return { error: "Lista não encontrada." };

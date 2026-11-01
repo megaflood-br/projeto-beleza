@@ -73,6 +73,13 @@ export function UserDrawer({
                 ))}
               </Select>
             </Field>
+            <p className="text-xs text-ink-soft">
+              O cargo é o ponto de partida. Em{" "}
+              <a href="/permissoes" className="font-medium text-wine underline">
+                Permissões
+              </a>{" "}
+              o salão define se a profissional vê só a própria agenda ou a de todos.
+            </p>
             <Field label="Profissional vinculado">
               <Select name="professionalId" defaultValue={user?.professionalId ?? ""}>
                 <option value="">Nenhum</option>

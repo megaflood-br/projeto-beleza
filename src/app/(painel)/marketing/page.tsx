@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { readWhatsAppLive } from "@/lib/whatsapp-live";
 import { atendimentoPath, MARKETING_TABS, parseMarketingTab, syncMarketingReplies } from "@/lib/marketing";
@@ -17,7 +17,7 @@ export default async function MarketingPage({
 }: {
   searchParams: Promise<{ c?: string; tab?: string }>;
 }) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
   const params = await searchParams;
   if (params.tab === "inbox") redirect(atendimentoPath(params.c));
   if (params.tab === "conexao") redirect(settingsPath("whatsapp"));
@@ -53,9 +53,9 @@ export default async function MarketingPage({
       </div>
 
       {tab === "campanhas" ? (
-        <CampaignsPanel tenantId={session.tenantId} canManage={canManageTeam(session.role)} connected={connected} />
+        <CampaignsPanel tenantId={session.tenantId} canManage={canAccess(access, "marketing", "edit")} connected={connected} />
       ) : (
-        <ListsPanel tenantId={session.tenantId} selectedId={selectedId} canManage={canManageTeam(session.role)} connected={connected} />
+        <ListsPanel tenantId={session.tenantId} selectedId={selectedId} canManage={canAccess(access, "marketing", "edit")} connected={connected} />
       )}
     </div>
   );

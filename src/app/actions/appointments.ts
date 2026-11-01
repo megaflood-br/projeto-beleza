@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { addMinutes } from "date-fns";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
+import { canAccess, canViewAllAgenda } from "@/lib/permissions";
 import { hasConflict } from "@/lib/appointments";
 import { calculateCommission } from "@/lib/commissions";
 import { nextStock } from "@/lib/stock";
@@ -62,10 +63,18 @@ export async function saveAppointment(payload: {
   notes?: string;
   items: AppointmentItemInput[];
 }) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
   const items = payload.items.filter((item) => item.serviceId && item.professionalId && item.time);
   if (!payload.clientId) return { error: "Selecione um cliente." };
   if (items.length === 0) return { error: "Inclua pelo menos um serviço." };
+  if (!canAccess(access, "agenda", payload.id ? "edit" : "create")) {
+    return { error: "Sem permissão para alterar a agenda." };
+  }
+  if (!canViewAllAgenda(access) && access.professionalId) {
+    if (items.some((item) => item.professionalId !== access.professionalId)) {
+      return { error: "Você só pode agendar na sua própria agenda." };
+    }
+  }
 
   const services = await prisma.service.findMany({
     where: { tenantId: session.tenantId, id: { in: items.map((i) => i.serviceId) } },
@@ -151,7 +160,8 @@ export async function saveAppointment(payload: {
 }
 
 export async function deleteAppointment(appointmentId: string) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "agenda", "remove")) return { error: "Sem permissão para excluir agendamentos." };
   const appointment = await prisma.appointment.findFirst({
     where: { id: appointmentId, tenantId: session.tenantId },
     include: { comanda: true },
@@ -159,6 +169,9 @@ export async function deleteAppointment(appointmentId: string) {
   if (!appointment) return { error: "Agendamento não encontrado." };
   if (appointment.comanda?.status === "CLOSED") {
     return { error: "Não é possível excluir: a comanda já foi fechada." };
+  }
+  if (!canViewAllAgenda(access) && access.professionalId && appointment.professionalId !== access.professionalId) {
+    return { error: "Você só pode alterar a sua própria agenda." };
   }
   if (appointment.comanda) {
     await prisma.comanda.delete({ where: { id: appointment.comanda.id } });
@@ -170,7 +183,8 @@ export async function deleteAppointment(appointmentId: string) {
 }
 
 export async function updateAppointmentStatus(appointmentId: string, status: string) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "agenda", "edit")) return { error: "Sem permissão para alterar a agenda." };
   const appointment = await prisma.appointment.findFirst({
     where: { id: appointmentId, tenantId: session.tenantId },
     include: {
@@ -181,6 +195,9 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
     },
   });
   if (!appointment) return { error: "Agendamento não encontrado." };
+  if (!canViewAllAgenda(access) && access.professionalId && appointment.professionalId !== access.professionalId) {
+    return { error: "Você só pode alterar a sua própria agenda." };
+  }
 
   await prisma.appointment.update({
     where: { id: appointment.id },
