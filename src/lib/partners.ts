@@ -208,8 +208,28 @@ export function serializeLandingFeatures(rows: PartnerLandingFeature[]) {
   );
 }
 
-export function resolvePartnerLanding(
-  name: string,
+export const DEFAULT_HQ_FEATURES: PartnerLandingFeature[] = [
+  { title: "Agenda lotada, sem conflito", text: "Colunas por profissional, horários livres e agendamento online 24h para a cliente marcar sozinha." },
+  { title: "Clientes que voltam", text: "Histórico, anamnese, pacotes e lembretes no WhatsApp para reduzir falta e aumentar o retorno." },
+  { title: "WhatsApp do salão", text: "Confirmação, cobrança e conversa no mesmo inbox. Sem planilha e sem celular pessoal da recepção." },
+  { title: "Comissões e financeiro", text: "Comanda, comissão por serviço, metas e caixa no mesmo lugar — o dono vê o dia em segundos." },
+  { title: "Estoque sob controle", text: "Baixa automática no atendimento, alerta de mínimo e custo real de cada serviço." },
+  { title: "Promoções que enchem o dia fraco", text: "Desconto por dia da semana, preço certo na comanda e no agendamento online." },
+];
+
+export function defaultHqLanding(name: string) {
+  const brand = name.trim() || "MegaBeauty";
+  return {
+    kicker: "Para salões, barbearias e clínicas de estética",
+    headline: "Sua agenda, seu caixa e suas clientes em um só sistema.",
+    text: `Pare de gerir o salão no papel e no WhatsApp pessoal. O ${brand} organiza horários, comandas, equipe e fidelização — para você faturar mais com menos retrabalho.`,
+    cta: "Criar minha conta",
+    features: DEFAULT_HQ_FEATURES,
+  };
+}
+
+export function resolveLanding(
+  defaults: ReturnType<typeof defaultPartnerLanding>,
   raw?: {
     kicker?: string | null;
     headline?: string | null;
@@ -218,7 +238,6 @@ export function resolvePartnerLanding(
     features?: PartnerLandingFeature[] | string | null;
   },
 ) {
-  const defaults = defaultPartnerLanding(name);
   const features =
     typeof raw?.features === "string" ? parseLandingFeatures(raw.features) : raw?.features?.filter((row) => row.title && row.text) ?? [];
   return {
@@ -228,6 +247,20 @@ export function resolvePartnerLanding(
     cta: String(raw?.cta ?? "").trim() || defaults.cta,
     features: features.length ? features.slice(0, 6) : defaults.features,
   };
+}
+
+export function resolveHqLanding(
+  name: string,
+  raw?: Parameters<typeof resolveLanding>[1],
+) {
+  return resolveLanding(defaultHqLanding(name), raw);
+}
+
+export function resolvePartnerLanding(
+  name: string,
+  raw?: Parameters<typeof resolveLanding>[1],
+) {
+  return resolveLanding(defaultPartnerLanding(name), raw);
 }
 
 export function partnerLandingPath(slug: string) {

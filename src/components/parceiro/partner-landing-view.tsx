@@ -3,8 +3,8 @@ import { BrandMark } from "@/components/brand-mark";
 import type { PartnerLandingPage } from "@/lib/partner-landing";
 
 export function PartnerLandingView({ landing }: { landing: PartnerLandingPage }) {
-  const signup = `/cadastro?ref=${encodeURIComponent(landing.slug)}`;
-  const login = `/login?ref=${encodeURIComponent(landing.slug)}`;
+  const signup = landing.slug ? `/cadastro?ref=${encodeURIComponent(landing.slug)}` : "/cadastro";
+  const login = landing.slug ? `/login?ref=${encodeURIComponent(landing.slug)}` : "/login";
 
   return (
     <main className="min-h-dvh bg-cream">

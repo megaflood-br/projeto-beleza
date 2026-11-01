@@ -42,7 +42,7 @@ export function AppearanceBoard({
       <div>
         <h1 className="font-display text-3xl">Aparência</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Logo e cor primária do MegaBeauty. Vale para login, menu e botões do sistema. A identidade de cada salão continua nas configurações da empresa.
+          Logo, cor e landing da home oficial. A identidade de cada salão continua nas configurações da empresa.
         </p>
       </div>
 

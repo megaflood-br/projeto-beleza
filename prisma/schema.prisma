@@ -19,6 +19,12 @@ model Tenant {
   city                String?
   logoUrl             String?
   logoDarkUrl         String?
+  landingKicker       String  @default("")
+  landingHeadline     String  @default("")
+  landingText         String  @default("")
+  landingCta          String  @default("")
+  landingImageUrl     String?
+  landingFeatures     String  @default("[]")
   technicalResponsible String  @default("")
   technicalRegistry    String  @default("")
   timezone            String   @default("America/Sao_Paulo")

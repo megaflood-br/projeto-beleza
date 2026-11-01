@@ -78,6 +78,7 @@ import {
   partnerSlugFromPath,
   partnerSubdomainUrl,
   parseLandingFeatures,
+  resolveHqLanding,
   resolvePartnerLanding,
   sanitizePartnerHost,
   sanitizePartnerSlug,
@@ -1167,6 +1168,10 @@ describe("parceiros", () => {
       { title: "Agenda", text: "Sem conflito" },
     ]);
     expect(resolvePartnerLanding("Ana Beauty", {}).headline).toContain("Ana Beauty");
+    expect(resolveHqLanding("MegaBeauty", {}).headline).toContain("agenda");
+    expect(resolveHqLanding("MegaBeauty", {}).features).toHaveLength(6);
+    expect(resolveHqLanding("MegaBeauty", { headline: "Home nova", kicker: "CRM" }).headline).toBe("Home nova");
+    expect(resolveHqLanding("MegaBeauty", { headline: "Home nova", kicker: "CRM" }).kicker).toBe("CRM");
     expect(brandLogoSrc({ logoUrl: SYSTEM_LOGO, logoDarkUrl: SYSTEM_LOGO_DARK }, true)).toBe(SYSTEM_LOGO_DARK);
     expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: "/uploads/dark.png" }, true)).toBe("/uploads/dark.png");
     expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: null }, true)).toBe("/uploads/light.png");

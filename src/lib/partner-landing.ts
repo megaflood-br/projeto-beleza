@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { partnerBrandIsLive, resolvePartnerLanding } from "@/lib/partners";
+import { SYSTEM_BRAND_NAME } from "@/lib/branding";
+import { partnerBrandIsLive, resolveHqLanding, resolvePartnerLanding } from "@/lib/partners";
 
 export type PartnerLandingPage = {
   slug: string;
@@ -36,6 +37,50 @@ export async function loadPartnerLanding(slug: string, publicSurface = true): Pr
     primary: partner.brand.primary,
     secondary: partner.brand.secondary,
     imageUrl: partner.brand.landingImageUrl,
+    ...copy,
+  };
+}
+
+export async function loadHqLanding(name = SYSTEM_BRAND_NAME): Promise<PartnerLandingPage> {
+  let hq: {
+    landingKicker: string;
+    landingHeadline: string;
+    landingText: string;
+    landingCta: string;
+    landingImageUrl: string | null;
+    landingFeatures: string;
+  } | null = null;
+  try {
+    if (typeof prisma.tenant?.findFirst === "function") {
+      hq = await prisma.tenant.findFirst({
+        where: { isPlatform: true },
+        select: {
+          landingKicker: true,
+          landingHeadline: true,
+          landingText: true,
+          landingCta: true,
+          landingImageUrl: true,
+          landingFeatures: true,
+        },
+      });
+    }
+  } catch {
+    hq = null;
+  }
+  const copy = resolveHqLanding(name, {
+    kicker: hq?.landingKicker,
+    headline: hq?.landingHeadline,
+    text: hq?.landingText,
+    cta: hq?.landingCta,
+    features: hq?.landingFeatures,
+  });
+  return {
+    slug: "",
+    name,
+    logoUrl: null,
+    primary: "",
+    secondary: "",
+    imageUrl: hq?.landingImageUrl ?? null,
     ...copy,
   };
 }
