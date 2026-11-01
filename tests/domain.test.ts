@@ -4,11 +4,15 @@ import { hasConflict } from "@/lib/appointments";
 import { formatStockQty, isLowStock, nextStock } from "@/lib/stock";
 import {
   answerAssistantIntent,
+  answerFreeSlots,
   answerLowStock,
   assistantIntent,
   formatAssistantContext,
   formatLowStockLine,
+  freeSlotsForProfessional,
   lowStockProducts,
+  matchProfessional,
+  mentionedPerson,
 } from "@/lib/assistant";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify, formatPhoneBR } from "@/lib/utils";
@@ -286,21 +290,88 @@ describe("assistente", () => {
   it("monta contexto com os nomes em baixa e responde a intenção", () => {
     const snapshot = {
       salon: "Studio Aurora",
+      dayLabel: "hoje",
       revenueCents: 15000,
       occupancy: 40,
       noShows: 1,
-      appointments: [{ time: "09:00", client: "Ana", professional: "Bruno", status: "Confirmado" }],
+      appointments: [{ time: "09:00", end: "10:00", client: "Ana", professional: "Bruno", status: "Confirmado" }],
       products,
       professionals: [
-        { name: "Bruno", appointmentsToday: 1 },
-        { name: "Camila", appointmentsToday: 0 },
+        { name: "Bruno", appointmentsToday: 1, workStart: "09:00", workEnd: "19:00", freeSlots: ["11:00"] },
+        { name: "Camila", appointmentsToday: 0, workStart: "09:00", workEnd: "19:00", freeSlots: ["09:00"] },
       ],
     };
     expect(formatAssistantContext(snapshot)).toContain("Tintura 6.0");
+    expect(formatAssistantContext(snapshot)).toContain("Bruno");
     expect(answerAssistantIntent("low_stock", snapshot)).toContain("Algodão");
     expect(answerAssistantIntent("idle_team", snapshot)).toContain("Camila");
     expect(answerAssistantIntent("revenue", snapshot)).toContain("R$");
     expect(answerAssistantIntent("general", snapshot)).toBe("");
+  });
+
+  it("responde horário livre da profissional sem dizer que não tem a informação", () => {
+    const names = ["Kelly Souza", "Cami"];
+    expect(assistantIntent("tem horário disponível na agenda da Kelly?", names)).toBe("free_slot");
+    expect(assistantIntent("a Kelly tem disponibilidade hoje?", names)).toBe("free_slot");
+    expect(assistantIntent("agenda da Kelly", names)).toBe("free_slot");
+    expect(assistantIntent("a Kelly está livre?", names)).toBe("free_slot");
+    expect(assistantIntent("como está a agenda hoje?", ["Ana Souza", "Kelly Souza"])).toBe("today_agenda");
+    expect(matchProfessional("como está a agenda hoje?", [
+      { name: "Ana Souza", appointmentsToday: 0, workStart: "09:00", workEnd: "19:00", freeSlots: ["09:00"] },
+    ])).toBeNull();
+    expect(mentionedPerson("tem horário disponível na agenda de hoje")).toBe("");
+    expect(mentionedPerson("tem horário na agenda da Kelly")).toBe("kelly");
+
+    const snapshot = {
+      salon: "Studio Aurora",
+      dayLabel: "hoje",
+      revenueCents: 0,
+      occupancy: 20,
+      noShows: 0,
+      appointments: [{ time: "09:00", end: "10:00", client: "Ana", professional: "Kelly Souza", status: "Confirmado" }],
+      products,
+      professionals: [
+        {
+          name: "Kelly Souza",
+          nickname: "Kelly",
+          appointmentsToday: 1,
+          workStart: "09:00",
+          workEnd: "19:00",
+          freeSlots: ["10:00", "10:30", "11:00", "14:00"],
+        },
+        {
+          name: "Camila Ferreira",
+          nickname: "Cami",
+          appointmentsToday: 0,
+          workStart: "09:00",
+          workEnd: "19:00",
+          freeSlots: ["09:00", "09:30"],
+        },
+      ],
+    };
+
+    expect(matchProfessional("agenda da Kelly", snapshot.professionals)?.name).toBe("Kelly Souza");
+    expect(matchProfessional("tem horário com a Cami", snapshot.professionals)?.name).toBe("Camila Ferreira");
+    const answer = answerFreeSlots(snapshot, "tem horário disponível na agenda da Kelly?");
+    expect(answer).toContain("Kelly Souza");
+    expect(answer).toContain("10:00");
+    expect(answer).toContain("Ana");
+    expect(answer).not.toMatch(/não (tenho|tinha) essa informação|abrir a agenda/i);
+    expect(formatAssistantContext(snapshot)).toContain("Kelly Souza");
+    expect(formatAssistantContext(snapshot)).toContain("10:00");
+    expect(answerAssistantIntent("free_slot", snapshot, "tem horário disponível na agenda da Kelly?")).toContain("10:00");
+  });
+
+  it("calcula horários livres fora dos ocupados e do passado", () => {
+    expect(
+      freeSlotsForProfessional({
+        openTime: "09:00",
+        closeTime: "11:00",
+        slotMinutes: 30,
+        nowHHmm: "09:10",
+        busy: [{ start: "10:00", end: "10:30" }],
+      }),
+    ).toEqual(["09:30", "10:30"]);
   });
 });
 

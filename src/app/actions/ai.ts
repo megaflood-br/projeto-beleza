@@ -5,12 +5,16 @@ import { requireTenant } from "@/lib/tenant";
 import { chatWithSalonContext, fallbackInsight } from "@/lib/openai";
 import { resolvePlatformIntegrations } from "@/lib/integrations";
 import { occupancyPercent } from "@/lib/appointments";
-import { formatTime, rangeOfDay } from "@/lib/dates";
+import { formatTime, rangeOfCalendarDate, shiftCalendarDate, calendarDate } from "@/lib/dates";
 import {
   answerAssistantIntent,
+  assistantDayLabel,
+  assistantDayOffset,
   assistantIntent,
   formatAssistantContext,
+  freeSlotsForProfessional,
   lowStockProducts,
+  professionalLabels,
   type AssistantSnapshot,
 } from "@/lib/assistant";
 import { STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
@@ -21,9 +25,10 @@ function statusLabel(status: string) {
 
 export async function askAssistant(question: string) {
   const { session, tenant } = await requireTenant();
-  const snapshot = await loadAssistantSnapshot(session.tenantId, tenant.name);
-  const intent = assistantIntent(question);
-  const fact = answerAssistantIntent(intent, snapshot);
+  const offset = assistantDayOffset(question);
+  const snapshot = await loadAssistantSnapshot(session.tenantId, tenant, offset);
+  const intent = assistantIntent(question, professionalLabels(snapshot.professionals));
+  const fact = answerAssistantIntent(intent, snapshot, question);
 
   if (intent === "greeting") {
     return {
@@ -51,8 +56,14 @@ export async function askAssistant(question: string) {
   });
 }
 
-async function loadAssistantSnapshot(tenantId: string, salon: string): Promise<AssistantSnapshot> {
-  const { start, end } = rangeOfDay(new Date());
+async function loadAssistantSnapshot(
+  tenantId: string,
+  tenant: { name: string; openTime: string; closeTime: string; slotMinutes: number },
+  dayOffset = 0,
+): Promise<AssistantSnapshot> {
+  const day = shiftCalendarDate(calendarDate(), dayOffset);
+  const { start, end } = rangeOfCalendarDate(day);
+  const nowHHmm = dayOffset === 0 ? formatTime(new Date()) : undefined;
   const [appointments, income, products, professionals] = await Promise.all([
     prisma.appointment.findMany({
       where: { tenantId, startAt: { gte: start, lt: end } },
@@ -70,7 +81,7 @@ async function loadAssistantSnapshot(tenantId: string, salon: string): Promise<A
     }),
     prisma.professional.findMany({
       where: { tenantId, active: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, nickname: true, workStart: true, workEnd: true },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -86,12 +97,14 @@ async function loadAssistantSnapshot(tenantId: string, salon: string): Promise<A
   }
 
   return {
-    salon,
+    salon: tenant.name,
+    dayLabel: assistantDayLabel(dayOffset),
     revenueCents: income._sum.amountCents ?? 0,
     occupancy,
     noShows: appointments.filter((row) => row.status === "NO_SHOW").length,
     appointments: appointments.map((row) => ({
       time: formatTime(row.startAt),
+      end: formatTime(row.endAt),
       client: row.client.name,
       professional: row.professional.name,
       status: statusLabel(row.status),
@@ -99,7 +112,19 @@ async function loadAssistantSnapshot(tenantId: string, salon: string): Promise<A
     products,
     professionals: professionals.map((row) => ({
       name: row.name,
+      nickname: row.nickname,
       appointmentsToday: counts.get(row.id) ?? 0,
+      workStart: row.workStart || tenant.openTime,
+      workEnd: row.workEnd || tenant.closeTime,
+      freeSlots: freeSlotsForProfessional({
+        openTime: row.workStart || tenant.openTime,
+        closeTime: row.workEnd || tenant.closeTime,
+        slotMinutes: tenant.slotMinutes,
+        nowHHmm,
+        busy: appointments
+          .filter((item) => item.professionalId === row.id && item.status !== "CANCELLED")
+          .map((item) => ({ start: formatTime(item.startAt), end: formatTime(item.endAt) })),
+      }),
     })),
   };
 }

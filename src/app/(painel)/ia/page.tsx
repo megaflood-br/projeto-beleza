@@ -8,7 +8,7 @@ export default async function IaPage() {
       <div>
         <h1 className="font-display text-3xl">Assistente de IA</h1>
         <p className="text-ink-soft">
-          Pergunte pelos dados do salão: estoque em baixa, agenda de hoje, equipe ociosa ou faturamento. A chave OpenAI da plataforma vale para todos os salões.
+          Pergunte pelos dados do salão: estoque em baixa, horário livre de uma profissional, agenda de hoje, equipe ociosa ou faturamento. A chave OpenAI da plataforma vale para todos os salões.
         </p>
       </div>
       <AssistantChat greeting={greeting.answer} />
