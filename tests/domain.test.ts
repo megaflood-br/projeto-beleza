@@ -156,7 +156,7 @@ import {
   renderMarketingBody,
   summarizeMarketing,
 } from "@/lib/marketing";
-import { brandTheme, mixHex, parseHexColor, resolveSystemPrimary, SYSTEM_PRIMARY } from "@/lib/branding";
+import { brandFromPartner, brandTheme, mixHex, parseHexColor, resolveSystemPrimary, SYSTEM_PRIMARY } from "@/lib/branding";
 import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, parseIntegrationTab } from "@/lib/integrations";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
@@ -454,6 +454,7 @@ describe("comandas", () => {
     expect(mixHex("#ff0447", "#000000", 0.22)).toBe("#c70337");
     expect(brandTheme("#ff0447").wine).toBe("#ff0447");
     expect(brandTheme("#ff0447").wineDeep).toBe("#c70337");
+    expect(brandTheme("#ff0447").faviconUrl).toBeNull();
     expect(atendimentoPath()).toBe("/atendimento");
     expect(normalizeCampaignTrigger("APPOINTMENT_CREATED")).toBe("INFORMED");
     expect(CAMPAIGN_CATALOG).toHaveLength(13);
@@ -1347,6 +1348,9 @@ describe("parceiros", () => {
     );
     expect(landingCatalogTitles()).toHaveLength(24);
     expect(LANDING_STEPS).toHaveLength(3);
+    expect(brandFromPartner({ name: "Parceiro", faviconUrl: "/uploads/logo/x-favicon/icon.png" }).faviconUrl).toBe(
+      "/uploads/logo/x-favicon/icon.png",
+    );
     expect(brandLogoSrc({ logoUrl: SYSTEM_LOGO, logoDarkUrl: SYSTEM_LOGO_DARK }, true)).toBe(SYSTEM_LOGO_DARK);
     expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: "/uploads/dark.png" }, true)).toBe("/uploads/dark.png");
     expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: null }, true)).toBe("/uploads/light.png");

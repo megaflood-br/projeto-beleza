@@ -40,6 +40,7 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
       tenantFields?.some((field) => field.name === "servedCities") &&
       tenantFields?.some((field) => field.name === "logoUrl") &&
       tenantFields?.some((field) => field.name === "logoDarkUrl") &&
+      tenantFields?.some((field) => field.name === "faviconUrl") &&
       tenantFields?.some((field) => field.name === "technicalResponsible") &&
       tenantFields?.some((field) => field.name === "partnerId") &&
       campaignFields?.some((field) => field.name === "serviceId") &&

@@ -19,6 +19,7 @@ model Tenant {
   city                String?
   logoUrl             String?
   logoDarkUrl         String?
+  faviconUrl          String?
   landingKicker       String  @default("")
   landingHeadline     String  @default("")
   landingText         String  @default("")

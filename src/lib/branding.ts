@@ -1,6 +1,7 @@
 export const SYSTEM_PRIMARY = "#ff0447";
 export const SYSTEM_LOGO = "/branding/logo.png";
 export const SYSTEM_LOGO_DARK = "/branding/logo-dark.png";
+export const SYSTEM_FAVICON = "/icons/icon-192.png";
 export const SYSTEM_BRAND_NAME = "MegaBeauty";
 export const LEGACY_PRIMARY = "#2563eb";
 

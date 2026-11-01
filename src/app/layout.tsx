@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { PwaRegister } from "@/components/pwa-register";
 import { BrandingProvider } from "@/components/branding-provider";
-import { brandCssVars, SYSTEM_BRAND_NAME, SYSTEM_PRIMARY } from "@/lib/branding";
+import { brandCssVars, SYSTEM_BRAND_NAME, SYSTEM_FAVICON, SYSTEM_PRIMARY } from "@/lib/branding";
 import { loadSystemBrand } from "@/lib/load-system-brand";
 import "./globals.css";
 
@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
       statusBarStyle: "black-translucent",
     },
     icons: {
-      icon: [{ url: brand.faviconUrl || "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+      icon: [{ url: brand.faviconUrl || SYSTEM_FAVICON, sizes: "192x192", type: "image/png" }],
       apple: [{ url: brand.faviconUrl || "/icons/apple-touch-icon.png", sizes: "180x180" }],
     },
   };

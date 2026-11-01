@@ -17,12 +17,13 @@ async function hqBrand() {
   if (typeof prisma.tenant?.findFirst !== "function") return fallback;
   const hq = await prisma.tenant.findFirst({
     where: { isPlatform: true },
-    select: { logoUrl: true, logoDarkUrl: true, accentColor: true },
+    select: { logoUrl: true, logoDarkUrl: true, faviconUrl: true, accentColor: true },
   });
   return {
     ...brandTheme(hq?.accentColor),
     logoUrl: hq?.logoUrl || SYSTEM_LOGO,
     logoDarkUrl: hq?.logoDarkUrl || SYSTEM_LOGO_DARK,
+    faviconUrl: hq?.faviconUrl || null,
   };
 }
 
@@ -129,7 +130,7 @@ export async function loadSystemBrand() {
       }
     }
 
-    return hqBrand();
+    return await hqBrand();
   } catch {
     return brandTheme(SYSTEM_PRIMARY);
   }
