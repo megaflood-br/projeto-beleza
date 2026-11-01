@@ -1,5 +1,6 @@
 export const SETTINGS_TABS = [
   { id: "salao", label: "Salão", description: "Dados, logo, horário e responsável técnico da estética." },
+  { id: "whatsapp", label: "WhatsApp", description: "QR Code e status do WhatsApp do salão." },
   { id: "cashback", label: "Cashback", description: "Ativação e regras de pontos." },
   { id: "fiscal", label: "Fiscal", description: "CNPJ, ISS e provedor para emissão de NFS-e e NFC-e." },
   { id: "importar", label: "Importar", description: "Traga clientes de uma planilha Excel (.xls ou .xlsx)." },
@@ -13,4 +14,8 @@ export function isSettingsTab(value: string | undefined): value is SettingsTab {
 
 export function parseSettingsTab(value?: string | null): SettingsTab {
   return value && isSettingsTab(value) ? value : "salao";
+}
+
+export function settingsPath(tab: SettingsTab = "salao") {
+  return tab === "salao" ? "/configuracoes" : `/configuracoes?tab=${tab}`;
 }

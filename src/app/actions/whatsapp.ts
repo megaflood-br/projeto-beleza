@@ -75,6 +75,7 @@ export async function connectWhatsAppInstance() {
     revalidatePath("/whatsapp");
     revalidatePath("/atendimento");
     revalidatePath("/marketing");
+    revalidatePath("/configuracoes");
     return { ok: true as const, qr: result.qr };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Não foi possível gerar o QR Code." };
@@ -102,5 +103,6 @@ export async function disconnectWhatsAppInstance() {
   revalidatePath("/whatsapp");
   revalidatePath("/atendimento");
   revalidatePath("/marketing");
+  revalidatePath("/configuracoes");
   return { ok: true as const };
 }

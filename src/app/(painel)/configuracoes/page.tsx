@@ -5,6 +5,7 @@ import { parseSettingsTab } from "@/lib/settings";
 import { SettingsBoard } from "@/components/configuracoes/settings-board";
 import { tenantFiscalConfig } from "@/lib/fiscal";
 import { maskSecret, resolvePlatformIntegrations } from "@/lib/integrations";
+import { readWhatsAppLive } from "@/lib/whatsapp-live";
 
 export default async function ConfigPage({
   searchParams,
@@ -15,6 +16,7 @@ export default async function ConfigPage({
   const params = await searchParams;
   const fiscal = tenantFiscalConfig(tenant);
   const integrations = await resolvePlatformIntegrations();
+  const whatsapp = await readWhatsAppLive(tenant.id);
   return (
     <SettingsBoard
       tab={parseSettingsTab(params.tab)}
@@ -39,6 +41,7 @@ export default async function ConfigPage({
         hasPlatformToken: integrations.hasContora,
         cscTokenMasked: tenant.fiscalCscToken ? maskSecret(tenant.fiscalCscToken) : "",
       }}
+      whatsapp={whatsapp}
       canImport={canManageTeam(session.role)}
     />
   );

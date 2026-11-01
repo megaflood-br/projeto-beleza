@@ -202,7 +202,7 @@ export function MarketingBoard({
         <Card className="border-amber-200 bg-amber-50 text-amber-950">
           <p className="text-sm">
             WhatsApp desconectado. Em produção o envio só sai com a conexão aberta.{" "}
-            <Link href="/marketing?tab=conexao" className="font-medium underline">
+            <Link href="/configuracoes?tab=whatsapp" className="font-medium underline">
               Abrir conexão
             </Link>
           </p>

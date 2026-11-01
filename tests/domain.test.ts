@@ -6,7 +6,7 @@ import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
-import { parseSettingsTab } from "@/lib/settings";
+import { parseSettingsTab, settingsPath } from "@/lib/settings";
 import {
   CAMPAIGN_CATALOG,
   normalizeCampaignTrigger,
@@ -310,14 +310,16 @@ describe("comandas", () => {
     expect(parseSettingsTab("cashback")).toBe("cashback");
     expect(parseSettingsTab("fiscal")).toBe("fiscal");
     expect(parseSettingsTab("importar")).toBe("importar");
+    expect(parseSettingsTab("whatsapp")).toBe("whatsapp");
     expect(parseSettingsTab("outro")).toBe("salao");
+    expect(settingsPath("whatsapp")).toBe("/configuracoes?tab=whatsapp");
     expect(parseWhatsAppTab("campanhas")).toBe("campanhas");
     expect(parseWhatsAppTab("outro")).toBe("inbox");
     expect(parseMarketingTab("inbox")).toBe("listas");
-    expect(parseMarketingTab("conexao")).toBe("conexao");
+    expect(parseMarketingTab("conexao")).toBe("listas");
     expect(parseMarketingTab("campanhas")).toBe("campanhas");
     expect(parseMarketingTab("outro")).toBe("listas");
-    expect(marketingPath("conexao")).toBe("/marketing?tab=conexao");
+    expect(marketingPath("campanhas")).toBe("/marketing?tab=campanhas");
     expect(marketingPath("listas")).toBe("/marketing");
     expect(atendimentoPath("abc")).toBe("/atendimento?c=abc");
     expect(parseHexColor("#FF0447")).toBe("#ff0447");
