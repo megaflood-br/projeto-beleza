@@ -34,7 +34,7 @@ export function PartnerLandingView({ landing }: { landing: PartnerLandingPage })
           </div>
         </div>
         {landing.imageUrl ? (
-          <img src={landing.imageUrl} alt="" className="w-full rounded-2xl border border-line object-cover shadow-sm" />
+          <img src={landing.imageUrl} alt="" className="w-full object-contain" />
         ) : (
           <div className="rounded-2xl border border-line bg-paper p-6 shadow-sm">
             <div className="mb-4 text-sm text-ink-soft">Agenda do dia</div>
