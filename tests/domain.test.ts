@@ -1380,8 +1380,10 @@ describe("apresentações", () => {
       expect((deck?.slides.length ?? 0) >= 8).toBe(true);
     }
     expect(getPitchDeck("salao")?.slides[0]?.title).toMatch(/WhatsApp da recepção/);
+    expect(getPitchDeck("salao")?.slides[0]?.image).toContain("/apresentacao/");
     expect(getPitchDeck("fornecedores")?.slides[0]?.title).toMatch(/estoque de cada salão/);
     expect(getPitchDeck("parceiros")?.slides[0]?.title).toMatch(/sua marca/);
     expect(getPitchDeck("inexistente")).toBeNull();
+    expect(listPitchDecks().every((deck) => deck.coverImage.startsWith("/apresentacao/"))).toBe(true);
   });
 });

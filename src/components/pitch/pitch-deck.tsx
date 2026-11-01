@@ -6,37 +6,44 @@ import { BrandMark } from "@/components/brand-mark";
 import type { PitchDeck, PitchSlide } from "@/lib/pitch-decks";
 import { listPitchDecks } from "@/lib/pitch-decks";
 
-function SlideBody({ slide, cta, ctaHref }: { slide: PitchSlide; cta: string; ctaHref: string }) {
-  if (slide.kind === "cover") {
+function SlideCopy({ slide, cta, ctaHref }: { slide: PitchSlide; cta: string; ctaHref: string }) {
+  if (slide.kind === "cover" || slide.kind === "close") {
     return (
-      <div className="flex min-h-[calc(100dvh-10rem)] flex-col justify-end pb-6">
+      <div className="flex min-h-[calc(100dvh-10rem)] flex-col justify-end pb-4">
         {slide.kicker ? <p className="text-sm font-medium tracking-[0.22em] text-wine uppercase">{slide.kicker}</p> : null}
-        <h1 className="mt-6 max-w-5xl font-display text-[clamp(2.4rem,7vw,6.2rem)] leading-[0.95]">{slide.title}</h1>
-        {slide.text ? <p className="mt-8 max-w-2xl text-lg text-white/70 sm:text-2xl">{slide.text}</p> : null}
+        <h1 className="mt-5 max-w-5xl font-display text-[clamp(2.2rem,6.4vw,5.6rem)] leading-[0.95] drop-shadow-sm">{slide.title}</h1>
+        {slide.text ? <p className="mt-6 max-w-2xl text-lg text-white/85 sm:text-2xl">{slide.text}</p> : null}
+        {slide.kind === "close" ? (
+          <div className="mt-8">
+            <Link href={ctaHref} className="relative z-20 inline-flex rounded-lg bg-wine px-7 py-3 text-sm font-medium text-white">
+              {cta}
+            </Link>
+          </div>
+        ) : null}
       </div>
     );
   }
 
   if (slide.kind === "statement") {
     return (
-      <div className="flex min-h-[calc(100dvh-10rem)] flex-col justify-center">
+      <div className="flex min-h-[calc(100dvh-10rem)] max-w-4xl flex-col justify-end pb-8">
         {slide.kicker ? <p className="text-sm font-medium tracking-[0.22em] text-wine uppercase">{slide.kicker}</p> : null}
-        <h2 className="mt-5 max-w-5xl font-display text-[clamp(2rem,5.4vw,4.6rem)] leading-[1.02]">{slide.title}</h2>
-        {slide.text ? <p className="mt-8 max-w-3xl text-lg text-white/65 sm:text-2xl">{slide.text}</p> : null}
+        <h2 className="mt-5 font-display text-[clamp(2rem,5vw,4.2rem)] leading-[1.02]">{slide.title}</h2>
+        {slide.text ? <p className="mt-6 text-lg text-white/80 sm:text-xl">{slide.text}</p> : null}
       </div>
     );
   }
 
   if (slide.kind === "grid") {
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex min-h-[calc(100dvh-10rem)] flex-col justify-end pb-2">
         {slide.kicker ? <p className="text-sm font-medium tracking-[0.22em] text-wine uppercase">{slide.kicker}</p> : null}
-        <h2 className="mt-4 max-w-4xl font-display text-[clamp(1.8rem,4vw,3.4rem)] leading-[1.05]">{slide.title}</h2>
-        <div className="mt-10 grid flex-1 gap-4 sm:grid-cols-2">
+        <h2 className="mt-3 max-w-4xl font-display text-[clamp(1.7rem,3.6vw,3rem)] leading-[1.05]">{slide.title}</h2>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
           {slide.items?.map((item) => (
-            <div key={item.title} className="flex flex-col justify-between rounded-2xl bg-white/5 px-6 py-6">
+            <div key={item.title} className="rounded-2xl bg-black/45 px-5 py-5 backdrop-blur-sm">
               <div className="text-lg font-medium text-white">{item.title}</div>
-              <p className="mt-3 text-sm leading-relaxed text-white/60 sm:text-base">{item.text}</p>
+              <p className="mt-2 text-sm leading-relaxed text-white/75">{item.text}</p>
             </div>
           ))}
         </div>
@@ -46,16 +53,16 @@ function SlideBody({ slide, cta, ctaHref }: { slide: PitchSlide; cta: string; ct
 
   if (slide.kind === "steps") {
     return (
-      <div className="flex h-full flex-col justify-center">
+      <div className="flex min-h-[calc(100dvh-10rem)] flex-col justify-end pb-4">
         {slide.kicker ? <p className="text-sm font-medium tracking-[0.22em] text-wine uppercase">{slide.kicker}</p> : null}
-        <h2 className="mt-4 max-w-4xl font-display text-[clamp(1.8rem,4vw,3.4rem)] leading-[1.05]">{slide.title}</h2>
-        <ol className="mt-12 space-y-8">
+        <h2 className="mt-3 max-w-4xl font-display text-[clamp(1.7rem,3.6vw,3rem)] leading-[1.05]">{slide.title}</h2>
+        <ol className="mt-8 max-w-3xl space-y-6">
           {slide.items?.map((item, index) => (
-            <li key={item.title} className="grid gap-3 sm:grid-cols-[5rem_1fr] sm:items-start">
-              <div className="font-display text-4xl text-wine">{String(index + 1).padStart(2, "0")}</div>
+            <li key={item.title} className="grid gap-2 sm:grid-cols-[4.5rem_1fr] sm:items-start">
+              <div className="font-display text-3xl text-wine">{String(index + 1).padStart(2, "0")}</div>
               <div>
                 <div className="text-xl font-medium">{item.title}</div>
-                <p className="mt-2 max-w-2xl text-white/60">{item.text}</p>
+                <p className="mt-1 text-white/75">{item.text}</p>
               </div>
             </li>
           ))}
@@ -64,33 +71,18 @@ function SlideBody({ slide, cta, ctaHref }: { slide: PitchSlide; cta: string; ct
     );
   }
 
-  if (slide.kind === "close") {
-    return (
-      <div className="flex min-h-[calc(100dvh-10rem)] flex-col justify-end pb-6">
-        {slide.kicker ? <p className="text-sm font-medium tracking-[0.22em] text-wine uppercase">{slide.kicker}</p> : null}
-        <h2 className="mt-6 max-w-5xl font-display text-[clamp(2.2rem,6vw,5.2rem)] leading-[0.98]">{slide.title}</h2>
-        {slide.text ? <p className="mt-8 max-w-2xl text-lg text-white/70 sm:text-2xl">{slide.text}</p> : null}
-        <div className="mt-10">
-          <Link href={ctaHref} className="relative z-20 inline-flex rounded-lg bg-wine px-7 py-3 text-sm font-medium text-white">
-            {cta}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="grid h-full items-end gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+    <div className="grid min-h-[calc(100dvh-10rem)] items-end gap-8 pb-4 lg:grid-cols-[1.15fr_0.85fr]">
       <div>
         {slide.kicker ? <p className="text-sm font-medium tracking-[0.22em] text-wine uppercase">{slide.kicker}</p> : null}
-        <h2 className="mt-4 font-display text-[clamp(1.8rem,4.2vw,3.6rem)] leading-[1.05]">{slide.title}</h2>
-        {slide.text ? <p className="mt-6 max-w-xl text-lg text-white/60">{slide.text}</p> : null}
+        <h2 className="mt-3 font-display text-[clamp(1.7rem,3.8vw,3.2rem)] leading-[1.05]">{slide.title}</h2>
+        {slide.text ? <p className="mt-5 max-w-xl text-lg text-white/80">{slide.text}</p> : null}
       </div>
-      <div className="space-y-5">
+      <div className="space-y-3">
         {slide.items?.map((item) => (
-          <div key={item.title} className="border-t border-white/10 pt-5">
-            <div className="text-lg font-medium">{item.title}</div>
-            <p className="mt-2 text-sm text-white/55 sm:text-base">{item.text}</p>
+          <div key={item.title} className="rounded-2xl bg-black/45 px-5 py-4 backdrop-blur-sm">
+            <div className="text-base font-medium">{item.title}</div>
+            <p className="mt-1 text-sm text-white/75">{item.text}</p>
           </div>
         ))}
       </div>
@@ -135,11 +127,14 @@ export function PitchDeckView({ deck }: { deck: PitchDeck }) {
   const touchX = useRef(0);
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[#09090b] text-white">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-wine" />
-      <header className="flex items-center justify-between gap-4 px-5 py-4 sm:px-8">
+    <div className="relative min-h-dvh overflow-hidden bg-[#1a1014] text-white">
+      <img key={slide.image} src={slide.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-black/25" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />
+
+      <header className="relative z-20 flex items-center justify-between gap-4 px-5 py-4 sm:px-8">
         <BrandMark onDark imgClassName="h-9 max-w-[10rem] sm:h-10 sm:max-w-[13rem]" />
-        <div className="flex items-center gap-3 text-xs tracking-[0.18em] text-white/45 uppercase">
+        <div className="flex items-center gap-3 text-xs tracking-[0.18em] text-white/70 uppercase">
           <span>{deck.audience}</span>
           <span>
             {String(index + 1).padStart(2, "0")} / {String(deck.slides.length).padStart(2, "0")}
@@ -147,13 +142,13 @@ export function PitchDeckView({ deck }: { deck: PitchDeck }) {
         </div>
       </header>
 
-      <div className="absolute top-0 left-0 h-px bg-wine" style={{ width: `${((index + 1) / deck.slides.length) * 100}%` }} />
+      <div className="absolute top-0 left-0 z-20 h-1 bg-wine" style={{ width: `${((index + 1) / deck.slides.length) * 100}%` }} />
 
-      <button type="button" className="absolute inset-y-0 left-0 z-10 w-[18%] cursor-w-resize" aria-label="Anterior" onClick={() => go(index - 1)} />
-      <button type="button" className="absolute inset-y-0 right-0 z-10 w-[18%] cursor-e-resize" aria-label="Próximo" onClick={() => go(index + 1)} />
+      <button type="button" className="absolute inset-y-0 left-0 z-10 w-[16%] cursor-w-resize" aria-label="Anterior" onClick={() => go(index - 1)} />
+      <button type="button" className="absolute inset-y-0 right-0 z-10 w-[16%] cursor-e-resize" aria-label="Próximo" onClick={() => go(index + 1)} />
 
       <main
-        className="relative mx-auto flex min-h-[calc(100dvh-8.5rem)] max-w-6xl flex-col px-5 py-6 sm:px-8 sm:py-10"
+        className="relative z-10 mx-auto flex min-h-[calc(100dvh-8.5rem)] max-w-6xl flex-col px-5 py-6 sm:px-8 sm:py-8"
         onTouchStart={(event) => {
           touchX.current = event.changedTouches[0]?.clientX ?? 0;
         }}
@@ -163,12 +158,10 @@ export function PitchDeckView({ deck }: { deck: PitchDeck }) {
           if (x - touchX.current > 50) go(index - 1);
         }}
       >
-        <div key={index} className="min-h-0 flex-1">
-          <SlideBody slide={slide} cta={deck.cta} ctaHref={deck.ctaHref} />
-        </div>
+        <SlideCopy slide={slide} cta={deck.cta} ctaHref={deck.ctaHref} />
       </main>
 
-      <footer className="relative z-20 flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-xs text-white/40 sm:px-8">
+      <footer className="relative z-20 flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-xs text-white/65 sm:px-8">
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/apresentacao" className="hover:text-white">
             Todas
@@ -186,7 +179,7 @@ export function PitchDeckView({ deck }: { deck: PitchDeck }) {
               key={`${item.title}-${i}`}
               type="button"
               onClick={() => go(i)}
-              className={`h-1.5 rounded-full ${i === index ? "w-6 bg-wine" : "w-1.5 bg-white/25"}`}
+              className={`h-1.5 rounded-full ${i === index ? "w-6 bg-wine" : "w-1.5 bg-white/40"}`}
               aria-label={`Ir para o slide ${i + 1}`}
             />
           ))}
@@ -199,30 +192,36 @@ export function PitchDeckView({ deck }: { deck: PitchDeck }) {
 export function PitchHub() {
   const decks = listPitchDecks();
   return (
-    <div className="min-h-dvh bg-[#09090b] text-white">
-      <div className="absolute inset-x-0 top-0 h-px bg-wine" />
-      <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-5 py-8 sm:px-8">
+    <div className="relative min-h-dvh overflow-hidden bg-[#1a1014] text-white">
+      <img src="/apresentacao/salao-cover.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/20" />
+      <div className="relative z-10 mx-auto flex min-h-dvh max-w-6xl flex-col px-5 py-8 sm:px-8">
         <BrandMark onDark imgClassName="h-10 max-w-[13rem]" />
-        <div className="mt-16 max-w-3xl">
+        <div className="mt-14 max-w-3xl">
           <p className="text-sm font-medium tracking-[0.22em] text-wine uppercase">MegaBeauty · Apresentações</p>
-          <h1 className="mt-5 font-display text-[clamp(2.4rem,6vw,5.4rem)] leading-[0.95]">Três conversas. Três portas de entrada.</h1>
-          <p className="mt-6 max-w-xl text-lg text-white/60">
+          <h1 className="mt-5 font-display text-[clamp(2.2rem,5.6vw,4.8rem)] leading-[0.95]">Três conversas. Três portas de entrada.</h1>
+          <p className="mt-5 max-w-xl text-lg text-white/80">
             Abra em tela cheia. Use as setas. Cada deck é uma reunião: dona de salão, fornecedor e influenciadora parceira.
           </p>
         </div>
-        <div className="mt-16 grid flex-1 gap-4 lg:grid-cols-3">
+        <div className="mt-12 grid flex-1 gap-4 lg:grid-cols-3">
           {decks.map((deck, index) => (
             <Link
               key={deck.slug}
               href={`/apresentacao/${deck.slug}`}
-              className="group flex min-h-[22rem] flex-col justify-between rounded-2xl bg-white/5 p-7 transition-colors hover:bg-white/10"
+              className="group relative flex min-h-[22rem] overflow-hidden rounded-2xl"
             >
-              <div>
+              <img src={deck.coverImage} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
+              <div className="relative z-10 flex w-full flex-col justify-between p-7">
                 <div className="font-display text-4xl text-wine">{String(index + 1).padStart(2, "0")}</div>
-                <div className="mt-8 text-sm tracking-[0.18em] text-white/40 uppercase">{deck.audience}</div>
-                <h2 className="mt-3 font-display text-3xl leading-[1.1]">{deck.label}</h2>
+                <div>
+                  <div className="text-sm tracking-[0.18em] text-white/70 uppercase">{deck.audience}</div>
+                  <h2 className="mt-2 font-display text-3xl leading-[1.1]">{deck.label}</h2>
+                  <p className="mt-3 text-sm leading-relaxed text-white/80">{deck.summary}</p>
+                </div>
               </div>
-              <p className="text-sm leading-relaxed text-white/55">{deck.summary}</p>
             </Link>
           ))}
         </div>
