@@ -93,6 +93,7 @@ export const RESERVED_PARTNER_SLUGS = new Set([
   "plataforma",
   "fornecedor",
   "parceiro",
+  "p",
   "beauty",
   "megabeauty",
   "dashboard",
@@ -112,7 +113,7 @@ export function isPartnerStatus(value: string | null | undefined): value is Part
 export function isPublicBrandPath(pathname: string | null | undefined) {
   const path = String(pathname ?? "").split("?")[0] || "/";
   if (path === "/") return true;
-  return ["/login", "/cadastro", "/agendar"].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  return ["/login", "/cadastro", "/agendar", "/p"].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
 export function partnerBrandIsLive(status: string | null | undefined, publicSurface = false) {
@@ -147,6 +148,87 @@ export function sanitizePartnerHost(value: string | null | undefined) {
 export function partnerCustomUrl(host: string | null | undefined) {
   const clean = sanitizePartnerHost(host);
   return clean ? `https://${clean}` : "";
+}
+
+export type PartnerLandingFeature = { title: string; text: string };
+
+export const DEFAULT_PARTNER_FEATURES: PartnerLandingFeature[] = [
+  { title: "Agenda sem conflito", text: "Colunas por profissional, horários livres e a cliente marca sozinha pelo link." },
+  { title: "WhatsApp do salão", text: "Confirmação, cobrança e conversa no mesmo inbox — sem celular pessoal da recepção." },
+  { title: "Comissões e caixa", text: "Comanda, comissão e financeiro no mesmo lugar, para o dono ver o dia em segundos." },
+];
+
+export function defaultPartnerLanding(name: string) {
+  const brand = name.trim() || "seu sistema";
+  return {
+    kicker: "CRM para salões, barbearias e estética",
+    headline: `O sistema do seu salão, com a cara da ${brand}`,
+    text: `Agenda, comandas, equipe e WhatsApp no mesmo lugar. Quem entra por este link já fica na indicação da ${brand}.`,
+    cta: "Criar minha conta",
+    features: DEFAULT_PARTNER_FEATURES,
+  };
+}
+
+export function parseLandingFeatures(raw: string | null | undefined): PartnerLandingFeature[] {
+  try {
+    const parsed = JSON.parse(String(raw || "[]")) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((row) => ({
+        title: String((row as { title?: unknown })?.title ?? "").trim(),
+        text: String((row as { text?: unknown })?.text ?? "").trim(),
+      }))
+      .filter((row) => row.title && row.text)
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
+export function serializeLandingFeatures(rows: PartnerLandingFeature[]) {
+  return JSON.stringify(
+    rows
+      .map((row) => ({ title: row.title.trim(), text: row.text.trim() }))
+      .filter((row) => row.title && row.text)
+      .slice(0, 6),
+  );
+}
+
+export function resolvePartnerLanding(
+  name: string,
+  raw?: {
+    kicker?: string | null;
+    headline?: string | null;
+    text?: string | null;
+    cta?: string | null;
+    features?: PartnerLandingFeature[] | string | null;
+  },
+) {
+  const defaults = defaultPartnerLanding(name);
+  const features =
+    typeof raw?.features === "string" ? parseLandingFeatures(raw.features) : raw?.features?.filter((row) => row.title && row.text) ?? [];
+  return {
+    kicker: String(raw?.kicker ?? "").trim() || defaults.kicker,
+    headline: String(raw?.headline ?? "").trim() || defaults.headline,
+    text: String(raw?.text ?? "").trim() || defaults.text,
+    cta: String(raw?.cta ?? "").trim() || defaults.cta,
+    features: features.length ? features.slice(0, 6) : defaults.features,
+  };
+}
+
+export function partnerLandingPath(slug: string) {
+  const clean = sanitizePartnerSlug(slug);
+  return clean ? `/p/${encodeURIComponent(clean)}` : "/";
+}
+
+export function partnerLandingUrl(slug: string, origin?: string | null) {
+  const base = publicAppOrigin(origin).replace(/\/$/, "");
+  return `${base}${partnerLandingPath(slug)}`;
+}
+
+export function partnerSlugFromPath(pathname: string | null | undefined) {
+  const match = String(pathname ?? "").match(/^\/p\/([^/]+)/);
+  return sanitizePartnerSlug(match?.[1]);
 }
 
 export function isBillingStatus(value: string | null | undefined): value is BillingStatus {

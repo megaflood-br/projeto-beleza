@@ -1160,6 +1160,12 @@ model PartnerBrand {
   primary    String  @default("#ff0447")
   secondary  String  @default("#0f172a")
   customHost String? @unique
+  landingKicker   String  @default("")
+  landingHeadline String  @default("")
+  landingText     String  @default("")
+  landingCta      String  @default("")
+  landingImageUrl String?
+  landingFeatures String  @default("[]")
 }
 
 model PlatformInvoice {

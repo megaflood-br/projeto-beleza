@@ -1,6 +1,6 @@
 "use client";
 
-import { Handshake, Link2, Palette, LayoutDashboard, Users, Wallet } from "lucide-react";
+import { Handshake, Link2, Palette, LayoutDashboard, Megaphone, Users, Wallet } from "lucide-react";
 import { stopImpersonation } from "@/app/actions/platform";
 import { ConfirmProvider } from "@/components/confirm-dialog";
 import { SidebarLayout, type SidebarNavItem } from "@/components/sidebar-layout";
@@ -9,6 +9,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/parceiro", label: "Painel", icon: LayoutDashboard, exact: true },
   { href: "/parceiro/links", label: "Meus links", icon: Link2 },
   { href: "/parceiro/aparencia", label: "Marca do sistema", icon: Palette },
+  { href: "/parceiro/landing", label: "Landing page", icon: Megaphone },
   { href: "/parceiro/clientes", label: "Clientes", icon: Users },
   { href: "/parceiro/financeiro", label: "Financeiro", icon: Wallet },
 ];

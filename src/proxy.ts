@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/constants";
-import { hostSlugFromHost, PARTNER_REF_COOKIE, sanitizePartnerSlug } from "@/lib/partners";
+import { hostSlugFromHost, PARTNER_REF_COOKIE, partnerSlugFromPath, sanitizePartnerSlug } from "@/lib/partners";
 
-const PUBLIC_PREFIXES = ["/login", "/cadastro", "/agendar", "/pop", "/api/webhooks", "/api/health", "/uploads"];
+const PUBLIC_PREFIXES = ["/login", "/cadastro", "/agendar", "/p", "/pop", "/api/webhooks", "/api/health", "/uploads"];
 
 function isPublic(pathname: string) {
   if (pathname === "/") return true;
@@ -18,7 +18,7 @@ function partnerSlugFromRequest(request: NextRequest) {
     .replace(/^https?:\/\//, "")
     .split("/")[0]
     .split(":")[0];
-  return fromQuery || hostSlugFromHost(host, appHost);
+  return fromQuery || partnerSlugFromPath(request.nextUrl.pathname) || hostSlugFromHost(host, appHost);
 }
 
 function stampPartnerRef(request: NextRequest, response: NextResponse) {

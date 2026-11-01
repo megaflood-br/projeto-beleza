@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
+import { PartnerLandingView } from "@/components/parceiro/partner-landing-view";
+import { loadPartnerLanding } from "@/lib/partner-landing";
 import { loadSystemBrand } from "@/lib/load-system-brand";
 
 const FEATURES = [
@@ -13,6 +15,10 @@ const FEATURES = [
 
 export default async function HomePage() {
   const brand = await loadSystemBrand();
+  if (brand.partnerSlug) {
+    const landing = await loadPartnerLanding(brand.partnerSlug);
+    if (landing) return <PartnerLandingView landing={landing} />;
+  }
   return (
     <main className="min-h-dvh bg-cream">
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-6 sm:py-6 pt-[max(1.25rem,env(safe-area-inset-top))]">

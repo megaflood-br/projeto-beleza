@@ -72,7 +72,11 @@ import {
   partnerAffiliateUrl,
   partnerCustomUrl,
   partnerHostCandidates,
+  partnerLandingPath,
+  partnerSlugFromPath,
   partnerSubdomainUrl,
+  parseLandingFeatures,
+  resolvePartnerLanding,
   sanitizePartnerHost,
   sanitizePartnerSlug,
   summarizePartnerLedger,
@@ -1116,6 +1120,7 @@ describe("parceiros", () => {
     expect(sanitizePartnerSlug("Ana Silva")).toBe("ana-silva");
     expect(sanitizePartnerSlug("www")).toBe("");
     expect(sanitizePartnerSlug("plataforma")).toBe("");
+    expect(sanitizePartnerSlug("p")).toBe("");
     expect(sanitizePartnerSlug("a")).toBe("");
     expect(isPublicBrandPath("/cadastro")).toBe(true);
     expect(isPublicBrandPath("/parceiro/aparencia")).toBe(false);
@@ -1151,6 +1156,12 @@ describe("parceiros", () => {
       "www.app.minhamarca.com.br",
     ]);
     expect(partnerCustomUrl("https://crm.parceiro.com")).toBe("https://crm.parceiro.com");
+    expect(partnerLandingPath("teste")).toBe("/p/teste");
+    expect(partnerSlugFromPath("/p/teste")).toBe("teste");
+    expect(parseLandingFeatures('[{"title":"Agenda","text":"Sem conflito"}]')).toEqual([
+      { title: "Agenda", text: "Sem conflito" },
+    ]);
+    expect(resolvePartnerLanding("Ana Beauty", {}).headline).toContain("Ana Beauty");
   });
 
   it("resume saldo e converte indicados em taxa", () => {

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { requirePartner } from "@/lib/tenant";
 import { parseHexColor, SYSTEM_PRIMARY } from "@/lib/branding";
 import { saveTenantLogo } from "@/lib/product-upload";
-import { isPixKeyType, sanitizePartnerHost } from "@/lib/partners";
+import { isPixKeyType, sanitizePartnerHost, serializeLandingFeatures } from "@/lib/partners";
 
 export async function savePartnerBrand(formData: FormData) {
   const { partner, tenant } = await requirePartner();
@@ -40,8 +40,55 @@ export async function savePartnerBrand(formData: FormData) {
     update: { name, primary, secondary, logoUrl, faviconUrl, customHost },
   });
   revalidatePath("/parceiro/aparencia");
+  revalidatePath("/parceiro/landing");
   revalidatePath("/cadastro");
   revalidatePath("/login");
+  revalidatePath("/", "layout");
+  return { ok: true as const };
+}
+
+export async function savePartnerLanding(formData: FormData): Promise<{ ok: true } | { error: string }> {
+  const { partner, tenant } = await requirePartner();
+  const kicker = String(formData.get("kicker") ?? "").trim();
+  const headline = String(formData.get("headline") ?? "").trim();
+  const text = String(formData.get("text") ?? "").trim();
+  const cta = String(formData.get("cta") ?? "").trim();
+  const imageRaw = String(formData.get("imageUrl") ?? "").trim();
+  const features = [1, 2, 3].map((index) => ({
+    title: String(formData.get(`featureTitle${index}`) ?? "").trim(),
+    text: String(formData.get(`featureText${index}`) ?? "").trim(),
+  }));
+  const previous = partner.brand;
+  const landingImageUrl = imageRaw
+    ? await saveTenantLogo(`${tenant.id}-landing`, imageRaw, previous?.landingImageUrl)
+    : previous?.landingImageUrl ?? null;
+
+  await prisma.partnerBrand.upsert({
+    where: { partnerId: partner.id },
+    create: {
+      partnerId: partner.id,
+      name: previous?.name || partner.slug,
+      primary: previous?.primary || SYSTEM_PRIMARY,
+      secondary: previous?.secondary || "#0f172a",
+      landingKicker: kicker,
+      landingHeadline: headline,
+      landingText: text,
+      landingCta: cta,
+      landingImageUrl,
+      landingFeatures: serializeLandingFeatures(features),
+    },
+    update: {
+      landingKicker: kicker,
+      landingHeadline: headline,
+      landingText: text,
+      landingCta: cta,
+      landingImageUrl,
+      landingFeatures: serializeLandingFeatures(features),
+    },
+  });
+  revalidatePath("/parceiro/landing");
+  revalidatePath(`/p/${partner.slug}`);
+  revalidatePath("/");
   revalidatePath("/", "layout");
   return { ok: true as const };
 }
