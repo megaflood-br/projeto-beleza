@@ -1,12 +1,14 @@
 import { requirePartner } from "@/lib/tenant";
 import { partnerAffiliateUrl, partnerSubdomainUrl } from "@/lib/partners";
+import { resolvePlatformIntegrations } from "@/lib/integrations";
 import { publicAppOrigin } from "@/lib/public-url";
 import { Card } from "@/components/ui";
 import { CopyLink } from "@/components/parceiro/copy-link";
 
 export default async function ParceiroLinksPage() {
   const { partner } = await requirePartner();
-  const origin = publicAppOrigin();
+  const integrations = await resolvePlatformIntegrations();
+  const origin = publicAppOrigin(integrations.publicAppUrl);
   const link = partnerAffiliateUrl(partner.slug, origin);
   const subdomain = partner.brand?.customHost
     ? `https://${partner.brand.customHost}`

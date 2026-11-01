@@ -172,7 +172,7 @@ export function partnerAffiliatePath(slug: string) {
 }
 
 export function partnerAffiliateUrl(slug: string, origin?: string | null) {
-  const base = (origin || publicAppOrigin()).replace(/\/$/, "");
+  const base = publicAppOrigin(origin).replace(/\/$/, "");
   return `${base}${partnerAffiliatePath(slug)}`;
 }
 
@@ -180,7 +180,7 @@ export function partnerSubdomainUrl(slug: string, origin?: string | null) {
   const clean = sanitizePartnerSlug(slug);
   if (!clean) return "";
   try {
-    const url = new URL(origin || publicAppOrigin());
+    const url = new URL(publicAppOrigin(origin));
     return `${url.protocol}//${clean}.${url.hostname}${url.port ? `:${url.port}` : ""}`;
   } catch {
     return "";

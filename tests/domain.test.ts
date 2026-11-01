@@ -67,10 +67,13 @@ import {
   hostSlugFromHost,
   parseCommissionPercent,
   partnerAffiliatePath,
+  partnerAffiliateUrl,
+  partnerSubdomainUrl,
   sanitizePartnerSlug,
   summarizePartnerLedger,
 } from "@/lib/partners";
 import { nextCommissionStatusAfterRefund, shouldCreateReversal } from "@/lib/partner-commission";
+import { publicAppOrigin } from "@/lib/public-url";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
 import { featuresFromText, formatPlanPrice, nextPlanSlug, parsePlanFeatures, planLabel, serializePlanFeatures } from "@/lib/plans";
 import {
@@ -1125,6 +1128,12 @@ describe("parceiros", () => {
     expect(hostSlugFromHost("ana.beauty.megaflood.cloud", "beauty.megaflood.cloud")).toBe("ana");
     expect(hostSlugFromHost("beauty.megaflood.cloud", "beauty.megaflood.cloud")).toBe("");
     expect(partnerAffiliatePath("ana-silva")).toBe("/cadastro?ref=ana-silva");
+    expect(publicAppOrigin("https://beauty.megaflood.app")).toBe("https://beauty.megaflood.cloud");
+    expect(publicAppOrigin("https://www.beauty.megaflood.app/cadastro")).toBe("https://beauty.megaflood.cloud");
+    expect(partnerAffiliateUrl("teste", "https://beauty.megaflood.app")).toBe(
+      "https://beauty.megaflood.cloud/cadastro?ref=teste",
+    );
+    expect(partnerSubdomainUrl("teste", "https://beauty.megaflood.app")).toBe("https://teste.beauty.megaflood.cloud");
   });
 
   it("resume saldo e converte indicados em taxa", () => {
