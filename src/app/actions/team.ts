@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, canManageCommissions } from "@/lib/permissions";
 import { ROLES, type Role } from "@/lib/constants";
 import { digitsOnly } from "@/lib/utils";
 import { zonedDateTime } from "@/lib/dates";
@@ -156,7 +156,7 @@ export async function upsertProfessional(formData: FormData) {
 
 export async function updateCommissionRule(formData: FormData) {
   const { session, access } = await requireTenant();
-  if (!canAccess(access, "team", "edit")) return { error: "Sem permissão." };
+  if (!canManageCommissions(access)) return { error: "Só o administrador pode alterar a configuração de comissões." };
   const id = String(formData.get("id") ?? "");
   const commissionPct = Math.min(100, Math.max(0, toInt(formData.get("commissionPct"), 40)));
   const receivesCommission = String(formData.get("receivesCommission") ?? "") === "1";

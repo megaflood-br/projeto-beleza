@@ -92,10 +92,14 @@ export function PermissionMatrix({
                           on ? "bg-wine text-white ring-wine" : "bg-white text-ink-soft ring-line hover:text-ink",
                         )}
                       >
-                        {flag === "viewAll" && module.id === "agenda"
+                        {flag === "viewAll"
                           ? on
-                            ? "Ver agenda de todos"
-                            : "Só a própria agenda"
+                            ? module.id === "commissions"
+                              ? "Ver comissões de todos"
+                              : "Ver agenda de todos"
+                            : module.id === "commissions"
+                              ? "Só as próprias comissões"
+                              : "Só a própria agenda"
                           : ACTION_LABEL[flag]}
                       </button>
                     );

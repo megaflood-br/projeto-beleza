@@ -77,9 +77,9 @@ export const PERMISSION_MODULES = [
   {
     id: "commissions",
     label: "Comissões",
-    description: "Comissões geradas e pagamento.",
+    description: "Consultar o disponível e o já recebido. Pagamento e configurações ficam só com o administrador.",
     href: "/comissoes",
-    extras: [] as const,
+    extras: ["viewAll"] as const,
   },
   {
     id: "finance",
@@ -224,7 +224,7 @@ export function roleDefaultGrants(role: string): StoredAccess {
       comandas: flags(true, true, false, false),
       clients: flags(true, false, false, false),
       anamnesis: flags(true, true, false, false),
-      commissions: flags(true, false, false, false),
+      commissions: flags(true, false, false, false, { viewAll: false }),
       support: flags(true, true, false, false),
     },
   };
@@ -318,6 +318,14 @@ export function canAccess(access: Pick<Access, "isAdmin" | "grants">, module: Pe
 
 export function canViewAllAgenda(access: Pick<Access, "isAdmin" | "grants">) {
   return canAccess(access, "agenda", "viewAll");
+}
+
+export function canViewAllCommissions(access: Pick<Access, "isAdmin" | "grants">) {
+  return canAccess(access, "commissions", "viewAll");
+}
+
+export function canManageCommissions(access: Pick<Access, "isAdmin" | "grants">) {
+  return access.isAdmin;
 }
 
 export function agendaScopeLabel(access: Pick<Access, "isAdmin" | "grants">) {

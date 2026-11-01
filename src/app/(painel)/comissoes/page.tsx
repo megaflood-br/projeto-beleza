@@ -5,6 +5,7 @@ import { availableCommission, consumedProductCents } from "@/lib/commissions";
 import { CommissionBoard } from "@/components/comissoes/commission-board";
 import type { CommissionRow } from "@/components/comissoes/types";
 import { loadFinanceCatalog } from "@/lib/finance-catalog";
+import { canManageCommissions, canViewAllCommissions } from "@/lib/permissions";
 
 type ProductUsage = { quantity: number; product: { costCents: number } };
 
@@ -13,12 +14,18 @@ function usagesCost(usages: ProductUsage[]) {
 }
 
 export default async function ComissoesPage() {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
   const today = calendarDate();
   const defaultFrom = shiftCalendarDate(today, -30);
+  const canManage = canManageCommissions(access);
+  const ownOnly = !canViewAllCommissions(access);
+  const scopedProfessionalId = ownOnly ? access.professionalId ?? "__none__" : null;
   const [commissions, professionals, catalog] = await Promise.all([
     prisma.commission.findMany({
-      where: { tenantId: session.tenantId },
+      where: {
+        tenantId: session.tenantId,
+        ...(scopedProfessionalId ? { professionalId: scopedProfessionalId } : {}),
+      },
       include: {
         professional: true,
         appointment: {
@@ -37,7 +44,10 @@ export default async function ComissoesPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.professional.findMany({
-      where: { tenantId: session.tenantId },
+      where: {
+        tenantId: session.tenantId,
+        ...(scopedProfessionalId ? { id: scopedProfessionalId } : {}),
+      },
       orderBy: { name: "asc" },
       select: { id: true, name: true, commissionPct: true, receivesCommission: true },
     }),
@@ -87,6 +97,8 @@ export default async function ComissoesPage() {
       methods={catalog.methods}
       defaultFrom={defaultFrom}
       defaultTo={today}
+      canManage={canManage}
+      ownOnly={ownOnly}
     />
   );
 }

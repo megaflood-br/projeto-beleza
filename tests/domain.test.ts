@@ -171,7 +171,9 @@ import {
   agendaScopeLabel,
   allowedNavHrefs,
   canAccess,
+  canManageCommissions,
   canViewAllAgenda,
+  canViewAllCommissions,
   moduleFromPath,
   resolveAccess,
   roleDefaultGrants,
@@ -680,6 +682,12 @@ describe("permissões do salão", () => {
     expect(canViewAllAgenda(owner)).toBe(true);
     expect(owner.isAdmin).toBe(true);
     expect(canAccess(owner, "finance", "remove")).toBe(true);
+    expect(canAccess(professional, "commissions")).toBe(true);
+    expect(canManageCommissions(professional)).toBe(false);
+    expect(canViewAllCommissions(professional)).toBe(false);
+    expect(canManageCommissions(owner)).toBe(true);
+    expect(canViewAllCommissions(owner)).toBe(true);
+    expect(canManageCommissions(reception)).toBe(false);
   });
 
   it("perfil e personalizado substituem o padrão do cargo", () => {
