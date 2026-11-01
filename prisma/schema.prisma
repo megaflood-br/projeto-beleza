@@ -916,6 +916,7 @@ model Anamnesis {
   signedName     String?
   signedAt       DateTime?
   occurredAt     DateTime  @default(now())
+  publicToken    String?   @unique
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

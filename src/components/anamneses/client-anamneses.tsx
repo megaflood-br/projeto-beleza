@@ -5,6 +5,7 @@ import { AlertTriangle, Pencil, Plus } from "lucide-react";
 import { Badge, Button } from "@/components/ui";
 import { AnamnesisDrawer } from "@/components/anamneses/anamnesis-drawer";
 import { AnamnesisDocument, ViewAnamnesisButton } from "@/components/anamneses/anamnesis-document";
+import { AnamnesisInviteButton } from "@/components/anamneses/anamnesis-invite";
 import {
   ANAMNESIS_AREA_LABEL,
   ANAMNESIS_STATUS_COLOR,
@@ -42,10 +43,13 @@ export function ClientAnamneses({
           <h2 className="text-base font-semibold">Anamneses</h2>
           <p className="text-sm text-ink-soft">Histórico de fichas de saúde deste cliente.</p>
         </div>
-        <Button type="button" onClick={() => setEditing(null)}>
-          <Plus size={16} />
-          Nova anamnese
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <AnamnesisInviteButton clientId={client.id} forms={forms} />
+          <Button type="button" onClick={() => setEditing(null)}>
+            <Plus size={16} />
+            Nova anamnese
+          </Button>
+        </div>
       </div>
 
       {!records.length ? (

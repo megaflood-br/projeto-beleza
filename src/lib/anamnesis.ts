@@ -1,6 +1,8 @@
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db";
 import { calendarDate } from "@/lib/dates";
 import { slugify } from "@/lib/utils";
+import { publicAppOrigin } from "@/lib/public-url";
 
 export const ANAMNESIS_STATUSES = ["DRAFT", "COMPLETED"] as const;
 export type AnamnesisStatus = (typeof ANAMNESIS_STATUSES)[number];
@@ -302,6 +304,32 @@ export function mapFormRow(form: {
   };
 }
 
+export function createAnamnesisInviteToken() {
+  return randomBytes(24).toString("base64url");
+}
+
+export function sanitizeAnamnesisToken(value: string | null | undefined) {
+  const token = String(value ?? "").trim();
+  return /^[A-Za-z0-9_-]{16,80}$/.test(token) ? token : "";
+}
+
+export function anamnesisInvitePath(token: string) {
+  const clean = sanitizeAnamnesisToken(token);
+  return clean ? `/anamnese/${encodeURIComponent(clean)}` : "";
+}
+
+export function anamnesisInviteUrl(token: string, origin?: string | null) {
+  const path = anamnesisInvitePath(token);
+  if (!path) return "";
+  return `${publicAppOrigin(origin).replace(/\/$/, "")}${path}`;
+}
+
+export function anamnesisInviteMessage(clientName: string, salonName: string, url: string) {
+  const first = clientName.trim().split(/\s+/)[0] || "oi";
+  const salon = salonName.trim() || "o salão";
+  return `Oi ${first}, o ${salon} pediu para você preencher a ficha de anamnese antes do atendimento: ${url}`;
+}
+
 export function mapAnamnesisRow(row: {
   id: string;
   clientId: string;
@@ -314,6 +342,7 @@ export function mapAnamnesisRow(row: {
   signedAt: Date | null;
   occurredAt: Date;
   createdAt: Date;
+  publicToken?: string | null;
   client: { name: string; phone: string };
   form: { name: string; area: string; questions: string };
   professional: { name: string } | null;
@@ -337,6 +366,7 @@ export function mapAnamnesisRow(row: {
     signedAt: row.signedAt ? row.signedAt.toISOString() : null,
     occurredAt: calendarDate(row.occurredAt),
     createdAt: row.createdAt.toISOString(),
+    publicToken: row.publicToken ?? null,
     alerts: collectAlerts(questions, answers),
   };
 }

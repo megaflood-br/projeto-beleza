@@ -52,11 +52,16 @@ import { applySupplierPromo, bundlePayableQty } from "@/lib/supplier-promo";
 import { buildLowStockAlerts, productsLookAlike } from "@/lib/supplier-alerts";
 import {
   anamnesisDocumentItems,
+  anamnesisInviteMessage,
+  anamnesisInvitePath,
+  anamnesisInviteUrl,
   collectAlerts,
+  createAnamnesisInviteToken,
   DEFAULT_ANAMNESIS_FORMS,
   formatAnamnesisAnswer,
   missingRequired,
   parseQuestions,
+  sanitizeAnamnesisToken,
   serializeQuestions,
 } from "@/lib/anamnesis";
 import { homePath, isPlatformAdmin } from "@/lib/auth";
@@ -638,6 +643,20 @@ describe("anamnese", () => {
     const parsed = parseQuestions(json);
     expect(parsed.find((q) => q.id === "ppd")?.alertOn).toBe("yes");
     expect(parseQuestions("não-é-json")).toEqual([]);
+  });
+
+  it("monta o link público da ficha para a cliente preencher", () => {
+    const token = createAnamnesisInviteToken();
+    expect(sanitizeAnamnesisToken(token)).toBe(token);
+    expect(sanitizeAnamnesisToken("../x")).toBe("");
+    expect(anamnesisInvitePath(token)).toBe(`/anamnese/${token}`);
+    expect(anamnesisInviteUrl(token, "https://beauty.megaflood.app")).toBe(
+      `https://beauty.megaflood.cloud/anamnese/${token}`,
+    );
+    expect(anamnesisInviteMessage("Desiree Lima", "Renove Estética", "https://x/anamnese/abc")).toContain("Desiree");
+    expect(anamnesisInviteMessage("Desiree Lima", "Renove Estética", "https://x/anamnese/abc")).toContain(
+      "https://x/anamnese/abc",
+    );
   });
 });
 

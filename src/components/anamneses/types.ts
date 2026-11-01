@@ -28,5 +28,6 @@ export type AnamnesisRow = {
   signedAt: string | null;
   occurredAt: string;
   createdAt: string;
+  publicToken: string | null;
   alerts: string[];
 };
