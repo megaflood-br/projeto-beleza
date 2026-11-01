@@ -37,7 +37,7 @@ export function AssistantChat({ greeting }: { greeting: string }) {
           });
         }}
       >
-        <Textarea name="question" placeholder="Ex.: Quem está ociosa hoje? Como recuperar clientes inativos?" />
+        <Textarea name="question" placeholder="Ex.: Quais produtos estão em baixa? Quem está ociosa hoje?" />
         <Button disabled={pending}>{pending ? "Pensando..." : "Perguntar à MegaBeauty"}</Button>
       </form>
     </Card>

@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { calculateCommission, consumedProductCents, availableCommission, sumCommissions } from "@/lib/commissions";
 import { hasConflict } from "@/lib/appointments";
 import { formatStockQty, isLowStock, nextStock } from "@/lib/stock";
+import {
+  answerAssistantIntent,
+  answerLowStock,
+  assistantIntent,
+  formatAssistantContext,
+  formatLowStockLine,
+  lowStockProducts,
+} from "@/lib/assistant";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
 import { slugify, formatPhoneBR } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
@@ -254,6 +262,45 @@ describe("estoque", () => {
     expect(formatStockQty(1, "un")).toBe("1 unidade");
     expect(formatStockQty(3, "un")).toBe("3 unidades");
     expect(formatStockQty(100, "ml")).toBe("100 ml");
+  });
+});
+
+describe("assistente", () => {
+  const products = [
+    { name: "Tintura 6.0", stock: 1, minStock: 4, unit: "un" },
+    { name: "Shampoo", stock: 12, minStock: 4, unit: "un" },
+    { name: "Algodão", stock: 0, minStock: 2, unit: "un" },
+  ];
+
+  it("reconhece pergunta de estoque baixo e lista os produtos", () => {
+    expect(assistantIntent("qual produto esta em baixa no estoque?")).toBe("low_stock");
+    expect(assistantIntent("Quais produtos estão em baixa?")).toBe("low_stock");
+    expect(assistantIntent("Como recuperar clientes inativos?")).toBe("general");
+    expect(lowStockProducts(products).map((item) => item.name)).toEqual(["Algodão", "Tintura 6.0"]);
+    expect(answerLowStock(products)).toContain("Algodão");
+    expect(answerLowStock(products)).toContain("Tintura 6.0");
+    expect(answerLowStock(products)).not.toMatch(/verificar a lista|olhar no estoque/i);
+    expect(formatLowStockLine(products[0])).toContain("Tintura 6.0");
+  });
+
+  it("monta contexto com os nomes em baixa e responde a intenção", () => {
+    const snapshot = {
+      salon: "Studio Aurora",
+      revenueCents: 15000,
+      occupancy: 40,
+      noShows: 1,
+      appointments: [{ time: "09:00", client: "Ana", professional: "Bruno", status: "Confirmado" }],
+      products,
+      professionals: [
+        { name: "Bruno", appointmentsToday: 1 },
+        { name: "Camila", appointmentsToday: 0 },
+      ],
+    };
+    expect(formatAssistantContext(snapshot)).toContain("Tintura 6.0");
+    expect(answerAssistantIntent("low_stock", snapshot)).toContain("Algodão");
+    expect(answerAssistantIntent("idle_team", snapshot)).toContain("Camila");
+    expect(answerAssistantIntent("revenue", snapshot)).toContain("R$");
+    expect(answerAssistantIntent("general", snapshot)).toBe("");
   });
 });
 
