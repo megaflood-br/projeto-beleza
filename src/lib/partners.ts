@@ -98,6 +98,7 @@ export const RESERVED_PARTNER_SLUGS = new Set([
   "megabeauty",
   "dashboard",
   "uploads",
+  "apresentacao",
 ]);
 
 export function sanitizePartnerSlug(value: string | null | undefined) {
@@ -110,9 +111,14 @@ export function isPartnerStatus(value: string | null | undefined): value is Part
   return PARTNER_STATUSES.includes(value as PartnerStatus);
 }
 
+export function isHqLockedPath(pathname: string | null | undefined) {
+  const path = String(pathname ?? "").split("?")[0] || "/";
+  return path === "/" || path === "/apresentacao" || path.startsWith("/apresentacao/");
+}
+
 export function isPublicBrandPath(pathname: string | null | undefined) {
   const path = String(pathname ?? "").split("?")[0] || "/";
-  if (path === "/") return true;
+  if (isHqLockedPath(path)) return true;
   return ["/login", "/cadastro", "/agendar", "/p"].some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
@@ -126,7 +132,7 @@ export function partnerRefForBrand(input: {
   const header = sanitizePartnerSlug(input.headerRef);
   const host = sanitizePartnerSlug(input.hostSlug);
   const cookie = sanitizePartnerSlug(input.cookieRef);
-  if (path === "/") return header || host || "";
+  if (isHqLockedPath(path)) return header || host || "";
   return header || host || cookie || "";
 }
 

@@ -102,6 +102,7 @@ import {
   summarizePartnerLedger,
 } from "@/lib/partners";
 import { nextCommissionStatusAfterRefund, shouldCreateReversal } from "@/lib/partner-commission";
+import { getPitchDeck, listPitchDecks, pitchDeckSlugs } from "@/lib/pitch-decks";
 import { publicAppOrigin } from "@/lib/public-url";
 import { LANDING_CATALOG, LANDING_STEPS, landingCatalogTitles } from "@/lib/landing-catalog";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
@@ -1264,11 +1265,14 @@ describe("parceiros", () => {
     expect(sanitizePartnerSlug("www")).toBe("");
     expect(sanitizePartnerSlug("plataforma")).toBe("");
     expect(sanitizePartnerSlug("p")).toBe("");
+    expect(sanitizePartnerSlug("apresentacao")).toBe("");
     expect(sanitizePartnerSlug("a")).toBe("");
     expect(partnerRefForBrand({ pathname: "/", cookieRef: "teste" })).toBe("");
     expect(partnerRefForBrand({ pathname: "/", headerRef: "teste" })).toBe("teste");
+    expect(partnerRefForBrand({ pathname: "/apresentacao/salao", cookieRef: "teste" })).toBe("");
     expect(partnerRefForBrand({ pathname: "/cadastro", cookieRef: "teste" })).toBe("teste");
     expect(isPublicBrandPath("/cadastro")).toBe(true);
+    expect(isPublicBrandPath("/apresentacao/parceiros")).toBe(true);
     expect(isPublicBrandPath("/parceiro/aparencia")).toBe(false);
     expect(partnerBrandIsLive("PENDING", true)).toBe(true);
     expect(partnerBrandIsLive("PENDING", false)).toBe(false);
@@ -1362,5 +1366,22 @@ describe("parceiros", () => {
     expect(nextCommissionStatusAfterRefund("PENDING")).toBe("CANCELED");
     expect(shouldCreateReversal("PAID")).toBe(true);
     expect(homePath("PARTNER", "PARTNER")).toBe("/parceiro");
+  });
+});
+
+describe("apresentações", () => {
+  it("mantém os três decks com capa e fechamento", () => {
+    expect(pitchDeckSlugs()).toEqual(["salao", "fornecedores", "parceiros"]);
+    expect(listPitchDecks()).toHaveLength(3);
+    for (const slug of pitchDeckSlugs()) {
+      const deck = getPitchDeck(slug);
+      expect(deck?.slides[0]?.kind).toBe("cover");
+      expect(deck?.slides.at(-1)?.kind).toBe("close");
+      expect((deck?.slides.length ?? 0) >= 8).toBe(true);
+    }
+    expect(getPitchDeck("salao")?.slides[0]?.title).toMatch(/WhatsApp da recepção/);
+    expect(getPitchDeck("fornecedores")?.slides[0]?.title).toMatch(/estoque de cada salão/);
+    expect(getPitchDeck("parceiros")?.slides[0]?.title).toMatch(/sua marca/);
+    expect(getPitchDeck("inexistente")).toBeNull();
   });
 });
