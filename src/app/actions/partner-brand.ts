@@ -13,6 +13,7 @@ export async function savePartnerBrand(formData: FormData) {
   const primary = parseHexColor(String(formData.get("primary") ?? ""), SYSTEM_PRIMARY);
   const secondary = parseHexColor(String(formData.get("secondary") ?? ""), "#0f172a");
   const logoRaw = String(formData.get("logoUrl") ?? "").trim();
+  const logoDarkRaw = String(formData.get("logoDarkUrl") ?? "").trim();
   const faviconRaw = String(formData.get("faviconUrl") ?? "").trim();
   const customHostRaw = String(formData.get("customHost") ?? "").trim();
   const customHost = sanitizePartnerHost(customHostRaw);
@@ -30,14 +31,17 @@ export async function savePartnerBrand(formData: FormData) {
 
   const previous = partner.brand;
   const logoUrl = logoRaw ? await saveTenantLogo(tenant.id, logoRaw, previous?.logoUrl) : previous?.logoUrl ?? null;
+  const logoDarkUrl = logoDarkRaw
+    ? await saveTenantLogo(`${tenant.id}-dark`, logoDarkRaw, previous?.logoDarkUrl)
+    : previous?.logoDarkUrl ?? null;
   const faviconUrl = faviconRaw
     ? await saveTenantLogo(`${tenant.id}-favicon`, faviconRaw, previous?.faviconUrl)
     : previous?.faviconUrl ?? null;
 
   await prisma.partnerBrand.upsert({
     where: { partnerId: partner.id },
-    create: { partnerId: partner.id, name, primary, secondary, logoUrl, faviconUrl, customHost },
-    update: { name, primary, secondary, logoUrl, faviconUrl, customHost },
+    create: { partnerId: partner.id, name, primary, secondary, logoUrl, logoDarkUrl, faviconUrl, customHost },
+    update: { name, primary, secondary, logoUrl, logoDarkUrl, faviconUrl, customHost },
   });
   revalidatePath("/parceiro/aparencia");
   revalidatePath("/parceiro/landing");

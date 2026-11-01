@@ -60,6 +60,7 @@ import {
   serializeQuestions,
 } from "@/lib/anamnesis";
 import { homePath, isPlatformAdmin } from "@/lib/auth";
+import { brandLogoSrc, SYSTEM_LOGO, SYSTEM_LOGO_DARK } from "@/lib/branding";
 import {
   commissionCents,
   conversionRate as partnerConversionRate,
@@ -1166,6 +1167,10 @@ describe("parceiros", () => {
       { title: "Agenda", text: "Sem conflito" },
     ]);
     expect(resolvePartnerLanding("Ana Beauty", {}).headline).toContain("Ana Beauty");
+    expect(brandLogoSrc({ logoUrl: SYSTEM_LOGO, logoDarkUrl: SYSTEM_LOGO_DARK }, true)).toBe(SYSTEM_LOGO_DARK);
+    expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: "/uploads/dark.png" }, true)).toBe("/uploads/dark.png");
+    expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: null }, true)).toBe("/uploads/light.png");
+    expect(brandLogoSrc({ logoUrl: "/uploads/light.png", logoDarkUrl: "/uploads/dark.png" }, false)).toBe("/uploads/light.png");
   });
 
   it("resume saldo e converte indicados em taxa", () => {

@@ -5,5 +5,5 @@ import { loadSystemBrand } from "@/lib/load-system-brand";
 export default async function PlataformaAparenciaPage() {
   await requirePlatformAdmin();
   const brand = await loadSystemBrand();
-  return <AppearanceBoard logoUrl={brand.logoUrl} primary={brand.primary} />;
+  return <AppearanceBoard logoUrl={brand.logoUrl} logoDarkUrl={brand.logoDarkUrl || ""} primary={brand.primary} />;
 }

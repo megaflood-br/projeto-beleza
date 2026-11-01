@@ -18,6 +18,7 @@ model Tenant {
   address             String?
   city                String?
   logoUrl             String?
+  logoDarkUrl         String?
   technicalResponsible String  @default("")
   technicalRegistry    String  @default("")
   timezone            String   @default("America/Sao_Paulo")
@@ -1156,6 +1157,7 @@ model PartnerBrand {
   partner    Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   name       String
   logoUrl    String?
+  logoDarkUrl String?
   faviconUrl String?
   primary    String  @default("#ff0447")
   secondary  String  @default("#0f172a")

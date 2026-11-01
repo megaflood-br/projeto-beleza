@@ -3,17 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requirePlatformAdmin } from "@/lib/tenant";
-import { parseHexColor, SYSTEM_LOGO, SYSTEM_PRIMARY } from "@/lib/branding";
+import { parseHexColor, SYSTEM_LOGO, SYSTEM_LOGO_DARK, SYSTEM_PRIMARY } from "@/lib/branding";
 import { saveTenantLogo } from "@/lib/product-upload";
 
 export async function savePlatformBrand(formData: FormData) {
   const { tenant } = await requirePlatformAdmin();
   const primary = parseHexColor(String(formData.get("accentColor") ?? ""), SYSTEM_PRIMARY);
   const logoRaw = String(formData.get("logoUrl") ?? "").trim();
+  const logoDarkRaw = String(formData.get("logoDarkUrl") ?? "").trim();
   const logoUrl = (await saveTenantLogo(tenant.id, logoRaw || SYSTEM_LOGO, tenant.logoUrl)) || SYSTEM_LOGO;
+  const logoDarkUrl =
+    (await saveTenantLogo(`${tenant.id}-dark`, logoDarkRaw || SYSTEM_LOGO_DARK, tenant.logoDarkUrl)) || SYSTEM_LOGO_DARK;
   await prisma.tenant.update({
     where: { id: tenant.id },
-    data: { accentColor: primary, logoUrl },
+    data: { accentColor: primary, logoUrl, logoDarkUrl },
   });
   revalidatePath("/", "layout");
   revalidatePath("/plataforma/aparencia");

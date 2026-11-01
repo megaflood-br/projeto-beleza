@@ -1,7 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { brandFromPartner, brandTheme, SYSTEM_LOGO, SYSTEM_PRIMARY } from "@/lib/branding";
+import { brandFromPartner, brandTheme, SYSTEM_LOGO, SYSTEM_LOGO_DARK, SYSTEM_PRIMARY } from "@/lib/branding";
 import {
   hostSlugFromHost,
   isPublicBrandPath,
@@ -17,23 +17,32 @@ async function hqBrand() {
   if (typeof prisma.tenant?.findFirst !== "function") return fallback;
   const hq = await prisma.tenant.findFirst({
     where: { isPlatform: true },
-    select: { logoUrl: true, accentColor: true },
+    select: { logoUrl: true, logoDarkUrl: true, accentColor: true },
   });
   return {
     ...brandTheme(hq?.accentColor),
     logoUrl: hq?.logoUrl || SYSTEM_LOGO,
+    logoDarkUrl: hq?.logoDarkUrl || SYSTEM_LOGO_DARK,
   };
 }
 
 function brandOf(partner: {
   slug: string;
   status: string;
-  brand: { name: string; logoUrl: string | null; faviconUrl: string | null; primary: string; secondary: string } | null;
+  brand: {
+    name: string;
+    logoUrl: string | null;
+    logoDarkUrl?: string | null;
+    faviconUrl: string | null;
+    primary: string;
+    secondary: string;
+  } | null;
 }) {
   if (!partner.brand) return null;
   return brandFromPartner({
     name: partner.brand.name,
     logoUrl: partner.brand.logoUrl,
+    logoDarkUrl: partner.brand.logoDarkUrl,
     faviconUrl: partner.brand.faviconUrl,
     primary: partner.brand.primary,
     secondary: partner.brand.secondary,
@@ -110,6 +119,7 @@ export async function loadSystemBrand() {
           return brandFromPartner({
             name: byHost.name,
             logoUrl: byHost.logoUrl,
+            logoDarkUrl: byHost.logoDarkUrl,
             faviconUrl: byHost.faviconUrl,
             primary: byHost.primary,
             secondary: byHost.secondary,

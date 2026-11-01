@@ -11,6 +11,7 @@ import { SYSTEM_PRIMARY } from "@/lib/branding";
 export function PartnerAppearanceBoard({
   name,
   logoUrl,
+  logoDarkUrl,
   faviconUrl,
   primary,
   secondary,
@@ -18,6 +19,7 @@ export function PartnerAppearanceBoard({
 }: {
   name: string;
   logoUrl: string;
+  logoDarkUrl: string;
   faviconUrl: string;
   primary: string;
   secondary: string;
@@ -25,9 +27,11 @@ export function PartnerAppearanceBoard({
 }) {
   const router = useRouter();
   const logoRef = useRef<HTMLInputElement>(null);
+  const darkRef = useRef<HTMLInputElement>(null);
   const iconRef = useRef<HTMLInputElement>(null);
   const [brandName, setBrandName] = useState(name);
   const [url, setUrl] = useState(logoUrl || "");
+  const [darkUrl, setDarkUrl] = useState(logoDarkUrl || "");
   const [icon, setIcon] = useState(faviconUrl || "");
   const [color, setColor] = useState(primary || SYSTEM_PRIMARY);
   const [second, setSecond] = useState(secondary || "#0f172a");
@@ -41,6 +45,7 @@ export function PartnerAppearanceBoard({
     const formData = new FormData();
     formData.set("name", brandName);
     formData.set("logoUrl", url);
+    formData.set("logoDarkUrl", darkUrl);
     formData.set("faviconUrl", icon);
     formData.set("primary", color);
     formData.set("secondary", second);
@@ -73,13 +78,11 @@ export function PartnerAppearanceBoard({
           <Field label="Nome da marca">
             <Input value={brandName} onChange={(event) => setBrandName(event.target.value)} required />
           </Field>
-          <Field label="Logo do sistema">
+          <Field label="Logo para fundo claro">
             <div className="flex flex-wrap items-center gap-4">
-              {url ? (
-                <img src={url} alt="" className="h-16 w-auto max-w-[18rem] object-contain" />
-              ) : (
-                <ImageIcon size={22} className="text-slate-400" />
-              )}
+              <div className="flex items-center rounded-lg bg-white px-3 py-3 ring-1 ring-line">
+                {url ? <img src={url} alt="" className="h-16 w-auto max-w-[18rem] object-contain" /> : <ImageIcon size={22} className="text-slate-400" />}
+              </div>
               <div className="space-y-2">
                 <input
                   ref={logoRef}
@@ -98,9 +101,42 @@ export function PartnerAppearanceBoard({
                   }}
                 />
                 <Button type="button" variant="outline" className="h-8 px-3 text-xs" onClick={() => logoRef.current?.click()}>
-                  {url ? "Trocar logo" : "Enviar logo"}
+                  {url ? "Trocar" : "Enviar"}
                 </Button>
-                <p className="text-xs text-ink-soft">PNG transparente. Este é o logo do sistema, não o do salão.</p>
+                <p className="text-xs text-ink-soft">Home, cadastro e telas claras. PNG transparente. Logo do sistema, não do salão.</p>
+              </div>
+            </div>
+          </Field>
+          <Field label="Logo para fundo escuro">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center rounded-lg px-3 py-3" style={{ background: second }}>
+                {darkUrl || url ? (
+                  <img src={darkUrl || url} alt="" className="h-16 w-auto max-w-[18rem] object-contain" />
+                ) : (
+                  <ImageIcon size={22} className="text-slate-400" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <input
+                  ref={darkRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    void readBrandLogo(file)
+                      .then((next) => {
+                        setError(null);
+                        setDarkUrl(next);
+                      })
+                      .catch((err: Error) => setError(err.message));
+                  }}
+                />
+                <Button type="button" variant="outline" className="h-8 px-3 text-xs" onClick={() => darkRef.current?.click()}>
+                  {darkUrl ? "Trocar" : "Enviar"}
+                </Button>
+                <p className="text-xs text-ink-soft">Login e menu. PNG claro ou branco, fundo transparente.</p>
               </div>
             </div>
           </Field>
@@ -150,8 +186,11 @@ export function PartnerAppearanceBoard({
           <div>
             <p className="text-xs font-medium tracking-wide text-ink-soft uppercase">Prévia</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
+              <div className="flex items-center bg-white px-3 py-3 ring-1 ring-line">
+                {url ? <img src={url} alt="" className="h-12 w-auto max-w-[12rem] object-contain" /> : <span className="text-sm">{brandName}</span>}
+              </div>
               <div className="flex items-center px-3 py-3" style={{ background: second }}>
-                {url ? <img src={url} alt="" className="h-12 w-auto max-w-[16rem] object-contain" /> : <span className="text-sm text-white">{brandName}</span>}
+                {darkUrl || url ? <img src={darkUrl || url} alt="" className="h-12 w-auto max-w-[12rem] object-contain" /> : <span className="text-sm text-white">{brandName}</span>}
               </div>
               <span className="inline-flex rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ background: color }}>
                 Botão primário

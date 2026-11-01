@@ -10,14 +10,18 @@ import { useRouter } from "next/navigation";
 
 export function AppearanceBoard({
   logoUrl,
+  logoDarkUrl,
   primary,
 }: {
   logoUrl: string;
+  logoDarkUrl: string;
   primary: string;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const darkRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState(logoUrl || SYSTEM_LOGO);
+  const [darkUrl, setDarkUrl] = useState(logoDarkUrl || SYSTEM_LOGO_DARK);
   const [color, setColor] = useState(primary || SYSTEM_PRIMARY);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,6 +30,7 @@ export function AppearanceBoard({
     setBusy(true);
     setError(null);
     formData.set("logoUrl", url);
+    formData.set("logoDarkUrl", darkUrl);
     formData.set("accentColor", color);
     await savePlatformBrand(formData);
     setBusy(false);
@@ -49,14 +54,12 @@ export function AppearanceBoard({
             void onSave(new FormData(event.currentTarget));
           }}
         >
-          <Field label="Logo do sistema">
+          <Field label="Logo para fundo claro">
             <input type="hidden" name="logoUrl" value={url} />
             <div className="flex flex-wrap items-center gap-4">
-              {url ? (
-                <img src={url} alt="Logo MegaBeauty" className="h-16 w-auto max-w-[18rem] object-contain" />
-              ) : (
-                <ImageIcon size={22} className="text-slate-400" />
-              )}
+              <div className="flex items-center rounded-lg bg-white px-3 py-3 ring-1 ring-line">
+                {url ? <img src={url} alt="" className="h-16 w-auto max-w-[18rem] object-contain" /> : <ImageIcon size={22} className="text-slate-400" />}
+              </div>
               <div className="space-y-2">
                 <input
                   ref={fileRef}
@@ -76,15 +79,53 @@ export function AppearanceBoard({
                 />
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" className="h-8 px-3 text-xs" onClick={() => fileRef.current?.click()}>
-                    {url ? "Trocar logo" : "Enviar logo"}
+                    {url && url !== SYSTEM_LOGO ? "Trocar" : "Enviar"}
                   </Button>
                   {url && url !== SYSTEM_LOGO ? (
                     <Button type="button" variant="ghost" className="h-8 px-3 text-xs" onClick={() => setUrl(SYSTEM_LOGO)}>
-                      Logo padrão
+                      Padrão
                     </Button>
                   ) : null}
                 </div>
-                <p className="text-xs text-ink-soft">PNG sem fundo ou fundo transparente. No menu escuro o logo fica solto, sem moldura.</p>
+                <p className="text-xs text-ink-soft">Home, cadastro e telas claras. PNG transparente.</p>
+              </div>
+            </div>
+          </Field>
+
+          <Field label="Logo para fundo escuro">
+            <input type="hidden" name="logoDarkUrl" value={darkUrl} />
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center rounded-lg bg-slate-950 px-3 py-3">
+                {darkUrl ? <img src={darkUrl} alt="" className="h-16 w-auto max-w-[18rem] object-contain" /> : <ImageIcon size={22} className="text-slate-400" />}
+              </div>
+              <div className="space-y-2">
+                <input
+                  ref={darkRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    void readBrandLogo(file)
+                      .then((next) => {
+                        setError(null);
+                        setDarkUrl(next);
+                      })
+                      .catch((err: Error) => setError(err.message));
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="h-8 px-3 text-xs" onClick={() => darkRef.current?.click()}>
+                    {darkUrl && darkUrl !== SYSTEM_LOGO_DARK ? "Trocar" : "Enviar"}
+                  </Button>
+                  {darkUrl && darkUrl !== SYSTEM_LOGO_DARK ? (
+                    <Button type="button" variant="ghost" className="h-8 px-3 text-xs" onClick={() => setDarkUrl(SYSTEM_LOGO_DARK)}>
+                      Padrão
+                    </Button>
+                  ) : null}
+                </div>
+                <p className="text-xs text-ink-soft">Login e menu. PNG claro ou branco, fundo transparente.</p>
               </div>
             </div>
           </Field>
@@ -113,8 +154,11 @@ export function AppearanceBoard({
           <div className="rounded-xl border border-line bg-sand/60 p-4">
             <p className="text-xs font-medium text-ink-soft uppercase tracking-wide">Prévia</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
+              <div className="flex items-center bg-white px-3 py-3 ring-1 ring-line">
+                {url ? <img src={url} alt="" className="h-12 w-auto max-w-[12rem] object-contain" /> : null}
+              </div>
               <div className="flex items-center bg-slate-950 px-3 py-3">
-                {url ? <img src={url === SYSTEM_LOGO ? SYSTEM_LOGO_DARK : url} alt="" className="h-16 w-auto max-w-none object-contain" /> : null}
+                {darkUrl ? <img src={darkUrl} alt="" className="h-12 w-auto max-w-[12rem] object-contain" /> : null}
               </div>
               <span className="inline-flex rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ background: color }}>
                 Botão primário

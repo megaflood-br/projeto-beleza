@@ -6,6 +6,7 @@ export const LEGACY_PRIMARY = "#2563eb";
 
 export type SystemBrand = {
   logoUrl: string;
+  logoDarkUrl: string | null;
   primary: string;
   wine: string;
   wineDeep: string;
@@ -15,6 +16,14 @@ export type SystemBrand = {
   secondary: string;
   partnerSlug: string | null;
 };
+
+export function brandLogoSrc(brand: Pick<SystemBrand, "logoUrl" | "logoDarkUrl">, onDark = false) {
+  const light = brand.logoUrl || SYSTEM_LOGO;
+  if (!onDark) return light;
+  if (brand.logoDarkUrl) return brand.logoDarkUrl;
+  if (light === SYSTEM_LOGO) return SYSTEM_LOGO_DARK;
+  return light;
+}
 
 export function parseHexColor(value: string | null | undefined, fallback = SYSTEM_PRIMARY) {
   const raw = String(value ?? "").trim();
@@ -51,6 +60,7 @@ export function brandTheme(primary?: string | null): SystemBrand {
   const wine = resolveSystemPrimary(primary);
   return {
     logoUrl: SYSTEM_LOGO,
+    logoDarkUrl: SYSTEM_LOGO_DARK,
     primary: wine,
     wine,
     wineDeep: mixHex(wine, "#000000", 0.22),
@@ -65,6 +75,7 @@ export function brandTheme(primary?: string | null): SystemBrand {
 export function brandFromPartner(input: {
   name: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
   faviconUrl?: string | null;
   primary?: string | null;
   secondary?: string | null;
@@ -74,6 +85,7 @@ export function brandFromPartner(input: {
   return {
     ...theme,
     logoUrl: input.logoUrl || SYSTEM_LOGO,
+    logoDarkUrl: input.logoDarkUrl || null,
     name: input.name.trim() || SYSTEM_BRAND_NAME,
     faviconUrl: input.faviconUrl || null,
     secondary: parseHexColor(input.secondary, "#0f172a"),

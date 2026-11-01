@@ -8,6 +8,7 @@ export default async function ParceiroAparenciaPage() {
     <PartnerAppearanceBoard
       name={partner.brand?.name || partner.slug}
       logoUrl={partner.brand?.logoUrl || ""}
+      logoDarkUrl={partner.brand?.logoDarkUrl || ""}
       faviconUrl={partner.brand?.faviconUrl || ""}
       primary={partner.brand?.primary || SYSTEM_PRIMARY}
       secondary={partner.brand?.secondary || "#0f172a"}
