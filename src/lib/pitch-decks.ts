@@ -1,3 +1,12 @@
+import { toEvolutionNumber } from "@/lib/whatsapp-campaigns";
+
+export const MEGA_WHATSAPP_PHONE = "11985521672";
+export const PITCH_CTA_LABEL = "Agende uma reunião";
+
+export function megaWhatsAppHref(message: string) {
+  return `https://wa.me/${toEvolutionNumber(MEGA_WHATSAPP_PHONE)}?text=${encodeURIComponent(message)}`;
+}
+
 export type PitchSlideKind = "cover" | "statement" | "grid" | "split" | "steps" | "close";
 
 export type PitchItem = {
@@ -32,8 +41,8 @@ export const PITCH_DECKS: PitchDeck[] = [
     label: "Para a dona do salão",
     summary: "Agenda, caixa e clientes em um só sistema — sem planilha e sem WhatsApp pessoal.",
     coverImage: "/apresentacao/salao-cover.jpg",
-    cta: "Criar minha conta",
-    ctaHref: "/cadastro",
+    cta: PITCH_CTA_LABEL,
+    ctaHref: megaWhatsAppHref("Olá! Vi a apresentação do MegaBeauty para salão e quero agendar uma reunião."),
     slides: [
       {
         kind: "cover",
@@ -149,7 +158,7 @@ export const PITCH_DECKS: PitchDeck[] = [
         kind: "close",
         kicker: "MegaBeauty",
         title: "Menos retrabalho. Mais cadeira ocupada.",
-        text: "Crie a conta agora e organize o salão no mesmo dia.",
+        text: "Fale no WhatsApp da MegaFlood e agende uma reunião. A gente mostra o sistema no seu dia.",
         image: "/apresentacao/salao-cliente.jpg",
       },
     ],
@@ -160,8 +169,8 @@ export const PITCH_DECKS: PitchDeck[] = [
     label: "Para quem vende produto ao salão",
     summary: "Catálogo, pedido e reposição dentro do estoque de cada salão — sem WhatsApp do representante.",
     coverImage: "/apresentacao/fornecedor-cover.jpg",
-    cta: "Quero meu canal de fornecedor",
-    ctaHref: "/",
+    cta: PITCH_CTA_LABEL,
+    ctaHref: megaWhatsAppHref("Olá! Vi a apresentação do MegaBeauty para fornecedores e quero agendar uma reunião."),
     slides: [
       {
         kind: "cover",
@@ -248,7 +257,7 @@ export const PITCH_DECKS: PitchDeck[] = [
         kind: "close",
         kicker: "MegaBeauty Fornecedores",
         title: "Pare de vender só no grupo de WhatsApp.",
-        text: "Peça seu canal e coloque o catálogo dentro do estoque de quem já atende todo dia.",
+        text: "Fale no WhatsApp da MegaFlood e agende uma reunião para abrir o seu canal.",
         image: "/apresentacao/fornecedor-cover.jpg",
       },
     ],
@@ -259,8 +268,8 @@ export const PITCH_DECKS: PitchDeck[] = [
     label: "Para influenciadores que vendem o sistema",
     summary: "White label, landing própria e comissão em todo salão que assinar pelo seu link.",
     coverImage: "/apresentacao/parceiro-cover.jpg",
-    cta: "Quero ser parceira",
-    ctaHref: "/",
+    cta: PITCH_CTA_LABEL,
+    ctaHref: megaWhatsAppHref("Olá! Vi a apresentação do MegaBeauty para parceiros e quero agendar uma reunião."),
     slides: [
       {
         kind: "cover",
@@ -358,7 +367,7 @@ export const PITCH_DECKS: PitchDeck[] = [
         kind: "close",
         kicker: "MegaBeauty Parceiros",
         title: "Sua audiência. Sua marca. Sua comissão.",
-        text: "Peça seu canal white label e comece a vender o sistema com o seu nome.",
+        text: "Fale no WhatsApp da MegaFlood e agende uma reunião para virar parceira.",
         image: "/apresentacao/parceiro-cover.jpg",
       },
     ],

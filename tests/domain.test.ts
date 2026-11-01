@@ -102,7 +102,7 @@ import {
   summarizePartnerLedger,
 } from "@/lib/partners";
 import { nextCommissionStatusAfterRefund, shouldCreateReversal } from "@/lib/partner-commission";
-import { getPitchDeck, listPitchDecks, pitchDeckSlugs } from "@/lib/pitch-decks";
+import { getPitchDeck, listPitchDecks, megaWhatsAppHref, PITCH_CTA_LABEL, pitchDeckSlugs } from "@/lib/pitch-decks";
 import { publicAppOrigin } from "@/lib/public-url";
 import { LANDING_CATALOG, LANDING_STEPS, landingCatalogTitles } from "@/lib/landing-catalog";
 import { TENANT_STATUS_LABEL } from "@/lib/constants";
@@ -1385,5 +1385,12 @@ describe("apresentações", () => {
     expect(getPitchDeck("parceiros")?.slides[0]?.title).toMatch(/sua marca/);
     expect(getPitchDeck("inexistente")).toBeNull();
     expect(listPitchDecks().every((deck) => deck.coverImage.startsWith("/apresentacao/"))).toBe(true);
+    expect(megaWhatsAppHref("reunião")).toContain("https://wa.me/5511985521672");
+    for (const slug of pitchDeckSlugs()) {
+      const deck = getPitchDeck(slug);
+      expect(deck?.cta).toBe(PITCH_CTA_LABEL);
+      expect(deck?.ctaHref).toContain("https://wa.me/5511985521672");
+      expect(deck?.ctaHref).not.toContain("/cadastro");
+    }
   });
 });

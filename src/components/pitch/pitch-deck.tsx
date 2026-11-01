@@ -15,7 +15,12 @@ function SlideCopy({ slide, cta, ctaHref }: { slide: PitchSlide; cta: string; ct
         {slide.text ? <p className="mt-6 max-w-2xl text-lg text-white/85 sm:text-2xl">{slide.text}</p> : null}
         {slide.kind === "close" ? (
           <div className="mt-8">
-            <Link href={ctaHref} className="relative z-20 inline-flex rounded-lg bg-wine px-7 py-3 text-sm font-medium text-white">
+            <Link
+              href={ctaHref}
+              target="_blank"
+              rel="noreferrer"
+              className="relative z-20 inline-flex rounded-lg bg-wine px-7 py-3 text-sm font-medium text-white"
+            >
               {cta}
             </Link>
           </div>
