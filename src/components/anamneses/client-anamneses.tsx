@@ -21,12 +21,16 @@ export function ClientAnamneses({
   forms,
   professionals,
   salonName,
+  canCreate = true,
+  canEdit = true,
 }: {
   client: { id: string; name: string; phone: string };
   records: AnamnesisRow[];
   forms: AnamnesisFormRow[];
   professionals: { id: string; name: string }[];
   salonName?: string;
+  canCreate?: boolean;
+  canEdit?: boolean;
 }) {
   const [editing, setEditing] = useState<AnamnesisRow | null | undefined>(undefined);
   const [viewing, setViewing] = useState<AnamnesisRow | null>(null);
@@ -44,11 +48,13 @@ export function ClientAnamneses({
           <p className="text-sm text-ink-soft">Histórico de fichas de saúde deste cliente.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <AnamnesisInviteButton clientId={client.id} forms={forms} />
-          <Button type="button" onClick={() => setEditing(null)}>
-            <Plus size={16} />
-            Nova anamnese
-          </Button>
+          {canCreate ? <AnamnesisInviteButton clientId={client.id} forms={forms} /> : null}
+          {canCreate ? (
+            <Button type="button" onClick={() => setEditing(null)}>
+              <Plus size={16} />
+              Nova anamnese
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -93,14 +99,16 @@ export function ClientAnamneses({
                   <td className="px-4 text-right">
                     <div className="flex flex-wrap justify-end gap-3">
                       <ViewAnamnesisButton onClick={() => setViewing(row)} />
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 text-sm font-medium text-ink-soft hover:text-ink"
-                        onClick={() => setEditing(row)}
-                      >
-                        <Pencil size={14} />
-                        Editar
-                      </button>
+                      {canCreate || canEdit ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-ink-soft hover:text-ink"
+                          onClick={() => setEditing(row)}
+                        >
+                          <Pencil size={14} />
+                          Editar
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -116,10 +124,14 @@ export function ClientAnamneses({
           form={forms.find((form) => form.id === viewing.formId) ?? null}
           salonName={salonName}
           onClose={() => setViewing(null)}
-          onEdit={() => {
-            setEditing(viewing);
-            setViewing(null);
-          }}
+          onEdit={
+            canCreate || canEdit
+              ? () => {
+                  setEditing(viewing);
+                  setViewing(null);
+                }
+              : undefined
+          }
         />
       ) : null}
 

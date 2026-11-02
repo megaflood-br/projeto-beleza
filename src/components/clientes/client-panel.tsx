@@ -90,6 +90,8 @@ export function ClientPanel({
   cashbackCentsPerPoint,
   cashbackMoves,
   salonName,
+  canCreateAnamnesis = true,
+  canEditAnamnesis = true,
 }: {
   tab: ClientTab;
   client: {
@@ -117,6 +119,8 @@ export function ClientPanel({
   cashbackCentsPerPoint: number;
   cashbackMoves: CashbackMoveRow[];
   salonName?: string;
+  canCreateAnamnesis?: boolean;
+  canEditAnamnesis?: boolean;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
@@ -208,6 +212,8 @@ export function ClientPanel({
               forms={forms}
               professionals={professionals}
               salonName={salonName}
+              canCreate={canCreateAnamnesis}
+              canEdit={canEditAnamnesis}
             />
           ) : (
             <EmptyState text="Nenhuma venda por assinatura." />

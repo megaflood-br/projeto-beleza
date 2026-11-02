@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, canViewAllGoals } from "@/lib/permissions";
 import { calendarDate, monthStartEnd, parseMonthParam } from "@/lib/dates";
 import { rangeBounds } from "@/lib/dashboard";
 import {
@@ -26,9 +26,11 @@ export default async function MetasPage({
   const today = calendarDate();
   const pacePct = expectedPacePct(from, to, today);
 
+  const ownOnly = !canViewAllGoals(access);
+  const scopedProfessionalId = ownOnly ? access.professionalId ?? "__none__" : null;
   const [professionals, goals, comandas, commissions] = await Promise.all([
     prisma.professional.findMany({
-      where: { tenantId: session.tenantId },
+      where: { tenantId: session.tenantId, ...(scopedProfessionalId ? { id: scopedProfessionalId } : {}) },
       orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, nickname: true, color: true, specialty: true, active: true },
     }),
@@ -37,6 +39,7 @@ export default async function MetasPage({
         tenantId: session.tenantId,
         startDate: { lte: to },
         endDate: { gte: from },
+        ...(scopedProfessionalId ? { professionalId: scopedProfessionalId } : {}),
       },
       orderBy: { createdAt: "asc" },
     }),
@@ -113,6 +116,7 @@ export default async function MetasPage({
       cards={cards}
       professionals={professionals}
       canManage={canAccess(access, "goals", "edit")}
+      ownOnly={ownOnly}
       pacePct={pacePct}
     />
   );

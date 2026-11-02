@@ -28,12 +28,20 @@ export function AnamnesisBoard({
   clients,
   professionals,
   salonName,
+  scoped = false,
+  canCreate = true,
+  canEdit = true,
+  canManageForms = true,
 }: {
   records: AnamnesisRow[];
   forms: AnamnesisFormRow[];
   clients: { id: string; name: string; phone: string }[];
   professionals: { id: string; name: string }[];
   salonName?: string;
+  scoped?: boolean;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canManageForms?: boolean;
 }) {
   const router = useRouter();
   const confirm = useConfirm();
@@ -85,19 +93,25 @@ export function AnamnesisBoard({
             <h1 className="font-display text-3xl">Anamnese</h1>
             <CirclePlay size={16} className="text-ink-soft" />
           </div>
-          <p className="mt-1 text-sm text-ink-soft">Fichas de saúde vinculadas a cada cliente.</p>
+          <p className="mt-1 text-sm text-ink-soft">
+            {scoped
+              ? "Só as fichas dos serviços que você atende. Manicure não vê anamnese de estética, e o contrário também."
+              : "Fichas de saúde vinculadas a cada cliente."}
+          </p>
         </div>
-        <Button type="button" onClick={() => (tab === "fichas" ? setEditingForm(null) : setEditing(null))}>
-          <Plus size={16} />
-          {tab === "fichas" ? "Nova ficha" : "Nova anamnese"}
-        </Button>
+        {(tab === "fichas" ? canManageForms : canCreate) ? (
+          <Button type="button" onClick={() => (tab === "fichas" ? setEditingForm(null) : setEditing(null))}>
+            <Plus size={16} />
+            {tab === "fichas" ? "Nova ficha" : "Nova anamnese"}
+          </Button>
+        ) : null}
       </div>
 
       <div className="flex gap-2">
         {(
           [
             ["registros", "Preenchidas"],
-            ["fichas", "Modelos"],
+            ...(canManageForms ? ([["fichas", "Modelos"]] as const) : []),
           ] as const
         ).map(([id, label]) => (
           <button
@@ -182,14 +196,16 @@ export function AnamnesisBoard({
                       <td className="px-4 text-right">
                         <div className="flex flex-wrap justify-end gap-3">
                           <ViewAnamnesisButton onClick={() => setViewing(row)} />
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1 text-sm font-medium text-ink-soft hover:text-ink"
-                            onClick={() => setEditing(row)}
-                          >
-                            <Pencil size={14} />
-                            Editar
-                          </button>
+                          {canCreate || canEdit ? (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 text-sm font-medium text-ink-soft hover:text-ink"
+                              onClick={() => setEditing(row)}
+                            >
+                              <Pencil size={14} />
+                              Editar
+                            </button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -235,10 +251,14 @@ export function AnamnesisBoard({
           form={forms.find((form) => form.id === viewing.formId) ?? null}
           salonName={salonName}
           onClose={() => setViewing(null)}
-          onEdit={() => {
-            setEditing(viewing);
-            setViewing(null);
-          }}
+          onEdit={
+            canCreate || canEdit
+              ? () => {
+                  setEditing(viewing);
+                  setViewing(null);
+                }
+              : undefined
+          }
         />
       ) : null}
       {editing !== undefined ? (

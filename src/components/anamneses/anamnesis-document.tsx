@@ -24,7 +24,7 @@ export function AnamnesisDocument({
   form: AnamnesisFormRow | null;
   salonName?: string;
   onClose: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
 }) {
   const questions = form?.questions ?? [];
   const items = anamnesisDocumentItems(questions, parseAnswers(record.answers));
@@ -40,10 +40,12 @@ export function AnamnesisDocument({
             <X size={16} />
             Fechar
           </Button>
-          <Button type="button" variant="outline" onClick={onEdit}>
-            <Pencil size={16} />
-            Editar
-          </Button>
+          {onEdit ? (
+            <Button type="button" variant="outline" onClick={onEdit}>
+              <Pencil size={16} />
+              Editar
+            </Button>
+          ) : null}
           <Button type="button" onClick={() => window.print()}>
             <Printer size={16} />
             Imprimir
