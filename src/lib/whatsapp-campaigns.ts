@@ -3,7 +3,7 @@ import { publicAppOrigin } from "@/lib/public-url";
 export const WHATSAPP_TABS = [
   { id: "inbox", label: "Inbox", description: "Conversas do número do salão." },
   { id: "campanhas", label: "Campanhas", description: "Mensagens automáticas de aniversário, lembrete, retorno e cobrança." },
-  { id: "conexao", label: "Conexão", description: "QR Code e status do WhatsApp do salão." },
+  { id: "conexao", label: "Conexão", description: "QR Code da Evolution ou API oficial da Meta." },
 ] as const;
 
 export type WhatsAppTab = (typeof WHATSAPP_TABS)[number]["id"];

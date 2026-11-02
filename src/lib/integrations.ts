@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/db";
 import { publicAppOrigin } from "@/lib/public-url";
+import { DEFAULT_META_GRAPH_VERSION } from "@/lib/whatsapp-meta";
 
 export const INTEGRATION_TABS = [
   { id: "openai", label: "OpenAI", description: "Chave usada pelo assistente de todos os salões." },
   { id: "contora", label: "Contora", description: "Token fiscal da software house para NFS-e e NFC-e." },
-  { id: "evolution", label: "WhatsApp", description: "Servidor Evolution e webhook usados por todos os salões." },
+  { id: "evolution", label: "WhatsApp Evolution", description: "Servidor Evolution (QR Code) usado pelos salões." },
+  { id: "meta", label: "WhatsApp oficial", description: "App Secret da Meta para validar o webhook da Cloud API." },
   { id: "asaas", label: "Asaas", description: "Cobrança recorrente dos planos e comissão vitalícia dos parceiros." },
 ] as const;
 
@@ -24,9 +26,12 @@ export type PlatformIntegrations = {
   evolutionUrl: string;
   evolutionApiKey: string;
   publicAppUrl: string;
+  metaAppSecret: string;
+  metaGraphVersion: string;
   hasOpenAi: boolean;
   hasContora: boolean;
   hasEvolution: boolean;
+  hasMeta: boolean;
   hasAsaas: boolean;
 };
 
@@ -40,6 +45,8 @@ export async function resolvePlatformIntegrations(): Promise<PlatformIntegration
       evolutionApiKey: true,
       publicAppUrl: true,
       asaasApiKey: true,
+      metaAppSecret: true,
+      metaGraphVersion: true,
     },
   });
   const openaiApiKey = hq?.openaiApiKey || process.env.OPENAI_API_KEY || "";
@@ -48,15 +55,20 @@ export async function resolvePlatformIntegrations(): Promise<PlatformIntegration
   const evolutionApiKey = hq?.evolutionApiKey || process.env.EVOLUTION_API_KEY || "";
   const publicAppUrl = publicAppOrigin(hq?.publicAppUrl || process.env.APP_URL || "");
   const asaasApiKey = hq?.asaasApiKey || process.env.ASAAS_API_KEY || "";
+  const metaAppSecret = hq?.metaAppSecret || process.env.META_APP_SECRET || "";
+  const metaGraphVersion = hq?.metaGraphVersion || process.env.META_GRAPH_VERSION || DEFAULT_META_GRAPH_VERSION;
   return {
     openaiApiKey,
     contoraApiToken,
     evolutionUrl,
     evolutionApiKey,
     publicAppUrl,
+    metaAppSecret,
+    metaGraphVersion,
     hasOpenAi: Boolean(openaiApiKey),
     hasContora: Boolean(contoraApiToken),
     hasEvolution: Boolean(evolutionUrl && evolutionApiKey),
+    hasMeta: Boolean(metaAppSecret),
     hasAsaas: Boolean(asaasApiKey),
   };
 }
@@ -70,6 +82,12 @@ export function evolutionWebhookUrl(publicAppUrl: string, slug: string) {
   const origin = publicAppOrigin(publicAppUrl, false);
   if (!origin) return "";
   return `${origin}/api/webhooks/evolution?tenant=${encodeURIComponent(slug)}`;
+}
+
+export function metaWebhookUrl(publicAppUrl: string, slug: string) {
+  const origin = publicAppOrigin(publicAppUrl, false);
+  if (!origin) return "";
+  return `${origin}/api/webhooks/meta?tenant=${encodeURIComponent(slug)}`;
 }
 
 export function maskSecret(value: string | null | undefined) {

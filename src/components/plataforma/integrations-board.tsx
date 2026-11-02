@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button, Card, Field, Input } from "@/components/ui";
-import { saveAsaasIntegration, saveContoraIntegration, saveEvolutionIntegration, saveOpenAiIntegration } from "@/app/actions/platform-integrations";
+import { saveAsaasIntegration, saveContoraIntegration, saveEvolutionIntegration, saveMetaIntegration, saveOpenAiIntegration } from "@/app/actions/platform-integrations";
 import { cn, formAction } from "@/lib/utils";
 import { INTEGRATION_TABS, type IntegrationTab } from "@/lib/integrations";
 
@@ -13,6 +13,9 @@ export type PlatformIntegrationValue = {
   hasOpenAi: boolean;
   hasContora: boolean;
   hasEvolution: boolean;
+  hasMeta: boolean;
+  metaMasked: string;
+  metaGraphVersion: string | null;
   hasAsaas: boolean;
   asaasMasked: string;
   asaasWebhookMasked: string;
@@ -42,6 +45,7 @@ export function IntegrationsBoard({
             (item.id === "openai" && value.hasOpenAi) ||
             (item.id === "contora" && value.hasContora) ||
             (item.id === "evolution" && value.hasEvolution) ||
+            (item.id === "meta" && value.hasMeta) ||
             (item.id === "asaas" && value.hasAsaas);
           return (
             <Link
@@ -69,6 +73,8 @@ export function IntegrationsBoard({
           evolutionMasked={value.evolutionMasked}
           publicAppUrl={value.publicAppUrl}
         />
+      ) : tab === "meta" ? (
+        <MetaForm masked={value.metaMasked} graphVersion={value.metaGraphVersion} publicAppUrl={value.publicAppUrl} />
       ) : tab === "asaas" ? (
         <AsaasForm
           masked={value.asaasMasked}
@@ -140,7 +146,36 @@ function EvolutionForm({
         <p className="text-xs text-ink-soft">
           Só o endereço do site, sem /api/webhooks. O webhook da Evolution é montado sozinho. Os salões não veem estas chaves.
         </p>
-        <Button>Salvar WhatsApp</Button>
+        <Button>Salvar Evolution</Button>
+      </form>
+    </Card>
+  );
+}
+
+function MetaForm({
+  masked,
+  graphVersion,
+  publicAppUrl,
+}: {
+  masked: string;
+  graphVersion: string | null;
+  publicAppUrl: string | null;
+}) {
+  return (
+    <Card>
+      <form action={formAction(saveMetaIntegration)} className="grid gap-3">
+        <Field label="App Secret">
+          <Input name="metaAppSecret" type="password" placeholder={masked || "opcional, valida a assinatura do webhook"} />
+        </Field>
+        <Field label="Versão do Graph">
+          <Input name="metaGraphVersion" defaultValue={graphVersion ?? "v21.0"} placeholder="v21.0" />
+        </Field>
+        <p className="text-xs text-ink-soft">
+          Cada salão cola o Phone Number ID e o token em Configurações → WhatsApp. O webhook da Cloud API é{" "}
+          <span className="font-mono">/api/webhooks/meta?tenant=slug</span>
+          {publicAppUrl ? ` (${publicAppUrl})` : ""}. A Evolution continua disponível.
+        </p>
+        <Button>Salvar WhatsApp oficial</Button>
       </form>
     </Card>
   );

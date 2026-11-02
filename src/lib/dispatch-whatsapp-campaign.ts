@@ -1,17 +1,15 @@
 import { prisma } from "@/lib/db";
 import { calendarDate, formatTime } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
-import { isEvolutionConfigured, sendTextMessage } from "@/lib/evolution";
 import { resolvePlatformIntegrations } from "@/lib/integrations";
+import { sendSalonWhatsApp } from "@/lib/whatsapp-send";
 import {
   appointmentPin,
   bookingLink,
   campaignByTrigger,
-  evolutionSendFailure,
   normalizeCampaignTrigger,
   normalizeWhatsAppPhone,
   renderCampaignTemplate,
-  toEvolutionNumber,
   type CampaignTrigger,
 } from "@/lib/whatsapp-campaigns";
 
@@ -50,7 +48,7 @@ export async function dispatchCampaign(input: {
   const [tenant, automation, server] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: input.tenantId },
-      select: { name: true, slug: true, evolutionInstance: true, evolutionStatus: true },
+      select: { name: true, slug: true },
     }),
     prisma.automation.findFirst({ where: { tenantId: input.tenantId, trigger } }),
     resolvePlatformIntegrations(),
@@ -82,20 +80,11 @@ export async function dispatchCampaign(input: {
     create: { tenantId: input.tenantId, phone, clientId: input.client.id, lastMessageAt: new Date() },
   });
 
-  const config = {
-    url: server.evolutionUrl,
-    apiKey: server.evolutionApiKey,
-    instance: tenant.evolutionInstance ?? "",
-  };
-  let mocked = true;
-  if (isEvolutionConfigured(config) && tenant.evolutionStatus === "open") {
-    try {
-      await sendTextMessage(config, toEvolutionNumber(phone), body);
-      mocked = false;
-    } catch (error) {
-      return { skipped: true as const, reason: evolutionSendFailure(error) };
-    }
+  const sent = await sendSalonWhatsApp({ tenantId: input.tenantId, phone, text: body });
+  if (!sent.sent && sent.error && !/Conecte/.test(sent.error)) {
+    return { skipped: true as const, reason: sent.error };
   }
+  const mocked = !sent.sent;
 
   await prisma.message.create({
     data: { conversationId: conversation.id, direction: "OUT", body },

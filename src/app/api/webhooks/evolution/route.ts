@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { extractEvolutionNumber, extractInboundText, extractPhone, isEvolutionFromMe, parseEvolutionState } from "@/lib/evolution";
-import { markMarketingReplies } from "@/lib/marketing";
-import { maybeReplyAsReceptionist } from "@/lib/receptionist-runtime";
+import { ingestInboundWhatsApp } from "@/lib/whatsapp-inbound";
 
 export async function POST(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("tenant");
@@ -27,37 +26,12 @@ export async function POST(request: NextRequest) {
   const body = extractInboundText(payload);
   if (isEvolutionFromMe(payload) || !phone || !body) return NextResponse.json({ ok: true, ignored: true });
 
-  const client = await prisma.client.findFirst({
-    where: { tenantId: tenant.id, phone },
-  });
-
-  const conversation = await prisma.conversation.upsert({
-    where: { tenantId_phone: { tenantId: tenant.id, phone } },
-    update: { lastMessageAt: new Date(), unread: { increment: 1 }, clientId: client?.id },
-    create: { tenantId: tenant.id, phone, clientId: client?.id, lastMessageAt: new Date(), unread: 1 },
-  });
-
-  await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      direction: "IN",
-      body,
-    },
-  });
-
-  await markMarketingReplies({
+  await ingestInboundWhatsApp({
     tenantId: tenant.id,
     phone,
     body,
-    conversationId: conversation.id,
-  }).catch(() => 0);
-
-  await maybeReplyAsReceptionist({
-    tenantId: tenant.id,
-    conversationId: conversation.id,
-    phone,
-    incoming: body,
-  }).catch(() => null);
+    channel: "evolution",
+  });
 
   return NextResponse.json({ ok: true });
 }

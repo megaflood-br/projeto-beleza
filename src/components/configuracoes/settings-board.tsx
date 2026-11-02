@@ -70,7 +70,7 @@ export function SettingsBoard({
               {item.label}
               {(item.id === "cashback" && cashback.enabled) ||
               (item.id === "fiscal" && fiscal.enabled) ||
-              (item.id === "whatsapp" && whatsapp.state === "open") ? (
+              (item.id === "whatsapp" && whatsapp.connected) ? (
                 <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">ativo</span>
               ) : null}
             </Link>

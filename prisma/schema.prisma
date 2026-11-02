@@ -46,6 +46,15 @@ model Tenant {
   evolutionInstance   String?
   evolutionStatus     String?
   evolutionNumber     String?
+  whatsappProvider    String   @default("evolution")
+  metaPhoneNumberId   String?
+  metaAccessToken     String?
+  metaWabaId          String?
+  metaVerifyToken     String?
+  metaNumber          String?
+  metaStatus          String?
+  metaAppSecret       String?
+  metaGraphVersion    String?
   reminderHours       Int      @default(24)
   cashbackEnabled      Boolean  @default(false)
   cashbackEarnPct      Int      @default(5)
