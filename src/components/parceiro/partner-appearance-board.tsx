@@ -64,7 +64,7 @@ export function PartnerAppearanceBoard({
       <div>
         <h1 className="font-display text-3xl">Marca do sistema</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Isto troca o logo e as cores do CRM para os salões que você indicar. A logo da empresa de cada salão continua nas configurações deles.
+          Isto troca o logo e as cores da landing e do cadastro pelo seu link. Quem entra no painel pelo sistema vê a marca MegaBeauty. A logo da empresa de cada salão continua nas configurações deles.
         </p>
       </div>
       <Card>
