@@ -121,6 +121,9 @@ import {
   ticketUnreadFor,
 } from "@/lib/support";
 import {
+  EVOLUTION_WEBHOOK_EVENTS,
+  evolutionWebhookKind,
+  extractEvolutionMessageId,
   extractEvolutionNumber,
   extractPhone,
   extractQrBase64,
@@ -188,7 +191,16 @@ import {
   normalizeWhatsAppProvider,
 } from "@/lib/whatsapp-meta";
 import { isSalonWhatsAppConnected } from "@/lib/whatsapp-send";
-import { isConfirmReply, looksLikeReminderPrompt, spin, typingDelayMs } from "@/lib/whatsapp-copy";
+import {
+  BOT_PAUSE_HOURS,
+  HUMAN_TYPING_DELAY_MS,
+  botPausedUntilFromNow,
+  isConfirmReply,
+  isConversationBotPaused,
+  looksLikeReminderPrompt,
+  spin,
+  typingDelayMs,
+} from "@/lib/whatsapp-copy";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
   canAssignTenantRole,
@@ -1641,11 +1653,34 @@ describe("recepcionista virtual", () => {
     expect(prompt).not.toMatch(/Juliana/);
   });
 
-  it("ignora eco do próprio WhatsApp e grupo", () => {
+  it("lê fromMe, status, QR e eventos do webhook da Evolution", () => {
     expect(isEvolutionFromMe({ data: { key: { fromMe: true, remoteJid: "5511999999999@s.whatsapp.net" } } })).toBe(true);
+    expect(isEvolutionFromMe({ data: { fromMe: true, remoteJid: "5511999999999@s.whatsapp.net" } })).toBe(true);
     expect(isEvolutionFromMe({ data: { key: { fromMe: false, remoteJid: "5511999999999@s.whatsapp.net" } } })).toBe(false);
     expect(extractPhone({ data: { key: { remoteJid: "120363@g.us" } } })).toBe("");
     expect(extractPhone({ data: { key: { remoteJid: "5511988887777@s.whatsapp.net" } } })).toBe("5511988887777");
+    expect(extractPhone({ data: { remoteJid: "5511988887777@s.whatsapp.net" } })).toBe("5511988887777");
+    expect(
+      extractPhone({
+        event: "messages.update",
+        data: [{ key: { remoteJid: "5511988887777@s.whatsapp.net", fromMe: false, id: "ACK1" }, status: "READ" }],
+      }),
+    ).toBe("5511988887777");
+    expect(extractEvolutionMessageId({ data: { key: { id: "BAE5F6" } } })).toBe("BAE5F6");
+    expect(extractEvolutionMessageId({ data: { keyId: "ACK1" } })).toBe("ACK1");
+    expect(evolutionWebhookKind({ event: "MESSAGES_UPSERT" })).toBe("messages-upsert");
+    expect(evolutionWebhookKind({ event: "messages.update" })).toBe("messages-update");
+    expect(evolutionWebhookKind({ event: "QRCODE_UPDATED" })).toBe("qrcode");
+    expect(evolutionWebhookKind({ event: "connection.update" })).toBe("connection");
+    expect(EVOLUTION_WEBHOOK_EVENTS).toEqual(
+      expect.arrayContaining(["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED"]),
+    );
+    expect(
+      extractQrBase64({
+        event: "QRCODE_UPDATED",
+        data: { qrcode: { base64: "data:image/png;base64,abc" } },
+      }),
+    ).toBe("data:image/png;base64,abc");
   });
 });
 
@@ -1736,5 +1771,11 @@ describe("boas práticas do WhatsApp", () => {
     expect(isConfirmReply("quanto custa")).toBe(false);
     expect(looksLikeReminderPrompt("Pode me responder com 1 para confirmar seu horário de amanhã?")).toBe(true);
     expect(looksLikeReminderPrompt("tem horário da Camila?")).toBe(false);
+    expect(HUMAN_TYPING_DELAY_MS).toBe(1200);
+    expect(BOT_PAUSE_HOURS).toBe(2);
+    expect(isConversationBotPaused({ botPaused: true })).toBe(true);
+    expect(isConversationBotPaused({ botPaused: false, botPausedUntil: null })).toBe(false);
+    expect(isConversationBotPaused({ botPaused: false, botPausedUntil: botPausedUntilFromNow(2, new Date("2026-11-02T15:00:00-03:00")) }, new Date("2026-11-02T16:00:00-03:00"))).toBe(true);
+    expect(isConversationBotPaused({ botPaused: false, botPausedUntil: botPausedUntilFromNow(2, new Date("2026-11-02T12:00:00-03:00")) }, new Date("2026-11-02T16:00:00-03:00"))).toBe(false);
   });
 });

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { calendarDate, formatTime, rangeOfCalendarDate, shiftCalendarDate } from "@/lib/dates";
 import { resolvePlatformIntegrations } from "@/lib/integrations";
 import { sendSalonWhatsApp } from "@/lib/whatsapp-send";
-import { isConfirmReply, looksLikeReminderPrompt, spin } from "@/lib/whatsapp-copy";
+import { isConfirmReply, isConversationBotPaused, looksLikeReminderPrompt, spin } from "@/lib/whatsapp-copy";
 import { chatAsReceptionist } from "@/lib/openai";
 import { freeSlotsForProfessional } from "@/lib/assistant";
 import {
@@ -183,7 +183,7 @@ export async function maybeReplyAsReceptionist(input: {
     }),
   ]);
   if (!config.enabled) return { skipped: "off" as const };
-  if (!conversation || conversation.botPaused) return { skipped: "paused" as const };
+  if (!conversation || isConversationBotPaused(conversation)) return { skipped: "paused" as const };
   if (!conversation.messages.some((row) => row.direction === "IN")) return { skipped: "receptive" as const };
 
   const lastOut = conversation.messages.find((row) => row.direction === "OUT");

@@ -4,6 +4,24 @@ export type EvolutionConfig = {
   instance: string;
 };
 
+export const EVOLUTION_WEBHOOK_EVENTS = [
+  "MESSAGES_UPSERT",
+  "MESSAGES_UPDATE",
+  "CONNECTION_UPDATE",
+  "QRCODE_UPDATED",
+] as const;
+
+export type EvolutionWebhookKind = "qrcode" | "connection" | "messages-upsert" | "messages-update" | "other";
+
+export function evolutionWebhookKind(payload: Record<string, unknown>): EvolutionWebhookKind {
+  const event = String(payload.event ?? payload.type ?? "").toLowerCase().replace(/_/g, ".");
+  if (event.includes("qrcode")) return "qrcode";
+  if (event.includes("connection")) return "connection";
+  if (event.includes("messages.update")) return "messages-update";
+  if (event.includes("messages.upsert") || event.includes("messages.set")) return "messages-upsert";
+  return "other";
+}
+
 function headers(apiKey: string) {
   return {
     "Content-Type": "application/json",
@@ -24,8 +42,14 @@ export function isEvolutionConfigured(config: Partial<EvolutionConfig> | null | 
   return Boolean(config?.url && config?.apiKey && config?.instance);
 }
 
-export async function sendPresence(config: EvolutionConfig, number: string, delayMs = 1200) {
+export async function sendPresence(
+  config: EvolutionConfig,
+  number: string,
+  delayMs = 1200,
+  options?: { wait?: boolean },
+) {
   const url = `${config.url.replace(/\/$/, "")}/chat/sendPresence/${config.instance}`;
+  const wait = options?.wait !== false;
   const response = await fetch(url, {
     method: "POST",
     headers: headers(config.apiKey),
@@ -34,13 +58,45 @@ export async function sendPresence(config: EvolutionConfig, number: string, dela
       delay: delayMs,
       presence: "composing",
     }),
-    signal: AbortSignal.timeout(Math.max(4000, delayMs + 2000)),
+    signal: AbortSignal.timeout(wait ? Math.max(4000, delayMs + 2000) : 2500),
   });
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`Evolution API ${response.status}: ${body.slice(0, 240)}`);
   }
   return response.json();
+}
+
+export function evolutionRemoteJid(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return `${digits}@s.whatsapp.net`;
+}
+
+function webhookData(payload: Record<string, unknown>): Record<string, unknown> {
+  const data = payload.data ?? payload;
+  if (Array.isArray(data)) {
+    const first = data[0];
+    return first && typeof first === "object" ? (first as Record<string, unknown>) : {};
+  }
+  return data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+}
+
+export async function markMessagesAsRead(
+  config: EvolutionConfig,
+  messages: { phone: string; id: string }[],
+) {
+  const readMessages = messages
+    .map((item) => ({
+      remoteJid: evolutionRemoteJid(item.phone),
+      fromMe: false,
+      id: item.id,
+    }))
+    .filter((item) => item.id);
+  if (!readMessages.length) return null;
+  return evoFetch(config, `/chat/markMessageAsRead/${config.instance}`, {
+    method: "POST",
+    body: JSON.stringify({ readMessages }),
+  });
 }
 
 export async function sendTextMessage(
@@ -104,13 +160,20 @@ export async function evoFetch(config: Pick<EvolutionConfig, "url" | "apiKey">, 
 export function extractQrBase64(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const root = payload as Record<string, unknown>;
-  const candidates = [root.base64, root.qrcode, root.qrCode, (root.qrcode as Record<string, unknown> | undefined)?.base64];
-  if (root.qrcode && typeof root.qrcode === "object") {
-    const nested = root.qrcode as Record<string, unknown>;
-    candidates.push(nested.base64, nested.code);
+  const nestedRoots = [root];
+  if (root.data && typeof root.data === "object" && !Array.isArray(root.data)) {
+    nestedRoots.push(root.data as Record<string, unknown>);
   }
-  if (root.qrCode && typeof root.qrCode === "object") {
-    candidates.push((root.qrCode as Record<string, unknown>).base64);
+  const candidates: unknown[] = [];
+  for (const node of nestedRoots) {
+    candidates.push(node.base64, node.qrcode, node.qrCode);
+    if (node.qrcode && typeof node.qrcode === "object") {
+      const nested = node.qrcode as Record<string, unknown>;
+      candidates.push(nested.base64, nested.code);
+    }
+    if (node.qrCode && typeof node.qrCode === "object") {
+      candidates.push((node.qrCode as Record<string, unknown>).base64);
+    }
   }
   for (const value of candidates) {
     if (typeof value === "string" && value.includes("base64")) return value;
@@ -161,7 +224,7 @@ export async function createEvolutionInstance(
               url: params.webhookUrl,
               byEvents: false,
               base64: false,
-              events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+              events: [...EVOLUTION_WEBHOOK_EVENTS],
             },
           }
         : {}),
@@ -181,7 +244,7 @@ export async function setEvolutionWebhook(config: EvolutionConfig, webhookUrl: s
       url: webhookUrl,
       webhookByEvents: false,
       webhookBase64: false,
-      events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+      events: [...EVOLUTION_WEBHOOK_EVENTS],
     }),
   });
 }
@@ -191,7 +254,7 @@ export async function logoutEvolutionInstance(config: EvolutionConfig) {
 }
 
 export function extractInboundText(payload: Record<string, unknown>) {
-  const data = (payload.data ?? payload) as Record<string, unknown>;
+  const data = webhookData(payload);
   const message = (data.message ?? {}) as Record<string, unknown>;
   const conversation = message.conversation;
   if (typeof conversation === "string") return conversation;
@@ -201,15 +264,22 @@ export function extractInboundText(payload: Record<string, unknown>) {
 }
 
 export function extractPhone(payload: Record<string, unknown>) {
-  const data = (payload.data ?? payload) as Record<string, unknown>;
+  const data = webhookData(payload);
   const key = (data.key ?? payload.key ?? {}) as Record<string, unknown>;
-  const remoteJid = String(key.remoteJid ?? "");
+  const remoteJid = String(key.remoteJid ?? data.remoteJid ?? payload.remoteJid ?? "");
   if (remoteJid.includes("@g.us")) return "";
   return remoteJid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
 }
 
-export function isEvolutionFromMe(payload: Record<string, unknown>) {
-  const data = (payload.data ?? payload) as Record<string, unknown>;
+export function extractEvolutionMessageId(payload: Record<string, unknown>) {
+  const data = webhookData(payload);
   const key = (data.key ?? payload.key ?? {}) as Record<string, unknown>;
-  return key.fromMe === true;
+  const id = key.id ?? data.keyId ?? data.id;
+  return typeof id === "string" && id.trim() ? id.trim() : "";
+}
+
+export function isEvolutionFromMe(payload: Record<string, unknown>) {
+  const data = webhookData(payload);
+  const key = (data.key ?? payload.key ?? {}) as Record<string, unknown>;
+  return key.fromMe === true || data.fromMe === true;
 }

@@ -10,6 +10,7 @@ import { whatsappPhoneCandidates } from "@/lib/whatsapp-campaigns";
 import { canAccess, shouldHidePhones } from "@/lib/permissions";
 import { redactPhone } from "@/lib/utils";
 import { loadReceptionistConfig } from "@/lib/receptionist-runtime";
+import { isConversationBotPaused } from "@/lib/whatsapp-copy";
 
 export default async function AtendimentoPage({
   searchParams,
@@ -30,6 +31,10 @@ export default async function AtendimentoPage({
     loadReceptionistConfig(session.tenantId),
   ]);
   const selected = conversations.find((row) => row.id === selectedId) ?? conversations[0] ?? null;
+  if (selected && selected.unread > 0) {
+    await prisma.conversation.update({ where: { id: selected.id }, data: { unread: 0 } });
+    selected.unread = 0;
+  }
   const profile = selected ? await loadInboxProfile(session.tenantId, selected) : null;
 
   return (
@@ -80,7 +85,7 @@ export default async function AtendimentoPage({
         conversations={conversations.map((conversation) => ({
           id: conversation.id,
           phone: redactPhone(conversation.phone, hidePhones),
-          botPaused: conversation.botPaused,
+          botPaused: isConversationBotPaused(conversation),
           client: conversation.client ? { name: conversation.client.name } : profile?.client && conversation.id === selected?.id
             ? { name: profile.client.name }
             : null,

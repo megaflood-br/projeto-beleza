@@ -46,6 +46,7 @@ model Tenant {
   evolutionInstance   String?
   evolutionStatus     String?
   evolutionNumber     String?
+  evolutionQr         String?
   whatsappProvider    String   @default("evolution")
   metaPhoneNumberId   String?
   metaAccessToken     String?
@@ -784,10 +785,11 @@ model Conversation {
   clientId      String?
   client        Client?  @relation(fields: [clientId], references: [id])
   phone         String
-  lastMessageAt DateTime @default(now())
-  unread        Int      @default(0)
-  botPaused     Boolean  @default(false)
-  messages      Message[]
+  lastMessageAt   DateTime  @default(now())
+  unread          Int       @default(0)
+  botPaused       Boolean   @default(false)
+  botPausedUntil  DateTime?
+  messages        Message[]
 
   @@unique([tenantId, phone])
   @@index([tenantId])

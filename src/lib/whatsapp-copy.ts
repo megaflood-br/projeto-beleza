@@ -13,9 +13,29 @@ export function spin(template: string, random: () => number = Math.random) {
   return out.replace(/\s{2,}/g, " ").trim();
 }
 
+export const HUMAN_TYPING_DELAY_MS = 1200;
+export const BOT_PAUSE_HOURS = 2;
+
 export function typingDelayMs(text: string) {
   const chars = text.trim().length;
   return Math.min(5000, Math.max(2000, 1800 + chars * 18));
+}
+
+export function botPausedUntilFromNow(hours = BOT_PAUSE_HOURS, now = new Date()) {
+  return new Date(now.getTime() + hours * 60 * 60 * 1000);
+}
+
+export function isConversationBotPaused(
+  conversation: { botPaused?: boolean | null; botPausedUntil?: Date | string | null },
+  now = new Date(),
+) {
+  if (conversation.botPaused) return true;
+  if (!conversation.botPausedUntil) return false;
+  const until =
+    conversation.botPausedUntil instanceof Date
+      ? conversation.botPausedUntil
+      : new Date(conversation.botPausedUntil);
+  return until.getTime() > now.getTime();
 }
 
 function fold(value: string) {

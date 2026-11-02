@@ -1,9 +1,9 @@
-import { Button, Card, Textarea } from "@/components/ui";
-import { sendWhatsApp } from "@/app/actions/whatsapp";
+import { Card } from "@/components/ui";
 import { setConversationBotPaused } from "@/app/actions/receptionist";
 import { formatTime } from "@/lib/dates";
 import { displayPhoneBR, formAction } from "@/lib/utils";
 import { InboxClientPanel, type InboxClientProfile } from "@/components/whatsapp/inbox-client-panel";
+import { InboxComposer, InboxDbRefresh } from "@/components/whatsapp/inbox-live";
 
 type InboxConversation = {
   id: string;
@@ -32,6 +32,7 @@ export function InboxBoard({
 
   return (
     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)_minmax(18rem,22rem)]">
+      <InboxDbRefresh conversationId={selected?.id ?? null} />
       <Card className="flex max-h-56 min-h-0 flex-col overflow-hidden p-0 lg:max-h-none">
         <div className="min-h-0 flex-1 overflow-y-auto">
           {conversations.length ? (
@@ -90,15 +91,14 @@ export function InboxBoard({
           ))}
         </div>
         {selected ? (
-          <form action={formAction(sendWhatsApp)} className="grid shrink-0 gap-2 border-t border-line bg-paper p-4">
-            <input type="hidden" name="conversationId" value={selected.id} />
-            {hidePhones ? null : <input type="hidden" name="phone" value={selected.phone} />}
-            {receptionistEnabled && !selected.botPaused ? (
-              <p className="text-xs text-ink-soft">Enviar por aqui pausa a {receptionistName} nesta conversa.</p>
-            ) : null}
-            <Textarea name="body" placeholder="Escreva uma mensagem..." required className="min-h-20" />
-            <Button>Enviar</Button>
-          </form>
+          <InboxComposer
+            conversationId={selected.id}
+            phone={selected.phone}
+            hidePhones={hidePhones}
+            receptionistEnabled={receptionistEnabled}
+            receptionistName={receptionistName}
+            botPaused={Boolean(selected.botPaused)}
+          />
         ) : null}
       </Card>
 

@@ -7,8 +7,9 @@ import { logoutEvolutionInstance } from "@/lib/evolution";
 import { draftWhatsAppMessage } from "@/lib/openai";
 import { resolvePlatformIntegrations } from "@/lib/integrations";
 import { provisionWhatsAppInstance } from "@/lib/whatsapp-live";
-import { sendSalonWhatsApp } from "@/lib/whatsapp-send";
+import { markSalonConversationRead, sendSalonComposing, sendSalonWhatsApp } from "@/lib/whatsapp-send";
 import { isWhatsAppProvider, newMetaVerifyToken, readMetaPhone } from "@/lib/whatsapp-meta";
+import { HUMAN_TYPING_DELAY_MS, botPausedUntilFromNow } from "@/lib/whatsapp-copy";
 
 function revalidateWhatsApp() {
   revalidatePath("/whatsapp");
@@ -47,7 +48,13 @@ export async function sendWhatsApp(formData: FormData) {
       create: { tenantId: session.tenantId, phone, lastMessageAt: new Date() },
     }));
 
-  const sent = await sendSalonWhatsApp({ tenantId: session.tenantId, phone, text: body });
+  const sent = await sendSalonWhatsApp({
+    tenantId: session.tenantId,
+    phone,
+    text: body,
+    presence: true,
+    delayMs: HUMAN_TYPING_DELAY_MS,
+  });
   if (!sent.sent && sent.error && !/Conecte/.test(sent.error)) {
     return { error: sent.error };
   }
@@ -62,11 +69,50 @@ export async function sendWhatsApp(formData: FormData) {
   });
   await prisma.conversation.update({
     where: { id: conversation.id },
-    data: { lastMessageAt: new Date(), unread: 0, botPaused: true },
+    data: { lastMessageAt: new Date(), unread: 0, botPausedUntil: botPausedUntilFromNow() },
   });
 
   revalidateWhatsApp();
   return { ok: true, mocked: !sent.sent };
+}
+
+export async function markConversationOpened(conversationId: string) {
+  const { session } = await requireTenant();
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: conversationId, tenantId: session.tenantId },
+    include: {
+      messages: {
+        where: { direction: "IN", waId: { not: null } },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: { waId: true },
+      },
+    },
+  });
+  if (!conversation) return { error: "Conversa não encontrada." };
+  if (conversation.unread > 0) {
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { unread: 0 },
+    });
+    revalidatePath("/atendimento");
+  }
+  const waIds = conversation.messages.map((row) => row.waId).filter((id): id is string => Boolean(id));
+  if (waIds.length) {
+    void markSalonConversationRead({ tenantId: session.tenantId, phone: conversation.phone, waIds });
+  }
+  return { ok: true as const };
+}
+
+export async function sendInboxComposing(conversationId: string) {
+  const { session } = await requireTenant();
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: conversationId, tenantId: session.tenantId },
+    select: { phone: true },
+  });
+  if (!conversation) return { error: "Conversa não encontrada." };
+  await sendSalonComposing(session.tenantId, conversation.phone);
+  return { ok: true as const };
 }
 
 export async function generateWhatsAppDraft(goal: string, clientName: string) {
@@ -112,7 +158,7 @@ export async function disconnectWhatsAppInstance() {
   }
   await prisma.tenant.update({
     where: { id: session.tenantId },
-    data: { evolutionStatus: "close", evolutionNumber: null },
+    data: { evolutionStatus: "close", evolutionNumber: null, evolutionQr: null },
   });
   revalidateWhatsApp();
   return { ok: true as const };

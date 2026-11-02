@@ -55,9 +55,11 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
       popFields?.some((field) => field.name === "registry") &&
       documentFields?.some((field) => field.name === "kind") &&
       conversationFields?.some((field) => field.name === "botPaused") &&
+      conversationFields?.some((field) => field.name === "botPausedUntil") &&
       messageFields?.some((field) => field.name === "source") &&
       tenantFields?.some((field) => field.name === "whatsappProvider") &&
-      tenantFields?.some((field) => field.name === "metaPhoneNumberId"),
+      tenantFields?.some((field) => field.name === "metaPhoneNumberId") &&
+      tenantFields?.some((field) => field.name === "evolutionQr"),
   );
 }
 

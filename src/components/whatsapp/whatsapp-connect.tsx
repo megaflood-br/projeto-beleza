@@ -35,7 +35,7 @@ export function WhatsAppConnect({ initial }: { initial: WhatsAppLive }) {
       }
     }
     void tick();
-    const wait = live.provider === "evolution" && live.state === "connecting" ? 2000 : 8000;
+    const wait = live.provider === "evolution" && live.state === "connecting" ? 3000 : 8000;
     const timer = window.setInterval(() => void tick(), wait);
     return () => {
       cancelled = true;
@@ -123,6 +123,7 @@ export function WhatsAppConnect({ initial }: { initial: WhatsAppLive }) {
         <h2 className="font-display text-2xl">Conexão WhatsApp</h2>
         <p className="mt-1 text-sm text-ink-soft">
           Escolha o método ativo. A Evolution (QR Code) continua disponível; a API oficial usa o número da Meta Cloud API.
+          Status e QR da Evolution entram pelo webhook e ficam no banco — a tela não consulta a API em loop.
         </p>
       </div>
 

@@ -3,9 +3,7 @@ import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, metaWebhookUrl,
 import {
   connectEvolutionInstance,
   createEvolutionInstance,
-  extractEvolutionNumber,
   extractQrBase64,
-  getConnectionState,
   parseEvolutionState,
   setEvolutionWebhook,
   type EvolutionConfig,
@@ -71,6 +69,12 @@ const emptyOfficial = {
   officialVerifyToken: "",
 };
 
+function asState(value: string | null | undefined): WhatsAppLive["state"] {
+  if (value === "open" || value === "connecting" || value === "close") return value;
+  return "close";
+}
+
+/** Lê só o banco local. QR e status chegam pelo webhook, nunca por polling da Evolution. */
 export async function readWhatsAppLive(tenantId: string): Promise<WhatsAppLive> {
   const [tenant, server] = await Promise.all([
     prisma.tenant.findUnique({ where: { id: tenantId } }),
@@ -94,67 +98,22 @@ export async function readWhatsAppLive(tenantId: string): Promise<WhatsAppLive> 
   const official = officialFromTenant(tenant, server.publicAppUrl);
   const provider = normalizeWhatsAppProvider(tenant.whatsappProvider);
   const webhookUrl = evolutionWebhookUrl(server.publicAppUrl, tenant.slug);
-  const withChannel = (
-    live: Omit<WhatsAppLive, "provider" | "connected" | keyof typeof emptyOfficial>,
-  ): WhatsAppLive => {
-    const next = { ...official, ...live, provider };
-    return {
-      ...next,
-      connected: provider === "official" ? next.officialState === "open" : next.state === "open",
-    };
+  const state = asState(tenant.evolutionStatus);
+  const live = {
+    ...official,
+    provider,
+    serverReady: server.hasEvolution,
+    instance: tenant.evolutionInstance,
+    state,
+    qr: state === "open" ? null : tenant.evolutionQr,
+    number: tenant.evolutionNumber,
+    webhookUrl,
+    error: null as string | null,
   };
-
-  if (!server.hasEvolution || provider === "official") {
-    return withChannel({
-      serverReady: server.hasEvolution,
-      instance: tenant.evolutionInstance,
-      state: (tenant.evolutionStatus as WhatsAppLive["state"]) || "close",
-      qr: null,
-      number: tenant.evolutionNumber,
-      webhookUrl,
-      error: null,
-    });
-  }
-
-  const instance = tenant.evolutionInstance || instanceNameForTenant(tenant.slug);
-  const config = salonConfig(server, instance);
-  try {
-    const statePayload = await getConnectionState(config);
-    const state = parseEvolutionState(statePayload);
-    const number = extractEvolutionNumber(statePayload) ?? tenant.evolutionNumber;
-    let qr: string | null = null;
-    if (state !== "open") {
-      const connect = await connectEvolutionInstance(config);
-      qr = extractQrBase64(connect);
-    }
-    if (tenant.evolutionStatus !== state || tenant.evolutionNumber !== number || tenant.evolutionInstance !== instance) {
-      await prisma.tenant.update({
-        where: { id: tenant.id },
-        data: { evolutionInstance: instance, evolutionStatus: state, evolutionNumber: number },
-      });
-    }
-    return withChannel({
-      serverReady: true,
-      instance,
-      state,
-      qr,
-      number,
-      webhookUrl,
-      error: null,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Falha ao consultar a Evolution.";
-    const missing = /not found|does not exist|404|não encontrada/i.test(message);
-    return withChannel({
-      serverReady: true,
-      instance,
-      state: (tenant.evolutionStatus as WhatsAppLive["state"]) || "close",
-      qr: null,
-      number: tenant.evolutionNumber,
-      webhookUrl,
-      error: missing ? null : message,
-    });
-  }
+  return {
+    ...live,
+    connected: provider === "official" ? live.officialState === "open" : live.state === "open",
+  };
 }
 
 export async function provisionWhatsAppInstance(tenantId: string) {
@@ -162,17 +121,26 @@ export async function provisionWhatsAppInstance(tenantId: string) {
   if (!tenant) throw new Error("Salão não encontrado.");
   const server = await resolvePlatformIntegrations();
   if (!server.hasEvolution) throw new Error("O servidor WhatsApp ainda não foi configurado na plataforma.");
+  const tenantRowId = tenant.id;
   const instance = tenant.evolutionInstance || instanceNameForTenant(tenant.slug);
   const webhookUrl = evolutionWebhookUrl(server.publicAppUrl, tenant.slug);
   const config = salonConfig(server, instance);
 
+  async function persist(qr: string | null, status: string) {
+    await prisma.tenant.update({
+      where: { id: tenantRowId },
+      data: {
+        evolutionInstance: instance,
+        evolutionStatus: status,
+        ...(qr ? { evolutionQr: qr } : {}),
+      },
+    });
+  }
+
   try {
     const created = await createEvolutionInstance(config, { instance, webhookUrl: webhookUrl || undefined });
     const qr = extractQrBase64(created);
-    await prisma.tenant.update({
-      where: { id: tenant.id },
-      data: { evolutionInstance: instance, evolutionStatus: "connecting" },
-    });
+    await persist(qr, "connecting");
     if (qr) return { instance, qr };
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
@@ -187,9 +155,7 @@ export async function provisionWhatsAppInstance(tenantId: string) {
     }
   }
   const connect = await connectEvolutionInstance(config);
-  await prisma.tenant.update({
-    where: { id: tenant.id },
-    data: { evolutionInstance: instance, evolutionStatus: parseEvolutionState(connect) || "connecting" },
-  });
-  return { instance, qr: extractQrBase64(connect) };
+  const qr = extractQrBase64(connect);
+  await persist(qr, parseEvolutionState(connect) || "connecting");
+  return { instance, qr };
 }
