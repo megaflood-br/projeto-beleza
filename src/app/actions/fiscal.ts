@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canSeeFinance } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { digitsOnly } from "@/lib/utils";
 import { isFiscalKind, isValidCnpj, tenantFiscalConfig } from "@/lib/fiscal";
 import { cancelFiscalInvoice, issueComandaInvoices } from "@/lib/fiscal-issue";
@@ -17,8 +17,8 @@ function revalidateFiscal() {
 }
 
 export async function saveFiscalSettings(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "settings", "edit")) return { error: "Sem permissão." };
 
   const cnpj = digitsOnly(String(formData.get("fiscalCnpj") ?? ""));
   if (cnpj && !isValidCnpj(cnpj)) return { error: "CNPJ inválido." };
@@ -102,8 +102,8 @@ export async function saveFiscalSettings(formData: FormData) {
 }
 
 export async function emitComandaInvoice(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "settings", "edit")) return { error: "Sem permissão." };
   const comandaId = String(formData.get("comandaId") ?? "");
   const rawKind = String(formData.get("kind") ?? "");
   const kinds = rawKind && isFiscalKind(rawKind) ? [rawKind] : undefined;
@@ -114,8 +114,8 @@ export async function emitComandaInvoice(formData: FormData) {
 }
 
 export async function cancelInvoiceAction(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "settings", "edit")) return { error: "Sem permissão." };
   const id = String(formData.get("id") ?? "");
   const result = await cancelFiscalInvoice(session.tenantId, id);
   revalidateFiscal();

@@ -1,5 +1,5 @@
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { tenantCashbackConfig } from "@/lib/cashback";
 import { parseSettingsTab } from "@/lib/settings";
 import { SettingsBoard } from "@/components/configuracoes/settings-board";
@@ -12,7 +12,7 @@ export default async function ConfigPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const { session, tenant } = await requireTenant();
+  const { session, tenant, access } = await requireTenant();
   const params = await searchParams;
   const fiscal = tenantFiscalConfig(tenant);
   const integrations = await resolvePlatformIntegrations();
@@ -42,7 +42,7 @@ export default async function ConfigPage({
         cscTokenMasked: tenant.fiscalCscToken ? maskSecret(tenant.fiscalCscToken) : "",
       }}
       whatsapp={whatsapp}
-      canImport={canManageTeam(session.role)}
+      canImport={canAccess(access, "clients", "create")}
     />
   );
 }

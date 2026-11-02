@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, UserCog } from "lucide-react";
+import Link from "next/link";
+import { Plus, Shield, UserCog } from "lucide-react";
 import { Badge, Button, Card } from "@/components/ui";
 import { UserDrawer } from "@/components/usuarios/user-drawer";
 import { setTenantUserActive } from "@/app/actions/users";
@@ -32,10 +33,18 @@ export function UsersBoard({
             Quem entra no painel deste salão: proprietário, gerente, recepção ou profissional.
           </p>
         </div>
-        <Button type="button" onClick={() => setEditing(null)}>
-          <Plus size={16} />
-          Novo usuário
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/permissoes" className="inline-flex">
+            <Button type="button" variant="outline">
+              <Shield size={16} />
+              Permissões
+            </Button>
+          </Link>
+          <Button type="button" onClick={() => setEditing(null)}>
+            <Plus size={16} />
+            Novo usuário
+          </Button>
+        </div>
       </div>
 
       <Card className="overflow-hidden p-0">
@@ -49,8 +58,9 @@ export function UsersBoard({
             <thead className="bg-sand text-left text-ink-soft">
               <tr>
                 <th className="px-4 py-3">Usuário</th>
-                <th>Perfil</th>
-                <th>Profissional</th>
+                <th>Cargo</th>
+                <th>Acesso</th>
+                <th>Agenda</th>
                 <th>Status</th>
                 <th />
               </tr>
@@ -63,7 +73,11 @@ export function UsersBoard({
                     <div className="text-xs text-ink-soft">{user.email}</div>
                   </td>
                   <td>{ROLE_LABEL[user.role as Role] ?? user.role}</td>
-                  <td>{user.professionalName ?? "—"}</td>
+                  <td>
+                    <div>{user.accessLabel ?? "Padrão do cargo"}</div>
+                    <div className="text-xs text-ink-soft">{user.professionalName ?? ""}</div>
+                  </td>
+                  <td>{user.agendaLabel}</td>
                   <td>
                     <Badge color={user.active ? "#059669" : "#64748b"}>{user.active ? "Ativo" : "Inativo"}</Badge>
                   </td>

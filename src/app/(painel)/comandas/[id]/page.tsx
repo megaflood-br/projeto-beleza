@@ -16,10 +16,11 @@ import { calendarDate } from "@/lib/dates";
 import { decorateCatalogItem } from "@/lib/promotions";
 import { loadPromoRules } from "@/lib/promo-load";
 import { financeMethodLabel } from "@/lib/finance";
+import { canAccess } from "@/lib/permissions";
 import { Trash2 } from "lucide-react";
 
 export default async function ComandaPage({ params }: { params: Promise<{ id: string }> }) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
   const { id } = await params;
   const [comanda, services, products, professionals, catalog, promos] = await Promise.all([
     prisma.comanda.findFirst({
@@ -40,6 +41,7 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
   );
 
   const open = comanda.status === "OPEN";
+  const canEdit = canAccess(access, "comandas", "edit");
   const subtotal = comandaSubtotal(comanda.items);
   const total = comandaTotal({
     items: comanda.items,
@@ -62,6 +64,9 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
             {comanda.client.name} · {comanda.client.phone}
             {comanda.professional ? ` · ${comanda.professional.name}` : ""}
           </p>
+          {open && !canEdit ? (
+            <p className="mt-1 text-sm text-ink-soft">Consulta apenas. Incluir itens e fechar a comanda ficam com quem tem permissão.</p>
+          ) : null}
         </div>
         <Badge color={COMANDA_STATUS_COLOR[comanda.status as ComandaStatus]}>
           {COMANDA_STATUS_LABEL[comanda.status as ComandaStatus]}
@@ -89,7 +94,7 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
                 <td>{item.quantity}</td>
                 <td>{formatBRL(itemLineTotal(item))}</td>
                 <td>
-                  {open ? (
+                  {open && canEdit ? (
                     <ConfirmDeleteButton
                       title="Remover este item da comanda?"
                       confirmLabel="Remover"
@@ -111,7 +116,7 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
         </table>
       </Card>
 
-      {open ? (
+      {open && canEdit ? (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <h2 className="font-display text-xl">Adicionar serviço</h2>
@@ -176,7 +181,7 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
             {comanda.cashbackCents ? <div>Cashback {formatBRL(comanda.cashbackCents)}</div> : null}
             <div className="font-display text-3xl">{formatBRL(total)}</div>
           </div>
-          {open ? (
+          {open && canEdit ? (
             <form action={formAction(closeComanda)} className="flex flex-wrap items-end gap-3">
               <input type="hidden" name="comandaId" value={comanda.id} />
               <Field label="Desconto">
@@ -195,22 +200,25 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
               </Field>
               <Button variant="success">Fechar comanda</Button>
             </form>
-          ) : (
+          ) : null}
+          {!open ? (
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-sm text-ink-soft">
                 Paga via {financeMethodLabel(comanda.paymentMethod ?? "", catalog.methods.find((m) => m.code === comanda.paymentMethod)?.name)}
               </p>
-              <form action={formAction(emitComandaInvoice)}>
-                <input type="hidden" name="comandaId" value={comanda.id} />
-                <Button type="submit" variant="outline">
-                  Emitir nota
-                </Button>
-              </form>
+              {canEdit ? (
+                <form action={formAction(emitComandaInvoice)}>
+                  <input type="hidden" name="comandaId" value={comanda.id} />
+                  <Button type="submit" variant="outline">
+                    Emitir nota
+                  </Button>
+                </form>
+              ) : null}
               <Link href="/notas" className="text-sm font-medium text-wine">
                 Ver notas
               </Link>
             </div>
-          )}
+          ) : null}
         </div>
       </Card>
     </div>

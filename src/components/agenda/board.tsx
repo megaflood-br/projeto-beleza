@@ -85,6 +85,11 @@ export function AgendaBoard({
   appointments,
   clients,
   services,
+  canCreate = true,
+  canEdit = true,
+  canRemove = true,
+  canCreateComanda = true,
+  canViewComanda = true,
 }: {
   date: string;
   openTime: string;
@@ -94,6 +99,11 @@ export function AgendaBoard({
   appointments: AgendaAppointment[];
   clients: AgendaClient[];
   services: AgendaService[];
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canRemove?: boolean;
+  canCreateComanda?: boolean;
+  canViewComanda?: boolean;
 }) {
   const slots = useMemo(() => buildSlots(openTime, closeTime, slotMinutes), [openTime, closeTime, slotMinutes]);
   const [draft, setDraft] = useState<{ professionalId: string; time: string } | null>(null);
@@ -108,6 +118,9 @@ export function AgendaBoard({
         <div>
           <h1 className="font-display text-3xl">Agenda</h1>
           <p className="capitalize text-ink-soft">{formatDayLabel(date)}</p>
+          {!canCreate && !canEdit ? (
+            <p className="mt-1 text-sm text-ink-soft">Consulta apenas. Marcar horário e abrir comanda ficam com quem tem permissão.</p>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <Link href={`/agenda?date=${shiftCalendarDate(date, -1)}`} className="rounded-full border border-line p-2">
@@ -171,16 +184,25 @@ export function AgendaBoard({
                   </div>
                 </div>
                 <div className="relative overflow-hidden" style={{ height: gridHeight }}>
-                  {slots.map((slot) => (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => setDraft({ professionalId: pro.id, time: slot })}
-                      className="block w-full border-b border-dashed border-line/80 hover:bg-gold-soft/40"
-                      style={{ height: SLOT_H }}
-                      aria-label={`Novo horário ${slot} com ${pro.name}`}
-                    />
-                  ))}
+                  {slots.map((slot) =>
+                    canCreate ? (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => setDraft({ professionalId: pro.id, time: slot })}
+                        className="block w-full border-b border-dashed border-line/80 hover:bg-gold-soft/40"
+                        style={{ height: SLOT_H }}
+                        aria-label={`Novo horário ${slot} com ${pro.name}`}
+                      />
+                    ) : (
+                      <div
+                        key={slot}
+                        className="block w-full cursor-default border-b border-dashed border-line/80"
+                        style={{ height: SLOT_H }}
+                        aria-hidden
+                      />
+                    ),
+                  )}
                   {placed.map((item) => {
                     const service = item.appt.items[0]?.service;
                     const width = `calc((100% - 8px) / ${item.lanes})`;
@@ -189,11 +211,13 @@ export function AgendaBoard({
                       <button
                         key={item.appt.id}
                         type="button"
+                        disabled={!canEdit}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!canEdit) return;
                           setSelected(item.appt);
                         }}
-                        className="absolute overflow-hidden rounded-lg px-2 py-1 text-left text-white shadow-sm"
+                        className={`absolute overflow-hidden rounded-lg px-2 py-1 text-left text-white shadow-sm ${canEdit ? "" : "cursor-default"}`}
                         style={{
                           top: item.top,
                           height: item.height,
@@ -217,7 +241,7 @@ export function AgendaBoard({
         </div>
       </div>
 
-      {draft ? (
+      {draft && canCreate ? (
         <AppointmentEditor
           mode="create"
           date={date}
@@ -228,11 +252,14 @@ export function AgendaBoard({
           professionals={professionals}
           services={services}
           slots={slots}
+          canRemove={canRemove}
+          canCreateComanda={canCreateComanda}
+          canViewComanda={canViewComanda}
           onClose={() => setDraft(null)}
         />
       ) : null}
 
-      {selected ? (
+      {selected && canEdit ? (
         <AppointmentEditor
           mode="edit"
           date={date}
@@ -243,6 +270,9 @@ export function AgendaBoard({
           professionals={professionals}
           services={services}
           slots={slots}
+          canRemove={canRemove}
+          canCreateComanda={canCreateComanda}
+          canViewComanda={canViewComanda}
           onClose={() => setSelected(null)}
         />
       ) : null}

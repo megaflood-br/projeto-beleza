@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canSeeFinance } from "@/lib/auth";
+import { canAccess, canManageCommissions } from "@/lib/permissions";
 import { parseBRLToCents } from "@/lib/money";
 import { zonedDateTime } from "@/lib/dates";
 import { postLedgerEntry, updateLedgerEntry } from "@/lib/ledger";
@@ -40,8 +40,8 @@ function parseTransactionForm(formData: FormData) {
 }
 
 export async function saveTransaction(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "finance")) return { error: "Sem permissão." };
 
   const id = String(formData.get("id") ?? "");
   const parsed = parseTransactionForm(formData);
@@ -93,8 +93,8 @@ export async function createTransaction(formData: FormData) {
 }
 
 export async function payCommissions(formData?: FormData) {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canManageCommissions(access)) return { error: "Só o administrador pode pagar comissões." };
   const data = formData instanceof FormData ? formData : new FormData();
   const professionalId = String(data.get("professionalId") ?? "");
   const ids = data.getAll("commissionId").map(String).filter(Boolean);

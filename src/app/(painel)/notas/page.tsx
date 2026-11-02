@@ -1,13 +1,13 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canSeeFinance } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { comandaTotal } from "@/lib/comandas";
 import { fiscalReady, tenantFiscalConfig } from "@/lib/fiscal";
 import { InvoiceBoard } from "@/components/notas/invoice-board";
 
 export default async function NotasPage() {
-  const { session, tenant } = await requireTenant();
-  const canManage = canSeeFinance(session.role);
+  const { session, tenant, access } = await requireTenant();
+  const canManage = canAccess(access, "invoices", "edit");
   if (!canManage) {
     return (
       <div className="space-y-2">

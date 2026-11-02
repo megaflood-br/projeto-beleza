@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam, hashPassword } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { type Role } from "@/lib/constants";
 import {
   canAssignTenantRole,
@@ -23,8 +24,8 @@ async function ownerCount(tenantId: string) {
 }
 
 export async function saveTenantUser(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "users", "edit")) return { error: "Sem permissão." };
 
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
@@ -104,8 +105,8 @@ export async function saveTenantUser(formData: FormData) {
 }
 
 export async function setTenantUserActive(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "users", "edit")) return { error: "Sem permissão." };
   const id = String(formData.get("id") ?? "");
   const active = String(formData.get("active") ?? "") === "1";
   const existing = await prisma.user.findFirst({ where: { id, tenantId: session.tenantId } });

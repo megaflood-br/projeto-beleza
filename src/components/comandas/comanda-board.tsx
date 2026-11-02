@@ -18,6 +18,8 @@ export function ComandaBoard({
   services,
   products,
   paymentMethods = [],
+  canCreate = true,
+  canEdit = true,
 }: {
   comandas: ComandaFormValue[];
   nextNumber: number;
@@ -26,6 +28,8 @@ export function ComandaBoard({
   services: { id: string; name: string; priceCents: number; promoPriceCents?: number | null; promoName?: string | null }[];
   products: { id: string; name: string; priceCents: number; promoPriceCents?: number | null; promoName?: string | null }[];
   paymentMethods?: PaymentMethodOption[];
+  canCreate?: boolean;
+  canEdit?: boolean;
 }) {
   const [editing, setEditing] = useState<ComandaFormValue | null | undefined>(undefined);
   const [showOpen, setShowOpen] = useState(true);
@@ -56,10 +60,14 @@ export function ComandaBoard({
           <h1 className="font-display text-3xl">Comandas</h1>
           <CirclePlay size={16} className="text-ink-soft" />
         </div>
-        <Button type="button" onClick={() => setEditing(null)}>
-          <Plus size={16} />
-          Nova comanda
-        </Button>
+        {canCreate ? (
+          <Button type="button" onClick={() => setEditing(null)}>
+            <Plus size={16} />
+            Nova comanda
+          </Button>
+        ) : (
+          <p className="text-sm text-ink-soft">Consulta apenas. Abrir comanda fica com quem tem permissão.</p>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
@@ -109,7 +117,7 @@ export function ComandaBoard({
               <ul className="min-w-[540px]">
                 {visible.map((c) => (
                   <li key={c.id} className="border-b border-line last:border-0">
-                    {c.status === "OPEN" ? (
+                    {c.status === "OPEN" && canEdit ? (
                       <button
                         type="button"
                         onClick={() => setEditing(c)}
@@ -133,7 +141,7 @@ export function ComandaBoard({
         </div>
       </div>
 
-      {editing !== undefined ? (
+      {editing !== undefined && ((editing === null && canCreate) || (editing && canEdit)) ? (
         <ComandaDrawer
           key={editing?.id ?? "new"}
           open

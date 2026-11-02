@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
+import { canAccess } from "@/lib/permissions";
 import { parseBRLToCents } from "@/lib/money";
 import { normalizeCentsPerPoint } from "@/lib/cashback";
 import { resolveCityLabel } from "@/lib/br-cities";
@@ -18,7 +19,8 @@ function checked(formData: FormData, key: string) {
 }
 
 export async function saveSettings(formData: FormData) {
-  const { session, tenant } = await requireTenant();
+  const { session, tenant, access } = await requireTenant();
+  if (!canAccess(access, "settings", "edit")) return { error: "Sem permissão." };
   const logoRaw = String(formData.get("logoUrl") ?? "").trim();
   const logoUrl = await saveTenantLogo(session.tenantId, logoRaw || null, tenant.logoUrl);
   await prisma.tenant.update({
@@ -48,7 +50,8 @@ export async function saveSettings(formData: FormData) {
 }
 
 export async function saveCashbackSettings(formData: FormData) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "settings", "edit")) return { error: "Sem permissão." };
   const earnPct = Math.min(100, Math.max(0, toInt(formData.get("cashbackEarnPct"), 5)));
   const maxRedeemPct = Math.min(100, Math.max(0, toInt(formData.get("cashbackMaxRedeemPct"), 100)));
   const expireDays = Math.max(0, toInt(formData.get("cashbackExpireDays"), 0));

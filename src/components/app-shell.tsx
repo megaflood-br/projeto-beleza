@@ -23,6 +23,7 @@ import {
   Megaphone,
   FolderOpen,
   MessageCircle,
+  Shield,
 } from "lucide-react";
 import Link from "next/link";
 import { stopImpersonation } from "@/app/actions/platform";
@@ -42,6 +43,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/documentacao", label: "Documentação", icon: FolderOpen },
   { href: "/equipe", label: "Equipe", icon: Users },
   { href: "/usuarios", label: "Usuários", icon: UserCog },
+  { href: "/permissoes", label: "Permissões", icon: Shield },
   { href: "/metas", label: "Metas", icon: Target },
   { href: "/comissoes", label: "Comissões", icon: Percent },
   { href: "/financeiro", label: "Financeiro", icon: Wallet },
@@ -93,6 +95,7 @@ export function AppShell({
   plan,
   impersonatorName,
   noticeCount = 0,
+  allowedHrefs,
 }: {
   children: React.ReactNode;
   salon: string;
@@ -100,7 +103,9 @@ export function AppShell({
   plan: string;
   impersonatorName?: string | null;
   noticeCount?: number;
+  allowedHrefs?: string[] | null;
 }) {
+  const items = allowedHrefs ? NAV.filter((item) => allowedHrefs.includes(item.href)) : NAV;
   return (
     <ConfirmProvider>
       <SupportLiveProvider>
@@ -108,7 +113,7 @@ export function AppShell({
           plan={plan}
           title={salon}
           userName={userName}
-          items={NAV}
+          items={items}
           badge={(href) => <NavBadges href={href} />}
           headerAction={<NoticeBell count={noticeCount} />}
           banner={

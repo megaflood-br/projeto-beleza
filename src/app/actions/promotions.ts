@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canSeeFinance } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { parseBRLToCents } from "@/lib/money";
 import { zonedDateTime } from "@/lib/dates";
 import { serializeWeekdays } from "@/lib/promotions";
@@ -17,8 +17,8 @@ function revalidatePromos() {
 }
 
 export async function savePromotion(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "promotions", "edit")) return { error: "Sem permissão." };
 
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
@@ -76,8 +76,8 @@ export async function savePromotion(formData: FormData) {
 }
 
 export async function deletePromotion(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "promotions", "edit")) return { error: "Sem permissão." };
   const id = String(formData.get("id") ?? "");
   const existing = await prisma.promotion.findFirst({ where: { id, tenantId: session.tenantId } });
   if (!existing) return { error: "Promoção não encontrada." };

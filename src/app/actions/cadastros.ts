@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canSeeFinance } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { slugify } from "@/lib/utils";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
 
@@ -15,8 +15,8 @@ function revalidateCadastros() {
 }
 
 async function requireFinance() {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) return { error: "Sem permissão." as const, session: null };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "finance")) return { error: "Sem permissão." as const, session: null };
   await ensureFinanceCatalog(session.tenantId);
   return { session, error: null as string | null };
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { zonedDateTime } from "@/lib/dates";
 import { documentationPath, isArchiveTab, kindForTab, parseDocumentationTab, parseDocumentKind } from "@/lib/documentation";
 import { removeSalonDocumentFile, saveSalonDocumentFile } from "@/lib/document-upload";
@@ -23,8 +23,8 @@ function parseDay(raw: FormDataEntryValue | null) {
 }
 
 export async function saveSalonDocument(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para arquivar documentos." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "docs", "edit")) return { error: "Sem permissão para arquivar documentos." };
   if (typeof prisma.salonDocument?.create !== "function") {
     return { error: "Reinicie o painel para habilitar o arquivo de documentos." };
   }
@@ -71,8 +71,8 @@ export async function saveSalonDocument(formData: FormData) {
 }
 
 export async function deleteSalonDocument(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão para excluir documentos." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "docs", "remove")) return { error: "Sem permissão para excluir documentos." };
   if (typeof prisma.salonDocument?.findFirst !== "function") {
     return { error: "Reinicie o painel para habilitar o arquivo de documentos." };
   }

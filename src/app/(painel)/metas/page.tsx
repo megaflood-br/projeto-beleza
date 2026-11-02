@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { calendarDate, monthStartEnd, parseMonthParam } from "@/lib/dates";
 import { rangeBounds } from "@/lib/dashboard";
 import {
@@ -18,7 +18,7 @@ export default async function MetasPage({
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
   const params = await searchParams;
   const month = parseMonthParam(params.month);
   const { from, to } = monthStartEnd(month);
@@ -112,7 +112,7 @@ export default async function MetasPage({
       to={to}
       cards={cards}
       professionals={professionals}
-      canManage={canManageTeam(session.role)}
+      canManage={canAccess(access, "goals", "edit")}
       pacePct={pacePct}
     />
   );

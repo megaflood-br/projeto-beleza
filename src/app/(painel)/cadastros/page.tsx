@@ -1,11 +1,11 @@
 import { requireTenant } from "@/lib/tenant";
-import { canSeeFinance } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { loadFinanceCatalog } from "@/lib/finance-catalog";
 import { CadastrosBoard } from "@/components/cadastros/cadastros-board";
 
 export default async function CadastrosPage() {
-  const { session } = await requireTenant();
-  if (!canSeeFinance(session.role)) {
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "finance")) {
     return (
       <div className="space-y-2">
         <h1 className="font-display text-3xl">Cadastros</h1>

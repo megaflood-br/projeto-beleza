@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canManageTeam, hashPassword } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
+import { canAccess, canManageCommissions } from "@/lib/permissions";
 import { ROLES, type Role } from "@/lib/constants";
 import { digitsOnly } from "@/lib/utils";
 import { zonedDateTime } from "@/lib/dates";
@@ -20,8 +21,8 @@ function flag(formData: FormData, key: string, fallback = true) {
 }
 
 export async function upsertProfessional(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "team", "edit")) return { error: "Sem permissão." };
 
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
@@ -154,8 +155,8 @@ export async function upsertProfessional(formData: FormData) {
 }
 
 export async function updateCommissionRule(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canManageCommissions(access)) return { error: "Só o administrador pode alterar a configuração de comissões." };
   const id = String(formData.get("id") ?? "");
   const commissionPct = Math.min(100, Math.max(0, toInt(formData.get("commissionPct"), 40)));
   const receivesCommission = String(formData.get("receivesCommission") ?? "") === "1";
@@ -171,8 +172,8 @@ export async function updateCommissionRule(formData: FormData) {
 }
 
 export async function inviteTeamUser(formData: FormData) {
-  const { session } = await requireTenant();
-  if (!canManageTeam(session.role)) return { error: "Sem permissão." };
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "team", "edit")) return { error: "Sem permissão." };
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "")

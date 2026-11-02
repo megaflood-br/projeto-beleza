@@ -36,6 +36,9 @@ export function AppointmentEditor({
   professionals,
   services,
   slots,
+  canRemove = true,
+  canCreateComanda = true,
+  canViewComanda = true,
   onClose,
 }: {
   mode: "create" | "edit";
@@ -47,6 +50,9 @@ export function AppointmentEditor({
   professionals: AgendaProfessional[];
   services: AgendaService[];
   slots: string[];
+  canRemove?: boolean;
+  canCreateComanda?: boolean;
+  canViewComanda?: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -286,7 +292,7 @@ export function AppointmentEditor({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            {mode === "edit" && appointment ? (
+            {mode === "edit" && appointment && canRemove ? (
               <Button
                 type="button"
                 variant="danger"
@@ -311,9 +317,25 @@ export function AppointmentEditor({
             <Button type="button" disabled={pending} onClick={() => save(false)}>
               {pending ? "Salvando..." : "Salvar"}
             </Button>
-            <Button type="button" variant="success" disabled={pending} onClick={() => save(true)}>
-              {appointment?.comandaId ? "Abrir comanda" : "Criar comanda"}
-            </Button>
+            {(canCreateComanda && !appointment?.comandaId) || (canViewComanda && appointment?.comandaId) ? (
+              <Button
+                type="button"
+                variant="success"
+                disabled={pending}
+                onClick={() => {
+                  if (appointment?.comandaId) {
+                    if (!canViewComanda) return;
+                    router.push(`/comandas/${appointment.comandaId}`);
+                    onClose();
+                    return;
+                  }
+                  if (!canCreateComanda) return;
+                  save(true);
+                }}
+              >
+                {appointment?.comandaId ? "Abrir comanda" : "Criar comanda"}
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>

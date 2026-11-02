@@ -29,6 +29,8 @@ export function CommissionBoard({
   methods = [],
   defaultFrom,
   defaultTo,
+  canManage = true,
+  ownOnly = false,
 }: {
   rows: CommissionRow[];
   professionals: CommissionRule[];
@@ -36,9 +38,12 @@ export function CommissionBoard({
   methods?: CatalogMethod[];
   defaultFrom: string;
   defaultTo: string;
+  canManage?: boolean;
+  ownOnly?: boolean;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("detalhadas");
+  const currentTab = canManage || tab === "pagas" ? tab : "detalhadas";
   const [from, setFrom] = useState(defaultFrom);
   const [to, setTo] = useState(defaultTo);
   const [professionalId, setProfessionalId] = useState("");
@@ -65,7 +70,7 @@ export function CommissionBoard({
 
   const detailed = filtered.filter((row) => (showPrevious ? true : row.status === "PENDING"));
   const paid = filtered.filter((row) => row.status === "PAID");
-  const tableRows = tab === "pagas" ? paid : detailed;
+  const tableRows = currentTab === "pagas" ? paid : detailed;
   const pendingVisible = detailed.filter((row) => row.status === "PENDING");
   const selectedSet = new Set(selected);
   const selectedRows = pendingVisible.filter((row) => selectedSet.has(row.id));
@@ -119,21 +124,25 @@ export function CommissionBoard({
             <CirclePlay size={16} className="text-ink-soft" />
           </div>
           <div className="mt-3 flex flex-wrap gap-1 border-b border-line">
-            <TabButton active={tab === "detalhadas"} onClick={() => setTab("detalhadas")}>
-              Detalhadas
+            <TabButton active={currentTab === "detalhadas"} onClick={() => setTab("detalhadas")}>
+              {canManage ? "Detalhadas" : "Disponíveis"}
             </TabButton>
-            <TabButton active={tab === "resumidas"} onClick={() => setTab("resumidas")}>
-              Resumidas
+            {canManage ? (
+              <TabButton active={currentTab === "resumidas"} onClick={() => setTab("resumidas")}>
+                Resumidas
+              </TabButton>
+            ) : null}
+            <TabButton active={currentTab === "pagas"} onClick={() => setTab("pagas")}>
+              {canManage ? "Pagas" : "Recebidas"}
             </TabButton>
-            <TabButton active={tab === "pagas"} onClick={() => setTab("pagas")}>
-              Pagas
-            </TabButton>
-            <TabButton active={tab === "config"} onClick={() => setTab("config")}>
-              Configurações
-              <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">
-                novo
-              </span>
-            </TabButton>
+            {canManage ? (
+              <TabButton active={currentTab === "config"} onClick={() => setTab("config")}>
+                Configurações
+                <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">
+                  novo
+                </span>
+              </TabButton>
+            ) : null}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -141,23 +150,25 @@ export function CommissionBoard({
             <Filter size={16} />
             Filtrar
           </Button>
-          <div className="relative">
-            <Button type="button" variant="outline" onClick={() => setActionsOpen((open) => !open)}>
-              <Zap size={16} />
-              Ações
-              <ChevronDown size={14} />
-            </Button>
-            {actionsOpen ? (
-              <div className="absolute right-0 z-20 mt-1 min-w-48 rounded-lg border border-line bg-white py-1 shadow-lg">
-                <button type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-sand" onClick={() => { setActionsOpen(false); pay(selectedRows.map((r) => r.id)); }}>
-                  Pagar selecionadas
-                </button>
-                <button type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-sand" onClick={() => { setActionsOpen(false); pay(pendingVisible.map((r) => r.id)); }}>
-                  Pagar todas visíveis
-                </button>
-              </div>
-            ) : null}
-          </div>
+          {canManage ? (
+            <div className="relative">
+              <Button type="button" variant="outline" onClick={() => setActionsOpen((open) => !open)}>
+                <Zap size={16} />
+                Ações
+                <ChevronDown size={14} />
+              </Button>
+              {actionsOpen ? (
+                <div className="absolute right-0 z-20 mt-1 min-w-48 rounded-lg border border-line bg-white py-1 shadow-lg">
+                  <button type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-sand" onClick={() => { setActionsOpen(false); pay(selectedRows.map((r) => r.id)); }}>
+                    Pagar selecionadas
+                  </button>
+                  <button type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-sand" onClick={() => { setActionsOpen(false); pay(pendingVisible.map((r) => r.id)); }}>
+                    Pagar todas visíveis
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <Button type="button" variant="outline" onClick={() => router.refresh()}>
             <RefreshCw size={16} />
             Atualizar
@@ -180,16 +191,18 @@ export function CommissionBoard({
               <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-10" />
             </label>
           </div>
-          <div className="mb-4">
-            <div className="mb-2 text-xs font-semibold tracking-wide text-ink-soft uppercase">Profissional</div>
-            <SearchSelect
-              placeholder="Todos"
-              value={professionalId}
-              onChange={setProfessionalId}
-              emptyOption={{ value: "", label: "Todos" }}
-              options={professionals.map((p) => ({ value: p.id, label: p.name }))}
-            />
-          </div>
+          {ownOnly ? null : (
+            <div className="mb-4">
+              <div className="mb-2 text-xs font-semibold tracking-wide text-ink-soft uppercase">Profissional</div>
+              <SearchSelect
+                placeholder="Todos"
+                value={professionalId}
+                onChange={setProfessionalId}
+                emptyOption={{ value: "", label: "Todos" }}
+                options={professionals.map((p) => ({ value: p.id, label: p.name }))}
+              />
+            </div>
+          )}
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <input type="checkbox" checked={showPrevious} onChange={(e) => setShowPrevious(e.target.checked)} className="accent-blue-600" />
             Mostrar comissões anteriores
@@ -197,9 +210,9 @@ export function CommissionBoard({
         </aside>
 
         <div className="overflow-hidden rounded-2xl border border-line bg-white">
-          {tab === "config" ? (
+          {canManage && currentTab === "config" ? (
             <SettingsTable professionals={professionals} />
-          ) : tab === "resumidas" ? (
+          ) : canManage && currentTab === "resumidas" ? (
             <SummaryTable rows={summary} />
           ) : tableRows.length === 0 ? (
             <p className="px-4 py-12 text-center text-sm text-ink-soft">Nenhuma comissão neste filtro.</p>
@@ -208,14 +221,16 @@ export function CommissionBoard({
               <table className="w-full min-w-[980px] text-sm">
                 <thead className="bg-slate-50 text-left text-ink-soft">
                   <tr>
-                    <th className="w-10 px-3 py-2.5">
-                      <input
-                        type="checkbox"
-                        checked={pendingVisible.length > 0 && pendingVisible.every((row) => selectedSet.has(row.id))}
-                        onChange={(e) => toggleAll(e.target.checked)}
-                        className="accent-blue-600"
-                      />
-                    </th>
+                    {canManage ? (
+                      <th className="w-10 px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          checked={pendingVisible.length > 0 && pendingVisible.every((row) => selectedSet.has(row.id))}
+                          onChange={(e) => toggleAll(e.target.checked)}
+                          className="accent-blue-600"
+                        />
+                      </th>
+                    ) : null}
                     <th className="py-2.5 font-medium">Data</th>
                     <th className="font-medium">Item</th>
                     <th className="font-medium">Custo adicional</th>
@@ -229,18 +244,20 @@ export function CommissionBoard({
                 <tbody>
                   {tableRows.map((row) => (
                     <tr key={row.id} className="border-t border-line">
-                      <td className="px-3 py-2.5">
-                        {row.status === "PENDING" ? (
-                          <input
-                            type="checkbox"
-                            checked={selectedSet.has(row.id)}
-                            onChange={(e) =>
-                              setSelected((list) => (e.target.checked ? [...list, row.id] : list.filter((id) => id !== row.id)))
-                            }
-                            className="accent-blue-600"
-                          />
-                        ) : null}
-                      </td>
+                      {canManage ? (
+                        <td className="px-3 py-2.5">
+                          {row.status === "PENDING" ? (
+                            <input
+                              type="checkbox"
+                              checked={selectedSet.has(row.id)}
+                              onChange={(e) =>
+                                setSelected((list) => (e.target.checked ? [...list, row.id] : list.filter((id) => id !== row.id)))
+                              }
+                              className="accent-blue-600"
+                            />
+                          ) : null}
+                        </td>
+                      ) : null}
                       <td className="whitespace-nowrap py-2.5">{formatShortDate(new Date(`${row.date}T12:00:00`))}</td>
                       <td className="py-2.5 pr-3">
                         <div>
@@ -285,49 +302,58 @@ export function CommissionBoard({
         </div>
       </div>
 
-      {tab !== "config" ? (
+      {currentTab !== "config" ? (
         <div className="fixed right-0 bottom-0 left-0 z-30 border-t border-line bg-white/95 px-6 py-3 backdrop-blur lg:left-64">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <span>
-                Comissões <strong>{formatBRL(commissionsTotal)}</strong>
+                {canManage ? "Comissões" : currentTab === "pagas" ? "Recebidas" : "Disponíveis"}{" "}
+                <strong>{formatBRL(currentTab === "pagas" ? paid.reduce((sum, row) => sum + row.availableCents, 0) : commissionsTotal)}</strong>
               </span>
-              <span className="text-ink-soft">
-                Vales <strong className="text-ink">{formatBRL(0)}</strong>
-              </span>
-              <span className="text-ink-soft">
-                Bonificações <strong className="text-ink">{formatBRL(0)}</strong>
-              </span>
-              <span className="text-ink-soft">
-                Solicitações de saída <strong className="text-ink">{formatBRL(0)}</strong>
-              </span>
-              <span>
-                Líquido <strong className="text-emerald-600">{formatBRL(net)}</strong>
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {accounts.length ? (
-                <SearchSelect
-                  value={accountId}
-                  onChange={setAccountId}
-                  placeholder="Conta"
-                  className="w-44"
-                  options={accounts.filter((a) => a.active).map((a) => ({ value: a.id, label: a.name }))}
-                />
+              {canManage ? (
+                <>
+                  <span className="text-ink-soft">
+                    Vales <strong className="text-ink">{formatBRL(0)}</strong>
+                  </span>
+                  <span className="text-ink-soft">
+                    Bonificações <strong className="text-ink">{formatBRL(0)}</strong>
+                  </span>
+                  <span className="text-ink-soft">
+                    Solicitações de saída <strong className="text-ink">{formatBRL(0)}</strong>
+                  </span>
+                  <span>
+                    Líquido <strong className="text-emerald-600">{formatBRL(net)}</strong>
+                  </span>
+                </>
               ) : null}
-              {methods.length ? (
-                <SearchSelect
-                  value={methodId}
-                  onChange={setMethodId}
-                  placeholder="Forma"
-                  className="w-40"
-                  options={methods.filter((m) => m.active).map((m) => ({ value: m.id, label: m.name }))}
-                />
-              ) : null}
-              <Button type="button" variant="success" disabled={pending || !payRows.length} onClick={() => pay(payRows.map((row) => row.id))}>
-                {pending ? "Pagando..." : "Pagar comissões"}
-              </Button>
             </div>
+            {canManage ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {accounts.length ? (
+                  <SearchSelect
+                    value={accountId}
+                    onChange={setAccountId}
+                    placeholder="Conta"
+                    className="w-44"
+                    options={accounts.filter((a) => a.active).map((a) => ({ value: a.id, label: a.name }))}
+                  />
+                ) : null}
+                {methods.length ? (
+                  <SearchSelect
+                    value={methodId}
+                    onChange={setMethodId}
+                    placeholder="Forma"
+                    className="w-40"
+                    options={methods.filter((m) => m.active).map((m) => ({ value: m.id, label: m.name }))}
+                  />
+                ) : null}
+                <Button type="button" variant="success" disabled={pending || !payRows.length} onClick={() => pay(payRows.map((row) => row.id))}>
+                  {pending ? "Pagando..." : "Pagar comissões"}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-ink-soft">Consulta apenas. Pagamento e configurações ficam com o administrador.</p>
+            )}
           </div>
         </div>
       ) : null}
