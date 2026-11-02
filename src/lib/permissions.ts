@@ -219,9 +219,9 @@ export function roleDefaultGrants(role: string): StoredAccess {
     admin: false,
     modules: {
       dashboard: flags(true, false, false, false),
-      agenda: flags(true, true, true, true, { viewAll: false }),
+      agenda: flags(true, false, false, false, { viewAll: false }),
       atendimento: flags(true, true, false, false),
-      comandas: flags(true, true, false, false),
+      comandas: flags(true, false, false, false),
       clients: flags(true, false, false, false),
       anamnesis: flags(true, true, false, false),
       commissions: flags(true, false, false, false, { viewAll: false }),

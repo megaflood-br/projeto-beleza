@@ -4,7 +4,7 @@ import { parseDateParam, rangeOfCalendarDate } from "@/lib/dates";
 import { AgendaBoard } from "@/components/agenda/board";
 import type { AgendaAppointment, AgendaClient } from "@/components/agenda/types";
 import type { AppointmentStatus } from "@/lib/constants";
-import { canViewAllAgenda } from "@/lib/permissions";
+import { canAccess, canViewAllAgenda } from "@/lib/permissions";
 
 export default async function AgendaPage({
   searchParams,
@@ -92,6 +92,11 @@ export default async function AgendaPage({
       appointments={mapped}
       clients={mappedClients}
       services={services}
+      canCreate={canAccess(access, "agenda", "create")}
+      canEdit={canAccess(access, "agenda", "edit")}
+      canRemove={canAccess(access, "agenda", "remove")}
+      canCreateComanda={canAccess(access, "comandas", "create")}
+      canViewComanda={canAccess(access, "comandas")}
     />
   );
 }

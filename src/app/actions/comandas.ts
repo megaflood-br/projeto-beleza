@@ -21,6 +21,7 @@ import {
 import { applyCatalogPrice } from "@/lib/promotions";
 import { loadPromoRules } from "@/lib/promo-load";
 import { moneyVar, safeDispatch } from "@/lib/dispatch-whatsapp-campaign";
+import { canAccess } from "@/lib/permissions";
 
 async function nextNumber(tenantId: string) {
   const last = await prisma.comanda.findFirst({
@@ -42,13 +43,17 @@ function revalidateComandas() {
 }
 
 export async function createComandaFromAppointment(appointmentId: string) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
   const appointment = await prisma.appointment.findFirst({
     where: { id: appointmentId, tenantId: session.tenantId },
     include: { items: { include: { service: true } }, comanda: true },
   });
   if (!appointment) return { error: "Agendamento não encontrado." };
-  if (appointment.comanda) return { ok: true as const, id: appointment.comanda.id, existing: true };
+  if (appointment.comanda) {
+    if (!canAccess(access, "comandas")) return { error: "Sem permissão para abrir comanda." };
+    return { ok: true as const, id: appointment.comanda.id, existing: true };
+  }
+  if (!canAccess(access, "comandas", "create")) return { error: "Sem permissão para abrir comanda." };
 
   const comanda = await prisma.comanda.create({
     data: {
@@ -82,8 +87,11 @@ export async function createComandaFromAppointment(appointmentId: string) {
 }
 
 export async function upsertComanda(formData: FormData) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
   const id = String(formData.get("id") ?? "");
+  if (!canAccess(access, "comandas", id ? "edit" : "create")) {
+    return { error: "Sem permissão para alterar comanda." };
+  }
   const clientId = String(formData.get("clientId") ?? "");
   const professionalId = String(formData.get("professionalId") ?? "") || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
@@ -232,7 +240,8 @@ export async function upsertComanda(formData: FormData) {
 }
 
 export async function createWalkInComanda(formData: FormData) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "comandas", "create")) return { error: "Sem permissão para abrir comanda." };
   const clientId = String(formData.get("clientId") ?? "");
   const professionalId = String(formData.get("professionalId") ?? "") || null;
   if (!clientId) return { error: "Selecione um cliente." };
@@ -251,7 +260,8 @@ export async function createWalkInComanda(formData: FormData) {
 }
 
 export async function addComandaItem(formData: FormData) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "comandas", "edit")) return { error: "Sem permissão para alterar comanda." };
   const comandaId = String(formData.get("comandaId") ?? "");
   const type = String(formData.get("type") ?? "SERVICE");
   const serviceId = String(formData.get("serviceId") ?? "") || null;
@@ -309,7 +319,8 @@ export async function addComandaItem(formData: FormData) {
 }
 
 export async function removeComandaItem(itemId: string) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "comandas", "edit")) return { error: "Sem permissão para alterar comanda." };
   const item = await prisma.comandaItem.findFirst({
     where: { id: itemId, comanda: { tenantId: session.tenantId, status: "OPEN" } },
   });
@@ -603,7 +614,8 @@ export async function invoiceComanda(formData: FormData) {
 }
 
 export async function closeComanda(formData: FormData) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  if (!canAccess(access, "comandas", "edit")) return { error: "Sem permissão para fechar comanda." };
   const comandaId = String(formData.get("comandaId") ?? "");
   const paymentMethodId = String(formData.get("paymentMethodId") ?? "");
   const method = String(formData.get("method") ?? "PIX");

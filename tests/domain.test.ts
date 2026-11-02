@@ -675,7 +675,14 @@ describe("permissões do salão", () => {
     const reception = resolveAccess({ role: "RECEPTIONIST" });
     expect(canViewAllAgenda(professional)).toBe(false);
     expect(agendaScopeLabel(professional)).toBe("Só a própria agenda");
-    expect(canAccess(professional, "agenda", "create")).toBe(true);
+    expect(canAccess(professional, "agenda")).toBe(true);
+    expect(canAccess(professional, "agenda", "create")).toBe(false);
+    expect(canAccess(professional, "agenda", "edit")).toBe(false);
+    expect(canAccess(professional, "comandas")).toBe(true);
+    expect(canAccess(professional, "comandas", "create")).toBe(false);
+    expect(canAccess(professional, "comandas", "edit")).toBe(false);
+    expect(canAccess(reception, "agenda", "create")).toBe(true);
+    expect(canAccess(reception, "comandas", "create")).toBe(true);
     expect(canAccess(professional, "finance")).toBe(false);
     expect(canAccess(professional, "users")).toBe(false);
     expect(canViewAllAgenda(reception)).toBe(true);
