@@ -18,7 +18,7 @@ export default async function RecepcionistaPage() {
       config={config}
       catalog={catalog}
       salonName={tenant.name}
-      whatsappConnected={whatsapp.state === "open"}
+      whatsappConnected={whatsapp.connected}
       canEdit={canAccess(access, "receptionist", "edit")}
     />
   );

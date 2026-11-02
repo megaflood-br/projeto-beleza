@@ -1,0 +1,85 @@
+import { prisma } from "@/lib/db";
+import { isEvolutionConfigured, sendTextMessage } from "@/lib/evolution";
+import { resolvePlatformIntegrations } from "@/lib/integrations";
+import { evolutionSendFailure, toEvolutionNumber } from "@/lib/whatsapp-campaigns";
+import {
+  isMetaConfigured,
+  metaSendFailure,
+  normalizeWhatsAppProvider,
+  sendMetaText,
+  type WhatsAppProvider,
+} from "@/lib/whatsapp-meta";
+
+export type SalonWhatsAppTenant = {
+  whatsappProvider?: string | null;
+  evolutionInstance?: string | null;
+  evolutionStatus?: string | null;
+  metaPhoneNumberId?: string | null;
+  metaAccessToken?: string | null;
+  metaStatus?: string | null;
+};
+
+export function salonWhatsAppChannel(tenant: SalonWhatsAppTenant | null | undefined): WhatsAppProvider {
+  return normalizeWhatsAppProvider(tenant?.whatsappProvider);
+}
+
+export function isSalonWhatsAppConnected(tenant: SalonWhatsAppTenant | null | undefined) {
+  if (salonWhatsAppChannel(tenant) === "official") {
+    return tenant?.metaStatus === "open" && isMetaConfigured(tenant);
+  }
+  return tenant?.evolutionStatus === "open" && Boolean(tenant?.evolutionInstance);
+}
+
+export async function sendSalonWhatsApp(input: { tenantId: string; phone: string; text: string }) {
+  const [tenant, server] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: input.tenantId },
+      select: {
+        whatsappProvider: true,
+        evolutionInstance: true,
+        evolutionStatus: true,
+        metaPhoneNumberId: true,
+        metaAccessToken: true,
+        metaStatus: true,
+      },
+    }),
+    resolvePlatformIntegrations(),
+  ]);
+  if (!tenant) return { sent: false as const, channel: "none" as const, error: "Salão não encontrado." };
+
+  const channel = salonWhatsAppChannel(tenant);
+  if (channel === "official") {
+    if (!isMetaConfigured(tenant) || tenant.metaStatus !== "open") {
+      return { sent: false as const, channel, error: "Conecte a API oficial em Configurações → WhatsApp." };
+    }
+    try {
+      await sendMetaText(
+        {
+          phoneNumberId: tenant.metaPhoneNumberId!,
+          accessToken: tenant.metaAccessToken!,
+          graphVersion: server.metaGraphVersion,
+        },
+        input.phone,
+        input.text,
+      );
+      return { sent: true as const, channel };
+    } catch (error) {
+      return { sent: false as const, channel, error: metaSendFailure(error) };
+    }
+  }
+
+  const config = {
+    url: server.evolutionUrl,
+    apiKey: server.evolutionApiKey,
+    instance: tenant.evolutionInstance ?? "",
+  };
+  if (!isEvolutionConfigured(config) || tenant.evolutionStatus !== "open") {
+    return { sent: false as const, channel, error: "Conecte o WhatsApp em Configurações para enviar." };
+  }
+  try {
+    await sendTextMessage(config, toEvolutionNumber(input.phone), input.text);
+    return { sent: true as const, channel };
+  } catch (error) {
+    return { sent: false as const, channel, error: evolutionSendFailure(error) };
+  }
+}

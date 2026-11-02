@@ -51,7 +51,7 @@ export default async function AtendimentoPage({
               .
             </>
           ) : null}
-          {live.state !== "open" ? (
+          {!live.connected ? (
             <>
               {" "}
               <Link href={settingsPath("whatsapp")} className="font-medium text-wine">

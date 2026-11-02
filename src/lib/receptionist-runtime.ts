@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { calendarDate, formatTime, rangeOfCalendarDate, shiftCalendarDate } from "@/lib/dates";
-import { isEvolutionConfigured, sendTextMessage } from "@/lib/evolution";
 import { resolvePlatformIntegrations } from "@/lib/integrations";
+import { sendSalonWhatsApp } from "@/lib/whatsapp-send";
 import { chatAsReceptionist } from "@/lib/openai";
 import { freeSlotsForProfessional } from "@/lib/assistant";
 import {
@@ -209,22 +209,7 @@ export async function maybeReplyAsReceptionist(input: {
     });
   }
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: input.tenantId },
-    select: { evolutionInstance: true, evolutionStatus: true },
-  });
-  const configEvo = {
-    url: integrations.evolutionUrl,
-    apiKey: integrations.evolutionApiKey,
-    instance: tenant?.evolutionInstance ?? "",
-  };
-  if (isEvolutionConfigured(configEvo) && tenant?.evolutionStatus === "open") {
-    try {
-      await sendTextMessage(configEvo, input.phone, reply.text);
-    } catch {
-      // still persist in inbox
-    }
-  }
+  await sendSalonWhatsApp({ tenantId: input.tenantId, phone: input.phone, text: reply.text }).catch(() => null);
 
   await prisma.message.create({
     data: {

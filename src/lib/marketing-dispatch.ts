@@ -1,7 +1,5 @@
 import { prisma } from "@/lib/db";
-import { isEvolutionConfigured, sendTextMessage } from "@/lib/evolution";
-import { resolvePlatformIntegrations } from "@/lib/integrations";
-import { evolutionSendFailure, toEvolutionNumber } from "@/lib/whatsapp-campaigns";
+import { isSalonWhatsAppConnected, sendSalonWhatsApp } from "@/lib/whatsapp-send";
 import {
   MARKETING_SEND_GAP_MS,
   MARKETING_SEND_MAX,
@@ -22,15 +20,9 @@ export async function sendMarketingRecipient(input: {
   phone: string;
   body: string;
   allowMock: boolean;
-  connected: boolean;
-  evolution: { url: string; apiKey: string; instance: string };
 }) {
   const body = renderMarketingBody(input.body, { nome: input.clientName, salao: input.salonName });
   if (!body) return { error: "Mensagem vazia." };
-
-  if (!input.connected && !input.allowMock) {
-    return { error: "Conecte o WhatsApp em Configurações para disparar." };
-  }
 
   const conversation = await prisma.conversation.upsert({
     where: { tenantId_phone: { tenantId: input.tenantId, phone: input.phone } },
@@ -38,21 +30,16 @@ export async function sendMarketingRecipient(input: {
     create: { tenantId: input.tenantId, phone: input.phone, clientId: input.clientId, lastMessageAt: new Date() },
   });
 
-  let mocked = true;
-  if (input.connected && isEvolutionConfigured(input.evolution)) {
-    try {
-      await sendTextMessage(input.evolution, toEvolutionNumber(input.phone), body);
-      mocked = false;
-    } catch (error) {
-      if (!input.allowMock) return { error: evolutionSendFailure(error) };
-    }
+  const sent = await sendSalonWhatsApp({ tenantId: input.tenantId, phone: input.phone, text: body });
+  if (!sent.sent && !input.allowMock) {
+    return { error: sent.error || "Conecte o WhatsApp em Configurações para disparar." };
   }
 
   await prisma.message.create({
     data: { conversationId: conversation.id, direction: "OUT", body },
   });
 
-  return { ok: true as const, mocked, conversationId: conversation.id };
+  return { ok: true as const, mocked: !sent.sent, conversationId: conversation.id };
 }
 
 export type MarketingBatchResult =
@@ -71,7 +58,15 @@ export async function sendMarketingRecipients(
   const [tenant, campaign] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { name: true, evolutionInstance: true, evolutionStatus: true },
+      select: {
+        name: true,
+        whatsappProvider: true,
+        evolutionInstance: true,
+        evolutionStatus: true,
+        metaPhoneNumberId: true,
+        metaAccessToken: true,
+        metaStatus: true,
+      },
     }),
     prisma.marketingCampaign.findFirst({
       where: { id: campaignId, tenantId },
@@ -94,14 +89,7 @@ export async function sendMarketingRecipients(
     return { error: "Nenhum dos selecionados está pendente." };
   }
 
-  const server = await resolvePlatformIntegrations();
-  const evolution = {
-    url: server.evolutionUrl,
-    apiKey: server.evolutionApiKey,
-    instance: tenant.evolutionInstance ?? "",
-  };
-  const connected = tenant.evolutionStatus === "open" && isEvolutionConfigured(evolution);
-  if (!connected && !allowMock) {
+  if (!isSalonWhatsAppConnected(tenant) && !allowMock) {
     return { error: "Conecte o WhatsApp em Configurações para disparar a campanha." };
   }
 
@@ -120,8 +108,6 @@ export async function sendMarketingRecipients(
       phone: row.phone,
       body: campaign.body,
       allowMock,
-      connected,
-      evolution,
     });
     if ("error" in result) {
       failed += 1;

@@ -27,7 +27,7 @@ export default async function MarketingPage({
   const selectedId = typeof params.c === "string" ? params.c : null;
   const current = MARKETING_TABS.find((item) => item.id === tab) ?? MARKETING_TABS[0];
   const live = await readWhatsAppLive(session.tenantId);
-  const connected = live.state === "open";
+  const connected = live.connected;
 
   return (
     <div className="space-y-4">

@@ -6,6 +6,8 @@ import { SettingsBoard } from "@/components/configuracoes/settings-board";
 import { tenantFiscalConfig } from "@/lib/fiscal";
 import { maskSecret, resolvePlatformIntegrations } from "@/lib/integrations";
 import { readWhatsAppLive } from "@/lib/whatsapp-live";
+import { newMetaVerifyToken } from "@/lib/whatsapp-meta";
+import { prisma } from "@/lib/db";
 
 export default async function ConfigPage({
   searchParams,
@@ -16,6 +18,12 @@ export default async function ConfigPage({
   const params = await searchParams;
   const fiscal = tenantFiscalConfig(tenant);
   const integrations = await resolvePlatformIntegrations();
+  if (!tenant.metaVerifyToken) {
+    await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: { metaVerifyToken: newMetaVerifyToken() },
+    });
+  }
   const whatsapp = await readWhatsAppLive(tenant.id);
   return (
     <SettingsBoard

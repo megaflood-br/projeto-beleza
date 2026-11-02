@@ -57,6 +57,20 @@ export async function saveAsaasIntegration(formData: FormData) {
   return { ok: true as const };
 }
 
+export async function saveMetaIntegration(formData: FormData) {
+  const { tenant } = await requirePlatformAdmin();
+  const version = String(formData.get("metaGraphVersion") ?? "").trim() || tenant.metaGraphVersion || "v21.0";
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: {
+      metaAppSecret: keep(tenant.metaAppSecret, String(formData.get("metaAppSecret") ?? "")),
+      metaGraphVersion: version.startsWith("v") ? version : `v${version}`,
+    },
+  });
+  revalidateIntegrations();
+  return { ok: true as const };
+}
+
 export async function saveEvolutionIntegration(formData: FormData) {
   const { tenant } = await requirePlatformAdmin();
   await prisma.tenant.update({

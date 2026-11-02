@@ -178,7 +178,16 @@ import {
   summarizeMarketing,
 } from "@/lib/marketing";
 import { brandFromPartner, brandTheme, mixHex, parseHexColor, resolveSystemPrimary, SYSTEM_PRIMARY } from "@/lib/branding";
-import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, parseIntegrationTab } from "@/lib/integrations";
+import { evolutionWebhookUrl, instanceNameForTenant, maskSecret, metaWebhookUrl, parseIntegrationTab } from "@/lib/integrations";
+import {
+  extractMetaInbound,
+  isMetaConfigured,
+  metaGraphUrl,
+  metaSignatureOk,
+  metaVerifyChallenge,
+  normalizeWhatsAppProvider,
+} from "@/lib/whatsapp-meta";
+import { isSalonWhatsAppConnected } from "@/lib/whatsapp-send";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
   canAssignTenantRole,
@@ -514,6 +523,7 @@ describe("comandas", () => {
     expect(clientDeleteCopy(12, "all").title).toMatch(/12 clientes deste salão/);
     expect(parseIntegrationTab("contora")).toBe("contora");
     expect(parseIntegrationTab("evolution")).toBe("evolution");
+    expect(parseIntegrationTab("meta")).toBe("meta");
     expect(parseIntegrationTab("outro")).toBe("openai");
   });
 
@@ -992,6 +1002,9 @@ describe("integrações da plataforma", () => {
       "https://beauty.megaflood.cloud/api/webhooks/evolution?tenant=renove",
     );
     expect(evolutionWebhookUrl("", "studio-aurora")).toBe("");
+    expect(metaWebhookUrl("https://beauty.megaflood.cloud", "studio-aurora")).toBe(
+      "https://beauty.megaflood.cloud/api/webhooks/meta?tenant=studio-aurora",
+    );
   });
 
   it("mascara segredos e lê QR/estado da Evolution", () => {
@@ -999,6 +1012,7 @@ describe("integrações da plataforma", () => {
     expect(maskSecret("abc")).toBe("••••");
     expect(parseIntegrationTab("contora")).toBe("contora");
     expect(parseIntegrationTab("evolution")).toBe("evolution");
+    expect(parseIntegrationTab("meta")).toBe("meta");
     expect(parseIntegrationTab("outro")).toBe("openai");
     expect(isEvolutionConfigured({ url: "https://evo", apiKey: "k", instance: "mb-x" })).toBe(true);
     expect(isEvolutionConfigured({ url: "https://evo", apiKey: "k", instance: "" })).toBe(false);
@@ -1628,5 +1642,80 @@ describe("recepcionista virtual", () => {
     expect(isEvolutionFromMe({ data: { key: { fromMe: false, remoteJid: "5511999999999@s.whatsapp.net" } } })).toBe(false);
     expect(extractPhone({ data: { key: { remoteJid: "120363@g.us" } } })).toBe("");
     expect(extractPhone({ data: { key: { remoteJid: "5511988887777@s.whatsapp.net" } } })).toBe("5511988887777");
+  });
+});
+
+describe("WhatsApp API oficial", () => {
+  it("lê texto e botão do webhook da Meta", () => {
+    expect(normalizeWhatsAppProvider("official")).toBe("official");
+    expect(normalizeWhatsAppProvider("evolution")).toBe("evolution");
+    expect(isMetaConfigured({ phoneNumberId: "123", accessToken: "EAAG" })).toBe(true);
+    expect(isMetaConfigured({ phoneNumberId: "123", accessToken: "" })).toBe(false);
+    expect(metaGraphUrl("v21.0", "123/messages")).toBe("https://graph.facebook.com/v21.0/123/messages");
+    expect(metaVerifyChallenge({ mode: "subscribe", token: "abc", challenge: "42" }, "abc")).toBe("42");
+    expect(metaVerifyChallenge({ mode: "subscribe", token: "abc", challenge: "42" }, "nope")).toBeNull();
+    expect(metaSignatureOk("{}", "sha256=nope", "")).toBe(true);
+
+    const inbound = extractMetaInbound({
+      object: "whatsapp_business_account",
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                metadata: { phone_number_id: "1099" },
+                contacts: [{ wa_id: "5511988887777", profile: { name: "Ana" } }],
+                messages: [
+                  { from: "5511988887777", id: "wamid.1", type: "text", text: { body: "tem horário da Camila?" } },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(inbound).toEqual([
+      {
+        phoneNumberId: "1099",
+        phone: "5511988887777",
+        body: "tem horário da Camila?",
+        waId: "wamid.1",
+        name: "Ana",
+      },
+    ]);
+    expect(extractMetaInbound({ entry: [{ changes: [{ value: { statuses: [{ id: "1" }] } }] }] })).toEqual([]);
+  });
+
+  it("escolhe o canal ativo sem misturar Evolution e oficial", () => {
+    expect(
+      isSalonWhatsAppConnected({
+        whatsappProvider: "official",
+        metaStatus: "open",
+        metaPhoneNumberId: "1",
+        metaAccessToken: "token",
+        evolutionStatus: "open",
+        evolutionInstance: "mb-x",
+      }),
+    ).toBe(true);
+    expect(
+      isSalonWhatsAppConnected({
+        whatsappProvider: "official",
+        metaStatus: "close",
+        metaPhoneNumberId: "1",
+        metaAccessToken: "token",
+        evolutionStatus: "open",
+        evolutionInstance: "mb-x",
+      }),
+    ).toBe(false);
+    expect(
+      isSalonWhatsAppConnected({
+        whatsappProvider: "evolution",
+        evolutionStatus: "open",
+        evolutionInstance: "mb-x",
+        metaStatus: "open",
+        metaPhoneNumberId: "1",
+        metaAccessToken: "token",
+      }),
+    ).toBe(true);
   });
 });
