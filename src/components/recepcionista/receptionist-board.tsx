@@ -133,7 +133,7 @@ export function ReceptionistBoard({
         <div>
           <h1 className="font-display text-3xl">Recepcionista</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            Atendente virtual no WhatsApp do salão. Ela informa valores e horários reais e não marca sozinha.
+            Atendente virtual no WhatsApp do salão. Só responde quando a cliente escreve, simula digitando e não marca sozinha.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export function ReceptionistBoard({
             <span>
               <span className="block text-sm font-medium">Atendimento automático</span>
               <span className="mt-0.5 block text-xs text-ink-soft">
-                Com o WhatsApp conectado, ela responde as clientes. Se alguém da equipe enviar no Inbox, ela pausa.
+                Com o WhatsApp conectado, ela só fala depois que a cliente manda mensagem. Se alguém da equipe enviar no Inbox, ela pausa.
               </span>
             </span>
             <button

@@ -1035,7 +1035,8 @@ async function main() {
         tenantId: aurora.id,
         name: "Lembrete 24h",
         trigger: "REMINDER",
-        template: "Oi {{nome}}, lembrando do seu horário amanhã às {{hora}} no {{salao}}. Te esperamos!",
+        template:
+          "{Oi|Olá|Oi oi} {{nome}}! {Passando para lembrar|Só lembrando} do seu horário amanhã às {{hora}} no {{salao}}. Pode me responder com 1 para confirmar?",
       },
       {
         tenantId: aurora.id,

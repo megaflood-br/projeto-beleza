@@ -35,13 +35,14 @@ export async function runDueCampaigns(tenantId: string) {
     if (sent >= LIMIT) return { sent };
   }
 
-  const start = zonedDateTime(today, "00:00");
-  const end = zonedDateTime(shiftCalendarDate(today, 1), "00:00");
-  const todayAppointments = await prisma.appointment.findMany({
+  const tomorrow = shiftCalendarDate(today, 1);
+  const start = zonedDateTime(tomorrow, "00:00");
+  const end = zonedDateTime(shiftCalendarDate(tomorrow, 1), "00:00");
+  const upcomingAppointments = await prisma.appointment.findMany({
     where: { tenantId, startAt: { gte: start, lt: end }, status: { notIn: ["CANCELLED", "NO_SHOW"] } },
     include: { client: { select: { id: true, name: true, phone: true } }, professional: { select: { name: true } }, items: { include: { service: { select: { name: true } } } } },
   });
-  for (const appointment of todayAppointments) {
+  for (const appointment of upcomingAppointments) {
     if (!appointment.client) continue;
     const result = await dispatchCampaign({
       tenantId,

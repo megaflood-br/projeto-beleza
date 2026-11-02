@@ -24,15 +24,52 @@ export function isEvolutionConfigured(config: Partial<EvolutionConfig> | null | 
   return Boolean(config?.url && config?.apiKey && config?.instance);
 }
 
-export async function sendTextMessage(config: EvolutionConfig, number: string, text: string) {
-  const url = `${config.url.replace(/\/$/, "")}/message/sendText/${config.instance}`;
+export async function sendPresence(config: EvolutionConfig, number: string, delayMs = 1200) {
+  const url = `${config.url.replace(/\/$/, "")}/chat/sendPresence/${config.instance}`;
   const response = await fetch(url, {
     method: "POST",
     headers: headers(config.apiKey),
     body: JSON.stringify({
       number: number.replace(/\D/g, ""),
-      text,
+      delay: delayMs,
+      presence: "composing",
     }),
+    signal: AbortSignal.timeout(Math.max(4000, delayMs + 2000)),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Evolution API ${response.status}: ${body.slice(0, 240)}`);
+  }
+  return response.json();
+}
+
+export async function sendTextMessage(
+  config: EvolutionConfig,
+  number: string,
+  text: string,
+  options?: { delayMs?: number; presence?: boolean },
+) {
+  const delay = Math.max(0, options?.delayMs ?? 0);
+  const digits = number.replace(/\D/g, "");
+  let sendDelay = delay;
+  if (options?.presence && delay) {
+    try {
+      await sendPresence(config, digits, delay);
+      sendDelay = 0;
+    } catch {
+      sendDelay = delay;
+    }
+  }
+  const url = `${config.url.replace(/\/$/, "")}/message/sendText/${config.instance}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: headers(config.apiKey),
+    body: JSON.stringify({
+      number: digits,
+      text,
+      ...(sendDelay ? { delay: sendDelay } : {}),
+    }),
+    signal: AbortSignal.timeout(Math.max(12000, sendDelay + 8000)),
   });
   if (!response.ok) {
     const body = await response.text();

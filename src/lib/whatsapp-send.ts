@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { isEvolutionConfigured, sendTextMessage } from "@/lib/evolution";
 import { resolvePlatformIntegrations } from "@/lib/integrations";
-import { evolutionSendFailure, toEvolutionNumber } from "@/lib/whatsapp-campaigns";
+import { evolutionSendFailure, toEvolutionNumber, whatsappPhoneCandidates } from "@/lib/whatsapp-campaigns";
+import { typingDelayMs } from "@/lib/whatsapp-copy";
 import {
   isMetaConfigured,
   metaSendFailure,
@@ -23,6 +24,20 @@ export function salonWhatsAppChannel(tenant: SalonWhatsAppTenant | null | undefi
   return normalizeWhatsAppProvider(tenant?.whatsappProvider);
 }
 
+export async function hasInboundWhatsAppChat(tenantId: string, phone: string) {
+  const candidates = whatsappPhoneCandidates(phone);
+  if (!candidates.length) return false;
+  const found = await prisma.conversation.findFirst({
+    where: {
+      tenantId,
+      phone: { in: candidates },
+      messages: { some: { direction: "IN" } },
+    },
+    select: { id: true },
+  });
+  return Boolean(found);
+}
+
 export function isSalonWhatsAppConnected(tenant: SalonWhatsAppTenant | null | undefined) {
   if (salonWhatsAppChannel(tenant) === "official") {
     return tenant?.metaStatus === "open" && isMetaConfigured(tenant);
@@ -30,7 +45,12 @@ export function isSalonWhatsAppConnected(tenant: SalonWhatsAppTenant | null | un
   return tenant?.evolutionStatus === "open" && Boolean(tenant?.evolutionInstance);
 }
 
-export async function sendSalonWhatsApp(input: { tenantId: string; phone: string; text: string }) {
+export async function sendSalonWhatsApp(input: {
+  tenantId: string;
+  phone: string;
+  text: string;
+  presence?: boolean;
+}) {
   const [tenant, server] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: input.tenantId },
@@ -77,7 +97,10 @@ export async function sendSalonWhatsApp(input: { tenantId: string; phone: string
     return { sent: false as const, channel, error: "Conecte o WhatsApp em Configurações para enviar." };
   }
   try {
-    await sendTextMessage(config, toEvolutionNumber(input.phone), input.text);
+    await sendTextMessage(config, toEvolutionNumber(input.phone), input.text, {
+      presence: input.presence === true,
+      delayMs: input.presence ? typingDelayMs(input.text) : 0,
+    });
     return { sent: true as const, channel };
   } catch (error) {
     return { sent: false as const, channel, error: evolutionSendFailure(error) };

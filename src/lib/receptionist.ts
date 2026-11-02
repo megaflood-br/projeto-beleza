@@ -1,4 +1,5 @@
 import { formatBRL } from "@/lib/money";
+import { spin } from "@/lib/whatsapp-copy";
 
 export const RECEPTIONIST_STYLES = ["direto", "conversador"] as const;
 export const RECEPTIONIST_PERSONALITIES = ["feliz", "brincalhao", "formal"] as const;
@@ -167,6 +168,8 @@ export function buildReceptionistSystemPrompt(config: ReceptionistConfig, catalo
     `Você é ${config.name}, recepcionista virtual do salão ${catalog.salon}.`,
     `Estilo: ${styleLabel(config.style)}. Personalidade: ${personalityLabel(config.personality)}. ${emojiRule}`,
     "Fale em português brasileiro, curto, como WhatsApp. No máximo 4 frases.",
+    "Varie as palavras a cada resposta. Não copie a mensagem anterior da conversa.",
+    "Só responda porque a cliente escreveu agora. Não comece conversa nem faça propaganda sozinha.",
     "Nunca invente horário, preço ou profissional. Use só o catálogo abaixo.",
     "Nunca confirme, crie ou altere agendamento. Se a cliente quiser marcar, ofereça horários reais e diga que a recepção confirma.",
     "Não revele dados de outras clientes, faturamento, estoque ou informações internas.",
@@ -216,7 +219,7 @@ export function formatServicePrice(priceCents: number) {
 
 export function handoverReply(config: ReceptionistConfig) {
   const emoji = config.emoji === "nenhum" ? "" : " 💛";
-  return `Claro. Vou chamar alguém da equipe do salão para continuar com você.${emoji}`;
+  return spin(`{Claro|Pronto|Beleza}. Vou chamar alguém da equipe do salão para continuar com você.${emoji}`);
 }
 
 export function localReceptionistReply(input: {
@@ -236,7 +239,9 @@ export function localReceptionistReply(input: {
 
   if (first && !service && !professional && !price && !availability) {
     return {
-      text: `Oi! Sou a ${config.name}, recepcionista do ${catalog.salon}.${emoji} Posso falar de serviços, valores e horários livres. O que você procura?`,
+      text: spin(
+        `{Oi|Olá|Oi oi}! Sou a ${config.name}, recepcionista do ${catalog.salon}.${emoji} {Posso falar|Consigo te ajudar} de serviços, valores e horários livres. O que você procura?`,
+      ),
       handover: false,
     };
   }
@@ -244,7 +249,9 @@ export function localReceptionistReply(input: {
   if (service && (price || !availability)) {
     const who = service.professionals.length ? ` Com ${service.professionals.join(" ou ")}.` : "";
     return {
-      text: `${service.name} fica ${service.price} e leva cerca de ${service.durationMin} minutos.${who}${emoji} Se quiser, eu vejo os horários livres para a recepção confirmar.`,
+      text: spin(
+        `${service.name} {fica|sai por} ${service.price} e leva cerca de ${service.durationMin} minutos.${who}${emoji} {Se quiser|Se fizer sentido}, eu vejo os horários livres para a recepção confirmar.`,
+      ),
       handover: false,
     };
   }
@@ -253,14 +260,18 @@ export function localReceptionistReply(input: {
     const row = professional ?? catalog.professionals[0];
     if (!row) {
       return {
-        text: `Ainda não tenho profissionais ativas no cadastro para consultar horário. Posso chamar a recepção para te ajudar.`,
+        text: spin(
+          `{Ainda não tenho|Não achei} profissionais ativas no cadastro para consultar horário. Posso chamar a recepção para te ajudar.`,
+        ),
         handover: false,
       };
     }
     const slots = row.today.length ? `hoje: ${row.today.slice(0, 5).join(", ")}` : row.tomorrow.length ? `amanhã: ${row.tomorrow.slice(0, 5).join(", ")}` : "sem vaga hoje ou amanhã na grade";
     const who = professional ? row.name : catalog.professionals.map((item) => item.name).slice(0, 3).join(", ");
     return {
-      text: `${who} tem horário ${slots}.${emoji} Eu não marco sozinha: se algum encaixar, a recepção confirma para você.`,
+      text: spin(
+        `${who} tem horário ${slots}.${emoji} Eu não marco sozinha: {se algum encaixar|se algum desses servir}, a recepção confirma para você.`,
+      ),
       handover: false,
     };
   }
@@ -269,14 +280,16 @@ export function localReceptionistReply(input: {
     const top = catalog.services.slice(0, 4).map((row) => `${row.name} ${row.price}`).join(", ");
     return {
       text: top
-        ? `Alguns valores: ${top}.${emoji} Quer que eu veja horário de algum desses?`
-        : `Ainda não tenho a tabela de serviços cadastrada. Posso chamar a recepção.`,
+        ? spin(`{Alguns valores|Valores de referência}: ${top}.${emoji} Quer que eu veja horário de algum desses?`)
+        : spin(`Ainda não tenho a tabela de serviços cadastrada. Posso chamar a recepção.`),
       handover: false,
     };
   }
 
   return {
-    text: `Posso te ajudar com serviços, valores e horários livres do ${catalog.salon}.${emoji} Me diz o que você quer fazer e se tem preferência de profissional.`,
+    text: spin(
+      `{Posso te ajudar|Consigo te orientar} com serviços, valores e horários livres do ${catalog.salon}.${emoji} Me diz o que você quer fazer e se tem preferência de profissional.`,
+    ),
     handover: false,
   };
 }
