@@ -9,6 +9,7 @@ const NAV_HREFS = [
   "/dashboard",
   "/ia",
   "/atendimento",
+  "/recepcionista",
   "/agenda",
   "/comandas",
   "/clientes",

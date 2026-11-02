@@ -47,11 +47,12 @@ export async function sendWhatsApp(formData: FormData) {
       conversationId: conversation.id,
       direction: "OUT",
       body,
+      source: "HUMAN",
     },
   });
   await prisma.conversation.update({
     where: { id: conversation.id },
-    data: { lastMessageAt: new Date(), unread: 0 },
+    data: { lastMessageAt: new Date(), unread: 0, botPaused: true },
   });
 
   revalidatePath("/whatsapp");

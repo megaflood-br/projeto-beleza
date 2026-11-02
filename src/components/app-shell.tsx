@@ -23,6 +23,7 @@ import {
   Megaphone,
   FolderOpen,
   MessageCircle,
+  Bot,
   Shield,
 } from "lucide-react";
 import Link from "next/link";
@@ -36,6 +37,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
   { href: "/ia", label: "Assistente IA", icon: Sparkles },
   { href: "/atendimento", label: "Atendimento", icon: MessageCircle },
+  { href: "/recepcionista", label: "Recepcionista", icon: Bot },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/comandas", label: "Comandas", icon: Receipt },
   { href: "/clientes", label: "Clientes", icon: Users },

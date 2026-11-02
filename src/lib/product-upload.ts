@@ -61,6 +61,26 @@ export async function uploadToDataUrl(url?: string | null) {
   }
 }
 
+export async function saveReceptionistAvatar(tenantId: string, raw: string | null, previous?: string | null) {
+  if (!raw) {
+    if (previous?.startsWith("/uploads/")) await removeOwned(previous);
+    return null;
+  }
+  if (raw.startsWith("preset:")) {
+    if (previous?.startsWith("/uploads/")) await removeOwned(previous);
+    return raw;
+  }
+  if (raw.startsWith("/uploads/") || raw.startsWith("/branding/")) return raw;
+  const match = raw.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) return previous ?? null;
+  const dir = path.join(uploadRoot(), "receptionist", tenantId);
+  await mkdir(dir, { recursive: true });
+  const name = `${randomBytes(8).toString("hex")}.${extFromMime(match[1])}`;
+  await writeFile(path.join(dir, name), Buffer.from(match[2], "base64"));
+  if (previous && previous !== raw) await removeOwned(previous);
+  return `/uploads/receptionist/${tenantId}/${name}`;
+}
+
 export async function saveSupplierProductPhoto(tenantId: string, raw: string | null, previous?: string | null) {
   if (!raw) {
     await removeOwned(previous);

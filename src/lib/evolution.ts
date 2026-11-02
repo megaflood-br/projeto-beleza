@@ -167,5 +167,12 @@ export function extractPhone(payload: Record<string, unknown>) {
   const data = (payload.data ?? payload) as Record<string, unknown>;
   const key = (data.key ?? payload.key ?? {}) as Record<string, unknown>;
   const remoteJid = String(key.remoteJid ?? "");
+  if (remoteJid.includes("@g.us")) return "";
   return remoteJid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+}
+
+export function isEvolutionFromMe(payload: Record<string, unknown>) {
+  const data = (payload.data ?? payload) as Record<string, unknown>;
+  const key = (data.key ?? payload.key ?? {}) as Record<string, unknown>;
+  return key.fromMe === true;
 }

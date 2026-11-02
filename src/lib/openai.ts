@@ -100,3 +100,29 @@ export async function draftWhatsAppMessage(params: {
   });
   return completion.choices[0]?.message?.content ?? "";
 }
+
+export async function chatAsReceptionist(params: {
+  apiKey?: string | null;
+  system: string;
+  incoming: string;
+  history?: { role: "user" | "assistant"; text: string }[];
+}) {
+  const client = createOpenAI(params.apiKey);
+  if (!client) return null;
+  const history = (params.history ?? []).slice(-8).map((item) => ({
+    role: item.role === "assistant" ? ("assistant" as const) : ("user" as const),
+    content: item.text,
+  }));
+  const completion = await client.chat.completions.create({
+    model: "gpt-4o-mini",
+    temperature: 0.5,
+    max_tokens: 220,
+    messages: [
+      { role: "system", content: params.system },
+      ...history,
+      { role: "user", content: params.incoming },
+    ],
+  });
+  const text = completion.choices[0]?.message?.content?.trim() ?? "";
+  return text || null;
+}

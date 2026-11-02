@@ -28,6 +28,9 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   if (typeof (client as { permissionProfile?: { findMany?: unknown } }).permissionProfile?.findMany !== "function") {
     return false;
   }
+  if (typeof (client as { receptionist?: { findUnique?: unknown } }).receptionist?.findUnique !== "function") {
+    return false;
+  }
   const models = (
     client as unknown as {
       _runtimeDataModel?: { models?: Record<string, { fields?: { name?: string }[] }> };
@@ -38,6 +41,8 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
   const campaignFields = models?.MarketingCampaign?.fields;
   const popFields = models?.SalonPop?.fields;
   const documentFields = models?.SalonDocument?.fields;
+  const conversationFields = models?.Conversation?.fields;
+  const messageFields = models?.Message?.fields;
   return Boolean(
     productFields?.some((field) => field.name === "imageUrl") &&
       tenantFields?.some((field) => field.name === "servedCities") &&
@@ -48,7 +53,9 @@ function isCurrentClient(client: PrismaClient | undefined): client is PrismaClie
       tenantFields?.some((field) => field.name === "partnerId") &&
       campaignFields?.some((field) => field.name === "serviceId") &&
       popFields?.some((field) => field.name === "registry") &&
-      documentFields?.some((field) => field.name === "kind"),
+      documentFields?.some((field) => field.name === "kind") &&
+      conversationFields?.some((field) => field.name === "botPaused") &&
+      messageFields?.some((field) => field.name === "source"),
   );
 }
 

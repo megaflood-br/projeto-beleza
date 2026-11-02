@@ -120,7 +120,24 @@ import {
   supportSide,
   ticketUnreadFor,
 } from "@/lib/support";
-import { extractEvolutionNumber, extractQrBase64, isEvolutionConfigured, parseEvolutionState } from "@/lib/evolution";
+import {
+  extractEvolutionNumber,
+  extractPhone,
+  extractQrBase64,
+  isEvolutionConfigured,
+  isEvolutionFromMe,
+  parseEvolutionState,
+} from "@/lib/evolution";
+import {
+  DEFAULT_RECEPTIONIST,
+  asksAvailability,
+  asksPrices,
+  buildReceptionistSystemPrompt,
+  localReceptionistReply,
+  matchCatalogProfessional,
+  normalizeReceptionist,
+  wantsHumanHandover,
+} from "@/lib/receptionist";
 import {
   fillPopText,
   matchServicePop,
@@ -705,6 +722,9 @@ describe("permissões do salão", () => {
     expect(canViewAllGoals(reception)).toBe(false);
     expect(canViewAllGoals(owner)).toBe(true);
     expect(canAccess(professional, "anamnesis")).toBe(true);
+    expect(canAccess(professional, "receptionist")).toBe(false);
+    expect(canAccess(reception, "receptionist")).toBe(true);
+    expect(canAccess(reception, "receptionist", "edit")).toBe(true);
     expect(canViewAllAnamnesis(professional)).toBe(false);
     expect(canViewAllAnamnesis(reception)).toBe(true);
     expect(canViewAllAnamnesis(owner)).toBe(true);
@@ -762,10 +782,15 @@ describe("permissões do salão", () => {
   it("esconde do menu o que não tem acesso", () => {
     expect(moduleFromPath("/permissoes")).toBe("users");
     expect(moduleFromPath("/agenda")).toBe("agenda");
+    expect(moduleFromPath("/recepcionista")).toBe("receptionist");
     const professional = resolveAccess({ role: "PROFESSIONAL" });
-    expect(allowedNavHrefs(professional, ["/agenda", "/financeiro", "/usuarios", "/clientes"])).toEqual([
+    expect(allowedNavHrefs(professional, ["/agenda", "/financeiro", "/usuarios", "/clientes", "/recepcionista"])).toEqual([
       "/agenda",
       "/clientes",
+    ]);
+    expect(allowedNavHrefs(resolveAccess({ role: "RECEPTIONIST" }), ["/recepcionista", "/atendimento"])).toEqual([
+      "/recepcionista",
+      "/atendimento",
     ]);
     expect(roleDefaultGrants("MANAGER").admin).toBe(false);
     expect(canAccess(resolveAccess({ role: "MANAGER" }), "users", "edit")).toBe(true);
@@ -1532,5 +1557,76 @@ describe("apresentações", () => {
       expect(deck?.ctaHref).toContain("https://wa.me/5511985521672");
       expect(deck?.ctaHref).not.toContain("/cadastro");
     }
+  });
+});
+
+describe("recepcionista virtual", () => {
+  const catalog = {
+    salon: "Studio Aurora",
+    city: "Atibaia",
+    hours: "09:00 às 19:00",
+    services: [
+      { name: "Escova", durationMin: 45, price: "R$ 80,00", professionals: ["Camila Ferreira"] },
+      { name: "Corte feminino", durationMin: 60, price: "R$ 120,00", professionals: ["Camila Ferreira"] },
+    ],
+    professionals: [
+      {
+        name: "Camila Ferreira",
+        nickname: "Cami",
+        specialty: "Cabelo",
+        today: ["14:00", "15:00", "16:30"],
+        tomorrow: ["09:00", "10:30"],
+      },
+      {
+        name: "Kelly Souza",
+        nickname: null,
+        specialty: "Coloração",
+        today: [],
+        tomorrow: ["11:00", "13:00"],
+      },
+    ],
+  };
+
+  it("reconhece pedido de pessoa e não marca sozinha", () => {
+    expect(wantsHumanHandover("quero falar com alguém da recepção")).toBe(true);
+    expect(wantsHumanHandover("não é robô, chama a recepção")).toBe(true);
+    expect(wantsHumanHandover("tem horário de escova amanhã?")).toBe(false);
+    expect(asksAvailability("tem horário disponível na agenda da Kelly?")).toBe(true);
+    expect(asksPrices("quanto custa a escova?")).toBe(true);
+    expect(matchCatalogProfessional("horário da Kelly", catalog.professionals)?.name).toBe("Kelly Souza");
+    expect(matchCatalogProfessional("agenda da Cami", catalog.professionals)?.name).toBe("Camila Ferreira");
+
+    const config = normalizeReceptionist({ name: "Luna", emoji: "nenhum" });
+    expect(config.name).toBe("Luna");
+    expect(config.enabled).toBe(false);
+
+    const handover = localReceptionistReply({ config, catalog, incoming: "quero falar com uma pessoa" });
+    expect(handover.handover).toBe(true);
+    expect(handover.text).toMatch(/equipe/);
+
+    const slots = localReceptionistReply({
+      config,
+      catalog,
+      incoming: "tem horário disponível na agenda da Kelly?",
+    });
+    expect(slots.handover).toBe(false);
+    expect(slots.text).toMatch(/Kelly/);
+    expect(slots.text).toMatch(/11:00/);
+    expect(slots.text).not.toMatch(/marquei|agendado|confirmado/);
+
+    const price = localReceptionistReply({ config, catalog, incoming: "quanto custa a escova?" });
+    expect(price.text).toMatch(/R\$ 80,00/);
+
+    const prompt = buildReceptionistSystemPrompt({ ...DEFAULT_RECEPTIONIST, name: "Luna" }, catalog);
+    expect(prompt).toMatch(/Nunca confirme, crie ou altere agendamento/);
+    expect(prompt).toMatch(/11:00/);
+    expect(prompt).not.toMatch(/Juliana/);
+  });
+
+  it("ignora eco do próprio WhatsApp e grupo", () => {
+    expect(isEvolutionFromMe({ data: { key: { fromMe: true, remoteJid: "5511999999999@s.whatsapp.net" } } })).toBe(true);
+    expect(isEvolutionFromMe({ data: { key: { fromMe: false, remoteJid: "5511999999999@s.whatsapp.net" } } })).toBe(false);
+    expect(extractPhone({ data: { key: { remoteJid: "120363@g.us" } } })).toBe("");
+    expect(extractPhone({ data: { key: { remoteJid: "5511988887777@s.whatsapp.net" } } })).toBe("5511988887777");
   });
 });
