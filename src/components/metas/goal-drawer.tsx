@@ -107,7 +107,7 @@ export function GoalDrawer({
             <Field label="Observação">
               <Textarea name="notes" defaultValue={goal?.notes ?? ""} placeholder="Opcional. Ex.: campanha de outubro." />
             </Field>
-            {!goal ? (
+            {!goal && professionals.length > 1 ? (
               <label className="flex items-center gap-2 text-sm text-ink-soft">
                 <input type="checkbox" name="applyAll" value="1" className="accent-blue-600" />
                 Aplicar o mesmo valor a todos os profissionais ativos

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, canViewAllGoals } from "@/lib/permissions";
 import { parseBRLToCents } from "@/lib/money";
 import { calendarMonth, monthStartEnd, parseDateParam } from "@/lib/dates";
 import { goalMetricMeta, isGoalMetric } from "@/lib/goals";
@@ -38,14 +38,20 @@ export async function saveProfessionalGoal(formData: FormData) {
   const targetValue = parseTarget(metric, String(formData.get("targetValue") ?? ""));
   if (targetValue <= 0) return { error: "Informe um valor de meta maior que zero." };
 
-  const professionals = applyAll
+  if (!canViewAllGoals(access) && access.professionalId && professionalId && professionalId !== access.professionalId) {
+    return { error: "Você só pode alterar as suas metas." };
+  }
+  const professionals = applyAll && canViewAllGoals(access)
     ? await prisma.professional.findMany({
         where: { tenantId: session.tenantId, active: true },
         select: { id: true },
       })
     : professionalId
       ? await prisma.professional.findMany({
-          where: { id: professionalId, tenantId: session.tenantId },
+          where: {
+            id: !canViewAllGoals(access) && access.professionalId ? access.professionalId : professionalId,
+            tenantId: session.tenantId,
+          },
           select: { id: true },
         })
       : [];
@@ -95,6 +101,9 @@ export async function deleteProfessionalGoal(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const goal = await prisma.professionalGoal.findFirst({ where: { id, tenantId: session.tenantId } });
   if (!goal) return { error: "Meta não encontrada." };
+  if (!canViewAllGoals(access) && access.professionalId && goal.professionalId !== access.professionalId) {
+    return { error: "Você só pode alterar as suas metas." };
+  }
   await prisma.professionalGoal.delete({ where: { id: goal.id } });
   revalidateGoals();
   return { ok: true as const };
@@ -111,6 +120,7 @@ export async function copyGoalsFromPreviousMonth(formData: FormData) {
       tenantId: session.tenantId,
       startDate: previous.from,
       endDate: previous.to,
+      ...(!canViewAllGoals(access) && access.professionalId ? { professionalId: access.professionalId } : {}),
     },
   });
   if (!source.length) return { error: "Não há metas no período anterior para copiar." };

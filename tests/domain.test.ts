@@ -63,6 +63,7 @@ import { parseServedCities, resolveCityLabel, supplierServesSalon } from "@/lib/
 import { applySupplierPromo, bundlePayableQty } from "@/lib/supplier-promo";
 import { buildLowStockAlerts, productsLookAlike } from "@/lib/supplier-alerts";
 import {
+  anamnesisAreasFromText,
   anamnesisDocumentItems,
   anamnesisInviteMessage,
   anamnesisInvitePath,
@@ -70,9 +71,11 @@ import {
   collectAlerts,
   createAnamnesisInviteToken,
   DEFAULT_ANAMNESIS_FORMS,
+  formAllowedByAreas,
   formatAnamnesisAnswer,
   missingRequired,
   parseQuestions,
+  professionalAnamnesisAreas,
   sanitizeAnamnesisToken,
   serializeQuestions,
 } from "@/lib/anamnesis";
@@ -174,7 +177,9 @@ import {
   canAccess,
   canManageCommissions,
   canViewAllAgenda,
+  canViewAllAnamnesis,
   canViewAllCommissions,
+  canViewAllGoals,
   moduleFromPath,
   resolveAccess,
   roleDefaultGrants,
@@ -691,6 +696,14 @@ describe("permissões do salão", () => {
     expect(owner.isAdmin).toBe(true);
     expect(canAccess(owner, "finance", "remove")).toBe(true);
     expect(canAccess(professional, "commissions")).toBe(true);
+    expect(canAccess(professional, "goals")).toBe(true);
+    expect(canViewAllGoals(professional)).toBe(false);
+    expect(canViewAllGoals(reception)).toBe(false);
+    expect(canViewAllGoals(owner)).toBe(true);
+    expect(canAccess(professional, "anamnesis")).toBe(true);
+    expect(canViewAllAnamnesis(professional)).toBe(false);
+    expect(canViewAllAnamnesis(reception)).toBe(true);
+    expect(canViewAllAnamnesis(owner)).toBe(true);
     expect(canManageCommissions(professional)).toBe(false);
     expect(canViewAllCommissions(professional)).toBe(false);
     expect(canManageCommissions(owner)).toBe(true);
@@ -848,6 +861,20 @@ describe("anamnese", () => {
     const parsed = parseQuestions(json);
     expect(parsed.find((q) => q.id === "ppd")?.alertOn).toBe("yes");
     expect(parseQuestions("não-é-json")).toEqual([]);
+  });
+
+  it("manicure não acessa anamnese de estética", () => {
+    expect(anamnesisAreasFromText("Manicure")).toEqual(["unhas"]);
+    expect(anamnesisAreasFromText("Esteticista")).toEqual(["estetica"]);
+    const manicure = professionalAnamnesisAreas({
+      specialty: "Manicure",
+      services: [{ name: "Esmaltação em gel", categoryName: "Unhas" }],
+    });
+    expect(manicure).toEqual(expect.arrayContaining(["geral", "unhas"]));
+    expect(manicure).not.toContain("estetica");
+    expect(formAllowedByAreas(manicure, "unhas")).toBe(true);
+    expect(formAllowedByAreas(manicure, "estetica")).toBe(false);
+    expect(formAllowedByAreas(null, "estetica")).toBe(true);
   });
 
   it("monta o link público da ficha para a cliente preencher", () => {

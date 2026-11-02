@@ -34,6 +34,7 @@ export function GoalsBoard({
   cards,
   professionals,
   canManage,
+  ownOnly = false,
   pacePct,
 }: {
   month: string;
@@ -42,6 +43,7 @@ export function GoalsBoard({
   cards: GoalCard[];
   professionals: GoalProfessional[];
   canManage: boolean;
+  ownOnly?: boolean;
   pacePct: number;
 }) {
   const router = useRouter();
@@ -84,7 +86,9 @@ export function GoalsBoard({
         <div>
           <h1 className="font-display text-3xl">Metas</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            Metas por profissional no mês. O progresso usa comandas fechadas atribuídas a cada um.
+            {ownOnly
+              ? "Você acompanha só as suas metas, dos serviços que você atende."
+              : "Metas por profissional no mês. O progresso usa comandas fechadas atribuídas a cada um."}
           </p>
         </div>
         {canManage ? (

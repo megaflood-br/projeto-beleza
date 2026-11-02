@@ -42,9 +42,9 @@ export const PERMISSION_MODULES = [
   {
     id: "anamnesis",
     label: "Anamnese",
-    description: "Fichas, modelos e preenchimento.",
+    description: "Fichas dos serviços que a profissional atende. Ver todos libera as outras áreas.",
     href: "/anamneses",
-    extras: [] as const,
+    extras: ["viewAll"] as const,
   },
   {
     id: "docs",
@@ -70,9 +70,9 @@ export const PERMISSION_MODULES = [
   {
     id: "goals",
     label: "Metas",
-    description: "Metas da equipe e acompanhamento.",
+    description: "Acompanhar as próprias metas. Ver todos libera a equipe inteira.",
     href: "/metas",
-    extras: [] as const,
+    extras: ["viewAll"] as const,
   },
   {
     id: "commissions",
@@ -207,7 +207,7 @@ export function roleDefaultGrants(role: string): StoredAccess {
         atendimento: flags(true, true, true, false),
         comandas: flags(true, true, true, false),
         clients: flags(true, true, true, false),
-        anamnesis: flags(true, true, true, false),
+        anamnesis: flags(true, true, true, false, { viewAll: true }),
         docs: flags(true, false, false, false),
         stock: flags(true, false, false, false),
         services: flags(true, false, false, false),
@@ -223,7 +223,8 @@ export function roleDefaultGrants(role: string): StoredAccess {
       atendimento: flags(true, true, false, false),
       comandas: flags(true, false, false, false),
       clients: flags(true, false, false, false),
-      anamnesis: flags(true, true, false, false),
+      anamnesis: flags(true, true, false, false, { viewAll: false }),
+      goals: flags(true, false, false, false, { viewAll: false }),
       commissions: flags(true, false, false, false, { viewAll: false }),
       support: flags(true, true, false, false),
     },
@@ -322,6 +323,14 @@ export function canViewAllAgenda(access: Pick<Access, "isAdmin" | "grants">) {
 
 export function canViewAllCommissions(access: Pick<Access, "isAdmin" | "grants">) {
   return canAccess(access, "commissions", "viewAll");
+}
+
+export function canViewAllAnamnesis(access: Pick<Access, "isAdmin" | "grants">) {
+  return canAccess(access, "anamnesis", "viewAll");
+}
+
+export function canViewAllGoals(access: Pick<Access, "isAdmin" | "grants">) {
+  return canAccess(access, "goals", "viewAll");
 }
 
 export function canManageCommissions(access: Pick<Access, "isAdmin" | "grants">) {

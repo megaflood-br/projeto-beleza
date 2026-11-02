@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { calendarDate } from "@/lib/dates";
 import { slugify } from "@/lib/utils";
 import { publicAppOrigin } from "@/lib/public-url";
+import { canViewAllAnamnesis, type Access } from "@/lib/permissions";
 
 export const ANAMNESIS_STATUSES = ["DRAFT", "COMPLETED"] as const;
 export type AnamnesisStatus = (typeof ANAMNESIS_STATUSES)[number];
@@ -271,6 +272,77 @@ export function isAnamnesisStatus(value: string): value is AnamnesisStatus {
 
 export function isAnamnesisArea(value: string): value is AnamnesisArea {
   return ANAMNESIS_AREAS.includes(value as AnamnesisArea);
+}
+
+function normalizeScopeText(value: string | null | undefined) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+export function anamnesisAreasFromText(value: string | null | undefined): AnamnesisArea[] {
+  const text = normalizeScopeText(value);
+  if (!text.trim()) return [];
+  const areas = new Set<AnamnesisArea>();
+  if (/(unha|manicure|pedicure|nail|esmalte|alongamento|fibra|gel)/.test(text)) areas.add("unhas");
+  if (/(estetic|pele|facial|corporal|depil|sobrancel|limpeza|peeling|laser|botox|design)/.test(text)) areas.add("estetica");
+  if (/(cabelo|capilar|corte|escova|color|mecha|progressiva|hidratacao|barba|hair)/.test(text)) areas.add("cabelo");
+  if (/\bgeral\b/.test(text)) areas.add("geral");
+  return [...areas];
+}
+
+export function professionalAnamnesisAreas(input: {
+  specialty?: string | null;
+  services?: { name?: string | null; categoryName?: string | null }[];
+}): AnamnesisArea[] {
+  const areas = new Set<AnamnesisArea>(["geral"]);
+  for (const area of anamnesisAreasFromText(input.specialty)) areas.add(area);
+  for (const service of input.services ?? []) {
+    for (const area of anamnesisAreasFromText(service.categoryName)) areas.add(area);
+    for (const area of anamnesisAreasFromText(service.name)) areas.add(area);
+  }
+  return [...areas];
+}
+
+export function formAllowedByAreas(areas: AnamnesisArea[] | null | undefined, area: string) {
+  if (!areas) return true;
+  const resolved = isAnamnesisArea(area) ? area : "geral";
+  return areas.includes(resolved);
+}
+
+export async function anamnesisAreasForAccess(
+  tenantId: string,
+  access: Pick<Access, "isAdmin" | "professionalId" | "grants">,
+): Promise<AnamnesisArea[] | null> {
+  if (canViewAllAnamnesis(access)) return null;
+  return loadProfessionalAnamnesisScope(tenantId, access.professionalId);
+}
+
+export async function loadProfessionalAnamnesisScope(
+  tenantId: string,
+  professionalId: string | null | undefined,
+): Promise<AnamnesisArea[]> {
+  if (!professionalId) return ["geral"];
+  const professional = await prisma.professional.findFirst({
+    where: { id: professionalId, tenantId },
+    select: {
+      specialty: true,
+      serviceLinks: {
+        select: {
+          service: { select: { name: true, category: { select: { name: true } } } },
+        },
+      },
+    },
+  });
+  if (!professional) return ["geral"];
+  return professionalAnamnesisAreas({
+    specialty: professional.specialty,
+    services: professional.serviceLinks.map((link) => ({
+      name: link.service.name,
+      categoryName: link.service.category?.name ?? null,
+    })),
+  });
 }
 
 export function mapFormRow(form: {
