@@ -139,6 +139,7 @@ model Tenant {
   ownedPartner       Partner? @relation("PartnerTenant")
   platformInvoices   PlatformInvoice[]
   permissionProfiles PermissionProfile[]
+  receptionist       Receptionist?
 
   @@index([slug])
   @@index([kind])
@@ -776,6 +777,7 @@ model Conversation {
   phone         String
   lastMessageAt DateTime @default(now())
   unread        Int      @default(0)
+  botPaused     Boolean  @default(false)
   messages      Message[]
 
   @@unique([tenantId, phone])
@@ -788,8 +790,24 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   direction      String
   body           String
+  source         String       @default("HUMAN")
   waId           String?
   createdAt      DateTime     @default(now())
+}
+
+model Receptionist {
+  id           String   @id @default(cuid())
+  tenantId     String   @unique
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enabled      Boolean  @default(false)
+  name         String   @default("Luna")
+  avatarUrl    String?
+  style        String   @default("conversador")
+  personality  String   @default("feliz")
+  emoji        String   @default("moderado")
+  instructions String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Automation {

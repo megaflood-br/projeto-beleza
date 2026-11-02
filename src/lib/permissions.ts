@@ -26,6 +26,13 @@ export const PERMISSION_MODULES = [
     extras: [] as const,
   },
   {
+    id: "receptionist",
+    label: "Recepcionista",
+    description: "Atendente virtual no WhatsApp: avatar, personalidade e respostas automáticas.",
+    href: "/recepcionista",
+    extras: [] as const,
+  },
+  {
     id: "comandas",
     label: "Comandas",
     description: "Abrir, editar e faturar comandas.",
@@ -209,6 +216,7 @@ export function roleDefaultGrants(role: string): StoredAccess {
         dashboard: flags(true, false, false, false),
         agenda: flags(true, true, true, true, { viewAll: true }),
         atendimento: flags(true, true, true, false),
+        receptionist: flags(true, false, true, false),
         comandas: flags(true, true, true, false),
         clients: flags(true, true, true, false, { hidePhones: false }),
         anamnesis: flags(true, true, true, false, { viewAll: true }),

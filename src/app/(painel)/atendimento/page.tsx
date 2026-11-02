@@ -7,8 +7,9 @@ import type { InboxClientProfile } from "@/components/whatsapp/inbox-client-pane
 import { comandaTotal } from "@/lib/comandas";
 import { settingsPath } from "@/lib/settings";
 import { whatsappPhoneCandidates } from "@/lib/whatsapp-campaigns";
-import { shouldHidePhones } from "@/lib/permissions";
+import { canAccess, shouldHidePhones } from "@/lib/permissions";
 import { redactPhone } from "@/lib/utils";
+import { loadReceptionistConfig } from "@/lib/receptionist-runtime";
 
 export default async function AtendimentoPage({
   searchParams,
@@ -19,13 +20,14 @@ export default async function AtendimentoPage({
   const hidePhones = shouldHidePhones(access);
   const params = await searchParams;
   const selectedId = typeof params.c === "string" ? params.c : null;
-  const [live, conversations] = await Promise.all([
+  const [live, conversations, receptionist] = await Promise.all([
     readWhatsAppLive(session.tenantId),
     prisma.conversation.findMany({
       where: { tenantId: session.tenantId },
       include: { client: true, messages: { orderBy: { createdAt: "asc" } } },
       orderBy: { lastMessageAt: "desc" },
     }),
+    loadReceptionistConfig(session.tenantId),
   ]);
   const selected = conversations.find((row) => row.id === selectedId) ?? conversations[0] ?? null;
   const profile = selected ? await loadInboxProfile(session.tenantId, selected) : null;
@@ -36,6 +38,19 @@ export default async function AtendimentoPage({
         <h1 className="font-display text-3xl">Atendimento</h1>
         <p className="text-ink-soft">
           Conversas do WhatsApp do salão.
+          {receptionist.enabled ? (
+            <>
+              {" "}
+              {canAccess(access, "receptionist") ? (
+                <Link href="/recepcionista" className="font-medium text-wine">
+                  {receptionist.name} está atendendo
+                </Link>
+              ) : (
+                <span>{receptionist.name} está atendendo</span>
+              )}
+              .
+            </>
+          ) : null}
           {live.state !== "open" ? (
             <>
               {" "}
@@ -49,6 +64,8 @@ export default async function AtendimentoPage({
       <InboxBoard
         selectedId={selected?.id ?? null}
         hidePhones={hidePhones}
+        receptionistEnabled={receptionist.enabled}
+        receptionistName={receptionist.name}
         profile={
           profile
             ? {
@@ -63,6 +80,7 @@ export default async function AtendimentoPage({
         conversations={conversations.map((conversation) => ({
           id: conversation.id,
           phone: redactPhone(conversation.phone, hidePhones),
+          botPaused: conversation.botPaused,
           client: conversation.client ? { name: conversation.client.name } : profile?.client && conversation.id === selected?.id
             ? { name: profile.client.name }
             : null,

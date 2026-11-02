@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { extractEvolutionNumber, extractInboundText, extractPhone, parseEvolutionState } from "@/lib/evolution";
+import { extractEvolutionNumber, extractInboundText, extractPhone, isEvolutionFromMe, parseEvolutionState } from "@/lib/evolution";
 import { markMarketingReplies } from "@/lib/marketing";
+import { maybeReplyAsReceptionist } from "@/lib/receptionist-runtime";
 
 export async function POST(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("tenant");
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
 
   const phone = extractPhone(payload);
   const body = extractInboundText(payload);
-  if (!phone || !body) return NextResponse.json({ ok: true, ignored: true });
+  if (isEvolutionFromMe(payload) || !phone || !body) return NextResponse.json({ ok: true, ignored: true });
 
   const client = await prisma.client.findFirst({
     where: { tenantId: tenant.id, phone },
@@ -50,6 +51,13 @@ export async function POST(request: NextRequest) {
     body,
     conversationId: conversation.id,
   }).catch(() => 0);
+
+  await maybeReplyAsReceptionist({
+    tenantId: tenant.id,
+    conversationId: conversation.id,
+    phone,
+    incoming: body,
+  }).catch(() => null);
 
   return NextResponse.json({ ok: true });
 }
