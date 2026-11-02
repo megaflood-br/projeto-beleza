@@ -111,7 +111,7 @@ export async function setConversationBotPaused(formData: FormData) {
   if (!conversation) return { error: "Conversa não encontrada." };
   await prisma.conversation.update({
     where: { id: conversation.id },
-    data: { botPaused: paused },
+    data: paused ? { botPaused: true } : { botPaused: false, botPausedUntil: null },
   });
   revalidatePath("/atendimento");
   return { ok: true as const };

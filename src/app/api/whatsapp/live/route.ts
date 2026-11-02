@@ -6,6 +6,7 @@ import { readWhatsAppLive } from "@/lib/whatsapp-live";
 
 export const dynamic = "force-dynamic";
 
+/** Snapshot do banco (webhook → tenant). Não consulta a Evolution. */
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
