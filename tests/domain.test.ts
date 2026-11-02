@@ -92,6 +92,7 @@ import {
   partnerHostCandidates,
   partnerLandingPath,
   partnerRefForBrand,
+  shouldApplyPartnerBrand,
   partnerSlugFromPath,
   partnerSubdomainUrl,
   parseLandingFeatures,
@@ -1355,7 +1356,13 @@ describe("parceiros", () => {
     expect(partnerRefForBrand({ pathname: "/", cookieRef: "teste" })).toBe("");
     expect(partnerRefForBrand({ pathname: "/", headerRef: "teste" })).toBe("teste");
     expect(partnerRefForBrand({ pathname: "/apresentacao/salao", cookieRef: "teste" })).toBe("");
+    expect(partnerRefForBrand({ pathname: "/login", cookieRef: "teste" })).toBe("");
+    expect(partnerRefForBrand({ pathname: "/login", headerRef: "teste" })).toBe("teste");
     expect(partnerRefForBrand({ pathname: "/cadastro", cookieRef: "teste" })).toBe("teste");
+    expect(shouldApplyPartnerBrand({ pathname: "/agenda", hasSession: true })).toBe(false);
+    expect(shouldApplyPartnerBrand({ pathname: "/comandas", hasSession: true })).toBe(false);
+    expect(shouldApplyPartnerBrand({ pathname: "/login", hasSession: false })).toBe(true);
+    expect(shouldApplyPartnerBrand({ pathname: "/cadastro", hasSession: false })).toBe(true);
     expect(isPublicBrandPath("/cadastro")).toBe(true);
     expect(isPublicBrandPath("/apresentacao/parceiros")).toBe(true);
     expect(isPublicBrandPath("/parceiro/aparencia")).toBe(false);

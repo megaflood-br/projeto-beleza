@@ -113,7 +113,18 @@ export function isPartnerStatus(value: string | null | undefined): value is Part
 
 export function isHqLockedPath(pathname: string | null | undefined) {
   const path = String(pathname ?? "").split("?")[0] || "/";
-  return path === "/" || path === "/apresentacao" || path.startsWith("/apresentacao/");
+  return (
+    path === "/" ||
+    path === "/login" ||
+    path.startsWith("/login/") ||
+    path === "/apresentacao" ||
+    path.startsWith("/apresentacao/")
+  );
+}
+
+export function shouldApplyPartnerBrand(input: { pathname?: string | null; hasSession?: boolean }) {
+  if (input.hasSession && !isPublicBrandPath(input.pathname)) return false;
+  return true;
 }
 
 export function isPublicBrandPath(pathname: string | null | undefined) {
