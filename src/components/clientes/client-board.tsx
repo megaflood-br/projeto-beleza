@@ -9,10 +9,10 @@ import { ConfirmProvider, useConfirm } from "@/components/confirm-dialog";
 import { deleteClients } from "@/app/actions/clients";
 import { clientDeleteCopy } from "@/lib/client-delete";
 import { matchesClientSearch } from "@/lib/client-search";
-import { cn, formatPhoneBR, initials } from "@/lib/utils";
+import { cn, displayPhoneBR, initials } from "@/lib/utils";
 import type { ClientFormValue } from "@/components/clientes/types";
 
-export function ClientBoard(props: { clients: ClientFormValue[]; tags: string[] }) {
+export function ClientBoard(props: { clients: ClientFormValue[]; tags: string[]; hidePhones?: boolean }) {
   return (
     <ConfirmProvider>
       <ClientBoardInner {...props} />
@@ -23,9 +23,11 @@ export function ClientBoard(props: { clients: ClientFormValue[]; tags: string[] 
 function ClientBoardInner({
   clients,
   tags,
+  hidePhones = false,
 }: {
   clients: ClientFormValue[];
   tags: string[];
+  hidePhones?: boolean;
 }) {
   const [showActive, setShowActive] = useState(true);
   const [showInactive, setShowInactive] = useState(true);
@@ -49,8 +51,9 @@ function ClientBoardInner({
         if (!matchesClientSearch(c, query)) return false;
         if (c.active && !showActive) return false;
         if (!c.active && !showInactive) return false;
-        if (c.phone && !withPhone) return false;
-        if (!c.phone && !withoutPhone) return false;
+        const hasPhone = c.hasPhone ?? Boolean(c.phone);
+        if (hasPhone && !withPhone) return false;
+        if (!hasPhone && !withoutPhone) return false;
         if (c.hasDebt && !withDebt) return false;
         if (!c.hasDebt && !withoutDebt) return false;
         const clientTags = c.tags
@@ -230,7 +233,7 @@ function ClientBoardInner({
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate font-medium text-blue-700">{c.name}</span>
-                          <span className="block truncate text-xs text-ink-soft sm:hidden">{formatPhoneBR(c.phone)}</span>
+                          <span className="block truncate text-xs text-ink-soft sm:hidden">{displayPhoneBR(c.phone, hidePhones)}</span>
                           <span className="block truncate text-xs text-ink-soft">
                             {c.tags
                               ? c.tags
@@ -243,7 +246,7 @@ function ClientBoardInner({
                           </span>
                         </span>
                       </button>
-                      <span className="hidden text-right text-sm text-ink-soft sm:block">{formatPhoneBR(c.phone)}</span>
+                      <span className="hidden text-right text-sm text-ink-soft sm:block">{displayPhoneBR(c.phone, hidePhones)}</span>
                     </div>
                   </li>
                 ))}
@@ -260,6 +263,7 @@ function ClientBoardInner({
           client={editing}
           clients={clients.map((c) => ({ id: c.id, name: c.name }))}
           tags={tags}
+          hidePhones={hidePhones}
           onClose={() => setEditing(undefined)}
         />
       ) : null}

@@ -4,7 +4,8 @@ import { parseDateParam, rangeOfCalendarDate } from "@/lib/dates";
 import { AgendaBoard } from "@/components/agenda/board";
 import type { AgendaAppointment, AgendaClient } from "@/components/agenda/types";
 import type { AppointmentStatus } from "@/lib/constants";
-import { canAccess, canViewAllAgenda } from "@/lib/permissions";
+import { canAccess, canViewAllAgenda, shouldHidePhones } from "@/lib/permissions";
+import { redactPhone } from "@/lib/utils";
 
 export default async function AgendaPage({
   searchParams,
@@ -15,6 +16,7 @@ export default async function AgendaPage({
   const params = await searchParams;
   const date = parseDateParam(typeof params.date === "string" ? params.date : null);
   const { start, end } = rangeOfCalendarDate(date);
+  const hidePhones = shouldHidePhones(access);
   const ownOnly = !canViewAllAgenda(access);
   const scopedProfessionalId = ownOnly ? access.professionalId ?? "__none__" : null;
   const professionalFilter = scopedProfessionalId ? { professionalId: scopedProfessionalId } : {};
@@ -51,7 +53,7 @@ export default async function AgendaPage({
   const mappedClients: AgendaClient[] = clients.map((c) => ({
     id: c.id,
     name: c.name,
-    phone: c.phone,
+    phone: redactPhone(c.phone, hidePhones),
     birthDate: c.birthDate?.toISOString() ?? null,
     creditCents: c.creditCents,
     cashbackCents: c.cashbackCents,
@@ -71,7 +73,7 @@ export default async function AgendaPage({
     notes: a.notes,
     professionalId: a.professionalId,
     comandaId: a.comanda?.id ?? null,
-    client: { id: a.client.id, name: a.client.name, phone: a.client.phone },
+    client: { id: a.client.id, name: a.client.name, phone: redactPhone(a.client.phone, hidePhones) },
     items: a.items.map((item) => ({
       serviceId: item.serviceId,
       professionalId: item.professionalId,
@@ -97,6 +99,7 @@ export default async function AgendaPage({
       canRemove={canAccess(access, "agenda", "remove")}
       canCreateComanda={canAccess(access, "comandas", "create")}
       canViewComanda={canAccess(access, "comandas")}
+      hidePhones={hidePhones}
     />
   );
 }

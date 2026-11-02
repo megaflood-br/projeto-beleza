@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { ClientPanel, isClientTab } from "@/components/clientes/client-panel";
 import { buildClientMetrics } from "@/lib/client-metrics";
 import { anamnesisAreasForAccess, ensureAnamnesisForms, formAllowedByAreas, mapAnamnesisRow, mapFormRow } from "@/lib/anamnesis";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, shouldHidePhones } from "@/lib/permissions";
+import { redactPhone } from "@/lib/utils";
 
 export default async function ClientePage({
   params,
@@ -45,6 +46,7 @@ export default async function ClientePage({
   });
   if (!client) notFound();
 
+  const hidePhones = shouldHidePhones(access);
   const areas = await anamnesisAreasForAccess(session.tenantId, access);
   const ownOnly = Boolean(access.professionalId && !canAccess(access, "anamnesis", "viewAll"));
   const [forms, professionals] = await Promise.all([
@@ -80,13 +82,17 @@ export default async function ClientePage({
   return (
     <ClientPanel
       tab={tab}
-      client={client}
+      hidePhones={hidePhones}
+      client={{ ...client, phone: redactPhone(client.phone, hidePhones) }}
       metrics={metrics}
       appointments={client.appointments}
       comandas={client.comandas}
       packages={client.packages}
       messages={messages}
-      anamneses={client.anamneses.map(mapAnamnesisRow).filter((row) => visibleIds.has(row.formId))}
+      anamneses={client.anamneses
+        .map(mapAnamnesisRow)
+        .filter((row) => visibleIds.has(row.formId))
+        .map((row) => ({ ...row, clientPhone: redactPhone(row.clientPhone, hidePhones) }))}
       forms={visibleForms}
       professionals={professionals}
       canCreateAnamnesis={canAccess(access, "anamnesis", "create")}

@@ -1,7 +1,7 @@
 import { Button, Card, Textarea } from "@/components/ui";
 import { sendWhatsApp } from "@/app/actions/whatsapp";
 import { formatTime } from "@/lib/dates";
-import { formAction, formatPhoneBR } from "@/lib/utils";
+import { displayPhoneBR, formAction } from "@/lib/utils";
 import { InboxClientPanel, type InboxClientProfile } from "@/components/whatsapp/inbox-client-panel";
 
 type InboxConversation = {
@@ -15,10 +15,12 @@ export function InboxBoard({
   conversations,
   selectedId,
   profile,
+  hidePhones = false,
 }: {
   conversations: InboxConversation[];
   selectedId: string | null;
   profile: InboxClientProfile | null;
+  hidePhones?: boolean;
 }) {
   const selected = conversations.find((row) => row.id === selectedId) ?? conversations[0];
 
@@ -33,7 +35,9 @@ export function InboxBoard({
                 href={`/atendimento?c=${conversation.id}`}
                 className={`block border-b border-line px-4 py-3 ${selected?.id === conversation.id ? "bg-sand" : ""}`}
               >
-                <div className="truncate font-medium">{conversation.client?.name ?? formatPhoneBR(conversation.phone)}</div>
+                <div className="truncate font-medium">
+                  {conversation.client?.name ?? (hidePhones ? "Conversa" : displayPhoneBR(conversation.phone))}
+                </div>
                 <div className="truncate text-xs text-ink-soft">{conversation.messages.at(-1)?.body}</div>
               </a>
             ))
@@ -45,7 +49,7 @@ export function InboxBoard({
 
       <Card className="flex min-h-[22rem] min-w-0 flex-col overflow-hidden p-0 lg:min-h-0">
         <div className="shrink-0 truncate border-b border-line px-5 py-3 font-medium">
-          {selected?.client?.name ?? (selected ? formatPhoneBR(selected.phone) : "Selecione uma conversa")}
+          {selected?.client?.name ?? (selected ? (hidePhones ? "Conversa" : displayPhoneBR(selected.phone)) : "Selecione uma conversa")}
         </div>
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 py-4">
           {selected?.messages.map((message) => (
@@ -61,7 +65,7 @@ export function InboxBoard({
         {selected ? (
           <form action={formAction(sendWhatsApp)} className="grid shrink-0 gap-2 border-t border-line bg-paper p-4">
             <input type="hidden" name="conversationId" value={selected.id} />
-            <input type="hidden" name="phone" value={selected.phone} />
+            {hidePhones ? null : <input type="hidden" name="phone" value={selected.phone} />}
             <Textarea name="body" placeholder="Escreva uma mensagem..." required className="min-h-20" />
             <Button>Enviar</Button>
           </form>
@@ -69,7 +73,7 @@ export function InboxBoard({
       </Card>
 
       <Card className="min-h-0 overflow-y-auto p-0">
-        <InboxClientPanel profile={profile} />
+        <InboxClientPanel profile={profile} hidePhones={hidePhones} />
       </Card>
     </div>
   );

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
+import { shouldHidePhones } from "@/lib/permissions";
 import { digitsOnly } from "@/lib/utils";
 import { zonedDateTime } from "@/lib/dates";
 import { cashbackExpiry, pointsToCents } from "@/lib/cashback";
@@ -22,11 +23,13 @@ function text(formData: FormData, key: string) {
 }
 
 export async function upsertClient(formData: FormData) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  const hidePhones = shouldHidePhones(access);
   const id = String(formData.get("id") ?? "");
   const full = String(formData.get("full") ?? "") === "1";
   const name = String(formData.get("name") ?? "").trim();
-  const phone = digitsOnly(String(formData.get("phone") ?? ""));
+  const keepPhone = hidePhones && Boolean(id);
+  const phone = keepPhone ? "" : digitsOnly(String(formData.get("phone") ?? ""));
   const email = text(formData, "email");
   const notes = text(formData, "notes");
   const tags = String(formData.get("tags") ?? "").trim();
@@ -34,22 +37,23 @@ export async function upsertClient(formData: FormData) {
   const birthRaw = String(formData.get("birthDate") ?? "");
   const birthDate = /^\d{4}-\d{2}-\d{2}$/.test(birthRaw) ? zonedDateTime(birthRaw, "12:00") : null;
 
-  if (!name || !phone) return { error: "Nome e celular são obrigatórios." };
+  if (!name || (!keepPhone && !phone)) return { error: "Nome e celular são obrigatórios." };
 
   try {
     if (id) {
       const existing = await prisma.client.findFirst({ where: { id, tenantId: session.tenantId } });
       if (!existing) return { error: "Cliente não encontrado." };
+      const nextPhone = keepPhone ? existing.phone : phone;
       const duplicate = await prisma.client.findFirst({
-        where: { tenantId: session.tenantId, phone, NOT: { id } },
+        where: { tenantId: session.tenantId, phone: nextPhone, NOT: { id } },
       });
       if (duplicate) return { error: "Já existe cliente com este telefone." };
 
-      const partial = { name, phone, email, notes, tags, instagram, birthDate };
+      const partial = { name, phone: nextPhone, email, notes, tags, instagram, birthDate };
       const extra = full
         ? {
             nickname: text(formData, "nickname"),
-            landline: digitsOnly(String(formData.get("landline") ?? "")) || null,
+            landline: keepPhone ? existing.landline : digitsOnly(String(formData.get("landline") ?? "")) || null,
             facebook: text(formData, "facebook"),
             cnpj: text(formData, "cnpj"),
             cpf: text(formData, "cpf"),

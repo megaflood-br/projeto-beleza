@@ -25,7 +25,7 @@ import {
   summarizeMarketing,
   type MarketingAudience,
 } from "@/lib/marketing";
-import { cn, formatPhoneBR } from "@/lib/utils";
+import { cn, displayPhoneBR } from "@/lib/utils";
 
 function isSendOk(result: MarketingSendResult): result is Extract<MarketingSendResult, { ok: true }> {
   return "ok" in result;
@@ -63,6 +63,7 @@ export function MarketingBoard({
   tags,
   services,
   canManage,
+  hidePhones = false,
   connected,
   selectedId,
 }: {
@@ -70,6 +71,7 @@ export function MarketingBoard({
   tags: string[];
   services: { id: string; name: string }[];
   canManage: boolean;
+  hidePhones?: boolean;
   connected: boolean;
   selectedId?: string | null;
 }) {
@@ -355,6 +357,7 @@ export function MarketingBoard({
                 <RecipientCard
                   key={row.id}
                   row={row}
+                  hidePhones={hidePhones}
                   selectable={canManage}
                   checked={picked.includes(row.id)}
                   onToggle={() => toggle(row.id)}
@@ -373,6 +376,7 @@ export function MarketingBoard({
                 <RecipientCard
                   key={row.id}
                   row={row}
+                  hidePhones={hidePhones}
                   action={
                     canManage ? (
                       <Button type="button" variant="outline" disabled={busy} onClick={() => void onResolve(row.id, true)}>
@@ -388,6 +392,7 @@ export function MarketingBoard({
                 <RecipientCard
                   key={row.id}
                   row={row}
+                  hidePhones={hidePhones}
                   action={
                     canManage ? (
                       <Button type="button" variant="outline" disabled={busy} onClick={() => void onResolve(row.id, true)}>
@@ -403,6 +408,7 @@ export function MarketingBoard({
                 <RecipientCard
                   key={row.id}
                   row={row}
+                  hidePhones={hidePhones}
                   action={
                     canManage ? (
                       <Button type="button" variant="ghost" disabled={busy} onClick={() => void onResolve(row.id, false)}>
@@ -453,12 +459,14 @@ function KanbanColumn({
 
 function RecipientCard({
   row,
+  hidePhones = false,
   selectable,
   checked,
   onToggle,
   action,
 }: {
   row: MarketingRecipientRow;
+  hidePhones?: boolean;
   selectable?: boolean;
   checked?: boolean;
   onToggle?: () => void;
@@ -484,7 +492,7 @@ function RecipientCard({
         ) : null}
         <div className="min-w-0 flex-1">
           <div className="font-medium">{row.clientName}</div>
-          <div className="text-xs text-ink-soft">{formatPhoneBR(row.phone)}</div>
+          <div className="text-xs text-ink-soft">{displayPhoneBR(row.phone, hidePhones)}</div>
         </div>
         <Link href={href} className="mt-0.5 text-ink-soft hover:text-ink" aria-label="Abrir conversa">
           <MessageCircle size={16} />

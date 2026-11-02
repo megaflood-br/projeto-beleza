@@ -15,7 +15,7 @@ import {
   mentionedPerson,
 } from "@/lib/assistant";
 import { formatBRL, parseBRLToCents } from "@/lib/money";
-import { slugify, formatPhoneBR } from "@/lib/utils";
+import { slugify, formatPhoneBR, displayPhoneBR, HIDDEN_PHONE_LABEL } from "@/lib/utils";
 import { allocatePayments, comandaTotal, paymentChange } from "@/lib/comandas";
 import { centsToPoints, defaultCashbackConfig, earnCashbackCents, maxRedeemCents, pointsToCents } from "@/lib/cashback";
 import { parseSettingsTab, settingsPath } from "@/lib/settings";
@@ -181,9 +181,11 @@ import {
   canViewAllCommissions,
   canViewAllGoals,
   moduleFromPath,
+  phonesScopeLabel,
   resolveAccess,
   roleDefaultGrants,
   serializeAccess,
+  shouldHidePhones,
 } from "@/lib/permissions";
 import {
   applyCatalogPrice,
@@ -407,6 +409,8 @@ describe("helpers", () => {
   it("formata celular brasileiro", () => {
     expect(formatPhoneBR("11970001111")).toBe("+55 (11) 97000-1111");
     expect(formatPhoneBR("+55 11 97000-1111")).toBe("+55 (11) 97000-1111");
+    expect(displayPhoneBR("11970001111", true)).toBe(HIDDEN_PHONE_LABEL);
+    expect(displayPhoneBR("11970001111", false)).toBe("+55 (11) 97000-1111");
   });
 });
 
@@ -709,6 +713,11 @@ describe("permissões do salão", () => {
     expect(canManageCommissions(owner)).toBe(true);
     expect(canViewAllCommissions(owner)).toBe(true);
     expect(canManageCommissions(reception)).toBe(false);
+    expect(shouldHidePhones(professional)).toBe(true);
+    expect(shouldHidePhones(reception)).toBe(false);
+    expect(shouldHidePhones(owner)).toBe(false);
+    expect(phonesScopeLabel(professional)).toBe("Telefones ocultos");
+    expect(phonesScopeLabel(owner)).toBe("Telefones visíveis");
   });
 
   it("perfil e personalizado substituem o padrão do cargo", () => {
@@ -739,6 +748,15 @@ describe("permissões do salão", () => {
     expect(canViewAllAgenda(custom)).toBe(false);
     expect(canAccess(custom, "clients")).toBe(true);
     expect(canAccess(custom, "comandas")).toBe(false);
+    expect(shouldHidePhones(custom)).toBe(false);
+    const hidden = resolveAccess({
+      role: "RECEPTIONIST",
+      accessJson: serializeAccess({
+        admin: false,
+        modules: { clients: { access: true, hidePhones: true } },
+      }),
+    });
+    expect(shouldHidePhones(hidden)).toBe(true);
   });
 
   it("esconde do menu o que não tem acesso", () => {

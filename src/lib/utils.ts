@@ -28,6 +28,8 @@ export function digitsOnly(value: string) {
   return value.replace(/\D/g, "");
 }
 
+export const HIDDEN_PHONE_LABEL = "Telefone oculto";
+
 export function formatPhoneBR(value: string | null | undefined) {
   if (!value) return "—";
   let digits = digitsOnly(value);
@@ -39,6 +41,15 @@ export function formatPhoneBR(value: string | null | undefined) {
     return `+55 (${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   }
   return value;
+}
+
+export function displayPhoneBR(value: string | null | undefined, hidden = false) {
+  if (hidden) return HIDDEN_PHONE_LABEL;
+  return formatPhoneBR(value);
+}
+
+export function redactPhone(value: string | null | undefined, hidden: boolean) {
+  return hidden ? "" : value ?? "";
 }
 
 export function formAction<T>(fn: (formData: FormData) => Promise<T>) {

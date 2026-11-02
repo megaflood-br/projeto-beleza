@@ -7,7 +7,7 @@ import { SearchSelect } from "@/components/search-select";
 import { addComandaItem, closeComanda, removeComandaItemForm } from "@/app/actions/comandas";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { emitComandaInvoice } from "@/app/actions/fiscal";
-import { formAction } from "@/lib/utils";
+import { displayPhoneBR, formAction } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
 import { comandaSubtotal, comandaTotal, itemLineTotal } from "@/lib/comandas";
 import { COMANDA_STATUS_COLOR, COMANDA_STATUS_LABEL, type ComandaStatus } from "@/lib/constants";
@@ -16,7 +16,7 @@ import { calendarDate } from "@/lib/dates";
 import { decorateCatalogItem } from "@/lib/promotions";
 import { loadPromoRules } from "@/lib/promo-load";
 import { financeMethodLabel } from "@/lib/finance";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, shouldHidePhones } from "@/lib/permissions";
 import { Trash2 } from "lucide-react";
 
 export default async function ComandaPage({ params }: { params: Promise<{ id: string }> }) {
@@ -61,7 +61,7 @@ export default async function ComandaPage({ params }: { params: Promise<{ id: st
           </p>
           <h1 className="font-display text-3xl">Comanda #{comanda.number}</h1>
           <p className="text-ink-soft">
-            {comanda.client.name} · {comanda.client.phone}
+            {comanda.client.name} · {displayPhoneBR(comanda.client.phone, shouldHidePhones(access))}
             {comanda.professional ? ` · ${comanda.professional.name}` : ""}
           </p>
           {open && !canEdit ? (

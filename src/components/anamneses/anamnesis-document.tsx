@@ -10,19 +10,21 @@ import {
   type AnamnesisStatus,
 } from "@/lib/anamnesis";
 import { formatMediumDate, zonedDateTime } from "@/lib/dates";
-import { cn, formatPhoneBR } from "@/lib/utils";
+import { cn, displayPhoneBR } from "@/lib/utils";
 import type { AnamnesisFormRow, AnamnesisRow } from "@/components/anamneses/types";
 
 export function AnamnesisDocument({
   record,
   form,
   salonName,
+  hidePhones = false,
   onClose,
   onEdit,
 }: {
   record: AnamnesisRow;
   form: AnamnesisFormRow | null;
   salonName?: string;
+  hidePhones?: boolean;
   onClose: () => void;
   onEdit?: () => void;
 }) {
@@ -68,7 +70,7 @@ export function AnamnesisDocument({
 
           <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <DocField label="Cliente" value={record.clientName} />
-            <DocField label="Celular" value={formatPhoneBR(record.clientPhone)} />
+            <DocField label="Celular" value={displayPhoneBR(record.clientPhone, hidePhones)} />
             <DocField label="Profissional" value={record.professionalName ?? "—"} />
             <DocField label="Data" value={occurred} />
             <DocField label="Status" value={ANAMNESIS_STATUS_LABEL[record.status as AnamnesisStatus] ?? record.status} />

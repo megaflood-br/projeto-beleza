@@ -16,7 +16,17 @@ const ACTION_LABEL: Record<PermissionFlag, string> = {
   edit: "Editar",
   remove: "Excluir",
   viewAll: "Ver todos",
+  hidePhones: "Esconder telefones",
 };
+
+function extraLabel(moduleId: PermissionModuleId, flag: PermissionFlag, on: boolean) {
+  if (flag === "hidePhones") return on ? "Telefones ocultos" : "Esconder telefones";
+  if (flag !== "viewAll") return ACTION_LABEL[flag];
+  if (moduleId === "commissions") return on ? "Ver comissões de todos" : "Só as próprias comissões";
+  if (moduleId === "anamnesis") return on ? "Ver anamneses de todos" : "Só as próprias áreas";
+  if (moduleId === "goals") return on ? "Ver metas de todos" : "Só as próprias metas";
+  return on ? "Ver agenda de todos" : "Só a própria agenda";
+}
 
 export function PermissionMatrix({
   grants,
@@ -40,7 +50,7 @@ export function PermissionMatrix({
       nextRow.edit = false;
       nextRow.remove = false;
     }
-    if (flag !== "access" && flag !== "viewAll" && nextValue) nextRow.access = true;
+    if (flag !== "access" && flag !== "viewAll" && flag !== "hidePhones" && nextValue) nextRow.access = true;
     onChange({ ...grants, [moduleId]: nextRow });
   }
 
@@ -92,15 +102,7 @@ export function PermissionMatrix({
                           on ? "bg-wine text-white ring-wine" : "bg-white text-ink-soft ring-line hover:text-ink",
                         )}
                       >
-                        {flag === "viewAll"
-                          ? on
-                            ? module.id === "commissions"
-                              ? "Ver comissões de todos"
-                              : "Ver agenda de todos"
-                            : module.id === "commissions"
-                              ? "Só as próprias comissões"
-                              : "Só a própria agenda"
-                          : ACTION_LABEL[flag]}
+                        {extraLabel(module.id, flag, on)}
                       </button>
                     );
                   })}
