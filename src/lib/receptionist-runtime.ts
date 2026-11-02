@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { calendarDate, formatTime, rangeOfCalendarDate, shiftCalendarDate } from "@/lib/dates";
 import { resolvePlatformIntegrations } from "@/lib/integrations";
 import { sendSalonWhatsApp } from "@/lib/whatsapp-send";
+import { isConfirmReply, looksLikeReminderPrompt, spin } from "@/lib/whatsapp-copy";
 import { chatAsReceptionist } from "@/lib/openai";
 import { freeSlotsForProfessional } from "@/lib/assistant";
 import {
@@ -183,6 +184,22 @@ export async function maybeReplyAsReceptionist(input: {
   ]);
   if (!config.enabled) return { skipped: "off" as const };
   if (!conversation || conversation.botPaused) return { skipped: "paused" as const };
+  if (!conversation.messages.some((row) => row.direction === "IN")) return { skipped: "receptive" as const };
+
+  const lastOut = conversation.messages.find((row) => row.direction === "OUT");
+  if (isConfirmReply(input.incoming) && lastOut && looksLikeReminderPrompt(lastOut.body)) {
+    await confirmNextAppointment(input.tenantId, conversation.clientId, conversation.phone);
+    const text = spin("{Recebi|Combinado|Fechado}! Horário confirmado, te esperamos.");
+    await sendSalonWhatsApp({ tenantId: input.tenantId, phone: input.phone, text, presence: true }).catch(() => null);
+    await prisma.message.create({
+      data: { conversationId: conversation.id, direction: "OUT", body: text, source: "BOT" },
+    });
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { lastMessageAt: new Date() },
+    });
+    return { skipped: null, handover: false, source: "local" as const };
+  }
 
   const catalog = await loadReceptionistCatalog(input.tenantId);
   const integrations = await resolvePlatformIntegrations();
@@ -209,7 +226,12 @@ export async function maybeReplyAsReceptionist(input: {
     });
   }
 
-  await sendSalonWhatsApp({ tenantId: input.tenantId, phone: input.phone, text: reply.text }).catch(() => null);
+  await sendSalonWhatsApp({
+    tenantId: input.tenantId,
+    phone: input.phone,
+    text: reply.text,
+    presence: true,
+  }).catch(() => null);
 
   await prisma.message.create({
     data: {
@@ -224,4 +246,31 @@ export async function maybeReplyAsReceptionist(input: {
     data: { lastMessageAt: new Date() },
   });
   return { skipped: null, handover: reply.handover, source: reply.source };
+}
+
+async function confirmNextAppointment(tenantId: string, clientId: string | null, phone: string) {
+  let id = clientId;
+  if (!id) {
+    const client = await prisma.client.findFirst({
+      where: { tenantId, phone: phone.replace(/\D/g, "") },
+      select: { id: true },
+    });
+    id = client?.id ?? null;
+  }
+  if (!id) return;
+  const next = await prisma.appointment.findFirst({
+    where: {
+      tenantId,
+      clientId: id,
+      status: "PENDING",
+      startAt: { gte: new Date() },
+    },
+    orderBy: { startAt: "asc" },
+    select: { id: true },
+  });
+  if (!next) return;
+  await prisma.appointment.update({
+    where: { id: next.id },
+    data: { status: "CONFIRMED" },
+  });
 }

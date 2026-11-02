@@ -188,6 +188,7 @@ import {
   normalizeWhatsAppProvider,
 } from "@/lib/whatsapp-meta";
 import { isSalonWhatsAppConnected } from "@/lib/whatsapp-send";
+import { isConfirmReply, looksLikeReminderPrompt, spin, typingDelayMs } from "@/lib/whatsapp-copy";
 import { currentForMetric, expectedPacePct, goalProgress, professionalFacts, summarizeGoalStatuses } from "@/lib/goals";
 import {
   canAssignTenantRole,
@@ -506,6 +507,7 @@ describe("comandas", () => {
     expect(atendimentoPath()).toBe("/atendimento");
     expect(normalizeCampaignTrigger("APPOINTMENT_CREATED")).toBe("INFORMED");
     expect(CAMPAIGN_CATALOG).toHaveLength(13);
+    expect(CAMPAIGN_CATALOG.find((item) => item.trigger === "REMINDER")?.template).toMatch(/responder com 1/i);
     expect(renderCampaignTemplate("Oi {{nome}} no {{salao}}{{profissional}}", { nome: "Ana", salao: "Aurora", profissional: "Bruno" })).toBe(
       "Oi Ana no Aurora com Bruno",
     );
@@ -1633,6 +1635,8 @@ describe("recepcionista virtual", () => {
 
     const prompt = buildReceptionistSystemPrompt({ ...DEFAULT_RECEPTIONIST, name: "Luna" }, catalog);
     expect(prompt).toMatch(/Nunca confirme, crie ou altere agendamento/);
+    expect(prompt).toMatch(/Varie as palavras/);
+    expect(prompt).toMatch(/Só responda porque a cliente escreveu/);
     expect(prompt).toMatch(/11:00/);
     expect(prompt).not.toMatch(/Juliana/);
   });
@@ -1717,5 +1721,20 @@ describe("WhatsApp API oficial", () => {
         metaAccessToken: "token",
       }),
     ).toBe(true);
+  });
+});
+
+describe("boas práticas do WhatsApp", () => {
+  it("varia texto, calcula delay e reconhece confirmação de lembrete", () => {
+    expect(spin("{a|b}", () => 0)).toBe("a");
+    expect(spin("{a|b}", () => 0.99)).toBe("b");
+    expect(spin("Oi {{nome}}")).toBe("Oi {{nome}}");
+    expect(typingDelayMs("oi")).toBeGreaterThanOrEqual(2000);
+    expect(typingDelayMs("x".repeat(400))).toBe(5000);
+    expect(isConfirmReply("1")).toBe(true);
+    expect(isConfirmReply("Sim!")).toBe(true);
+    expect(isConfirmReply("quanto custa")).toBe(false);
+    expect(looksLikeReminderPrompt("Pode me responder com 1 para confirmar seu horário de amanhã?")).toBe(true);
+    expect(looksLikeReminderPrompt("tem horário da Camila?")).toBe(false);
   });
 });

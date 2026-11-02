@@ -1,18 +1,29 @@
 import { prisma } from "@/lib/db";
-import { CAMPAIGN_CATALOG, normalizeCampaignTrigger } from "@/lib/whatsapp-campaigns";
+import { CAMPAIGN_CATALOG, campaignByTrigger, normalizeCampaignTrigger } from "@/lib/whatsapp-campaigns";
+
+const LEGACY_REMINDER_TEMPLATES = [
+  "Oi {{nome}}, lembrando do seu horário hoje às {{hora}} no {{salao}}{{profissional}}. Te esperamos!",
+  "Oi {{nome}}, lembrando do seu horário amanhã às {{hora}} no {{salao}}. Te esperamos!",
+];
 
 export async function ensureWhatsAppCampaigns(tenantId: string) {
   const existing = await prisma.automation.findMany({ where: { tenantId } });
   const used = new Set<string>();
+  const reminderTemplate = campaignByTrigger("REMINDER")?.template ?? "";
 
   for (const row of existing) {
     const trigger = normalizeCampaignTrigger(row.trigger);
     if (!trigger) continue;
+    const next: { trigger?: string; name?: string; template?: string } = {};
     if (row.trigger !== trigger) {
-      await prisma.automation.update({
-        where: { id: row.id },
-        data: { trigger, name: CAMPAIGN_CATALOG.find((item) => item.trigger === trigger)?.title ?? row.name },
-      });
+      next.trigger = trigger;
+      next.name = CAMPAIGN_CATALOG.find((item) => item.trigger === trigger)?.title ?? row.name;
+    }
+    if (trigger === "REMINDER" && reminderTemplate && LEGACY_REMINDER_TEMPLATES.includes(row.template.trim())) {
+      next.template = reminderTemplate;
+    }
+    if (Object.keys(next).length) {
+      await prisma.automation.update({ where: { id: row.id }, data: next });
     }
     used.add(trigger);
   }

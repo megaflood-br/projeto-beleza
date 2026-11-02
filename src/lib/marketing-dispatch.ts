@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { isSalonWhatsAppConnected, sendSalonWhatsApp } from "@/lib/whatsapp-send";
+import { spin } from "@/lib/whatsapp-copy";
 import {
   MARKETING_SEND_GAP_MS,
   MARKETING_SEND_MAX,
@@ -21,7 +22,7 @@ export async function sendMarketingRecipient(input: {
   body: string;
   allowMock: boolean;
 }) {
-  const body = renderMarketingBody(input.body, { nome: input.clientName, salao: input.salonName });
+  const body = spin(renderMarketingBody(input.body, { nome: input.clientName, salao: input.salonName }));
   if (!body) return { error: "Mensagem vazia." };
 
   const conversation = await prisma.conversation.upsert({
@@ -30,7 +31,12 @@ export async function sendMarketingRecipient(input: {
     create: { tenantId: input.tenantId, phone: input.phone, clientId: input.clientId, lastMessageAt: new Date() },
   });
 
-  const sent = await sendSalonWhatsApp({ tenantId: input.tenantId, phone: input.phone, text: body });
+  const sent = await sendSalonWhatsApp({
+    tenantId: input.tenantId,
+    phone: input.phone,
+    text: body,
+    presence: true,
+  });
   if (!sent.sent && !input.allowMock) {
     return { error: sent.error || "Conecte o WhatsApp em Configurações para disparar." };
   }

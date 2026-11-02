@@ -74,10 +74,11 @@ export const CAMPAIGN_CATALOG: CampaignDefinition[] = [
   {
     trigger: "REMINDER",
     title: "Evite esquecimentos",
-    description: "No corre do dia a dia o cliente pode esquecer o horário. Evite falta com um lembrete personalizado no dia do agendamento.",
+    description: "Lembrete no dia anterior, só para quem já conversou neste WhatsApp. Pede um 1 de confirmação para proteger o número.",
     icon: "bell",
     defaultActive: true,
-    template: "Oi {{nome}}, lembrando do seu horário hoje às {{hora}} no {{salao}}{{profissional}}. Te esperamos!",
+    template:
+      "{Oi|Olá|Oi oi} {{nome}}! {Passando para lembrar|Só lembrando} do seu horário amanhã às {{hora}} no {{salao}}{{profissional}}. Pode me responder com 1 para confirmar?",
   },
   {
     trigger: "NURTURE",

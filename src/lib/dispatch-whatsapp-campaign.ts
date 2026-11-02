@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db";
 import { calendarDate, formatTime } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
 import { resolvePlatformIntegrations } from "@/lib/integrations";
-import { sendSalonWhatsApp } from "@/lib/whatsapp-send";
+import { hasInboundWhatsAppChat, sendSalonWhatsApp } from "@/lib/whatsapp-send";
+import { PROACTIVE_CAMPAIGN_TRIGGERS, spin } from "@/lib/whatsapp-copy";
 import {
   appointmentPin,
   bookingLink,
@@ -59,9 +60,17 @@ export async function dispatchCampaign(input: {
   if (!input.force && (await alreadySent(input.tenantId, trigger, input.client.id, input.sentOn))) {
     return { skipped: true as const, reason: "Já enviada." };
   }
+  if (
+    !input.force &&
+    (PROACTIVE_CAMPAIGN_TRIGGERS as readonly string[]).includes(trigger) &&
+    !(await hasInboundWhatsAppChat(input.tenantId, phone))
+  ) {
+    return { skipped: true as const, reason: "Lembrete só vai para quem já conversou neste WhatsApp." };
+  }
 
   const catalog = campaignByTrigger(trigger);
-  const body = renderCampaignTemplate(input.templateOverride || automation.template || catalog?.template || "", {
+  const body = spin(
+    renderCampaignTemplate(input.templateOverride || automation.template || catalog?.template || "", {
     nome: input.client.name,
     salao: tenant.name,
     data: input.vars?.data,
@@ -71,7 +80,8 @@ export async function dispatchCampaign(input: {
     valor: input.vars?.valor,
     link: input.vars?.link || bookingLink(server.publicAppUrl, tenant.slug),
     pin: input.vars?.pin,
-  });
+    }),
+  );
   if (!body) return { skipped: true as const, reason: "Mensagem vazia." };
 
   const conversation = await prisma.conversation.upsert({
@@ -80,7 +90,7 @@ export async function dispatchCampaign(input: {
     create: { tenantId: input.tenantId, phone, clientId: input.client.id, lastMessageAt: new Date() },
   });
 
-  const sent = await sendSalonWhatsApp({ tenantId: input.tenantId, phone, text: body });
+  const sent = await sendSalonWhatsApp({ tenantId: input.tenantId, phone, text: body, presence: true });
   if (!sent.sent && sent.error && !/Conecte/.test(sent.error)) {
     return { skipped: true as const, reason: sent.error };
   }
