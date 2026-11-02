@@ -56,6 +56,7 @@ export function ComandaDrawer({
   services,
   products,
   paymentMethods = [],
+  hidePhones = false,
   onClose,
 }: {
   open: boolean;
@@ -66,6 +67,7 @@ export function ComandaDrawer({
   services: { id: string; name: string; priceCents: number; promoPriceCents?: number | null; promoName?: string | null }[];
   products: { id: string; name: string; priceCents: number; promoPriceCents?: number | null; promoName?: string | null }[];
   paymentMethods?: PaymentMethodOption[];
+  hidePhones?: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -235,7 +237,7 @@ export function ComandaDrawer({
                   placeholder="Busque por um cliente"
                   value={clientId}
                   onChange={setClientId}
-                  options={clients.map((c) => ({ value: c.id, label: c.name, hint: c.phone }))}
+                  options={clients.map((c) => ({ value: c.id, label: c.name, hint: hidePhones ? undefined : c.phone }))}
                 />
               </Field>
               <Field label="Data">

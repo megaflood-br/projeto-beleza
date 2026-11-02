@@ -90,6 +90,7 @@ export function AgendaBoard({
   canRemove = true,
   canCreateComanda = true,
   canViewComanda = true,
+  hidePhones = false,
 }: {
   date: string;
   openTime: string;
@@ -104,6 +105,7 @@ export function AgendaBoard({
   canRemove?: boolean;
   canCreateComanda?: boolean;
   canViewComanda?: boolean;
+  hidePhones?: boolean;
 }) {
   const slots = useMemo(() => buildSlots(openTime, closeTime, slotMinutes), [openTime, closeTime, slotMinutes]);
   const [draft, setDraft] = useState<{ professionalId: string; time: string } | null>(null);
@@ -255,6 +257,7 @@ export function AgendaBoard({
           canRemove={canRemove}
           canCreateComanda={canCreateComanda}
           canViewComanda={canViewComanda}
+          hidePhones={hidePhones}
           onClose={() => setDraft(null)}
         />
       ) : null}
@@ -273,6 +276,7 @@ export function AgendaBoard({
           canRemove={canRemove}
           canCreateComanda={canCreateComanda}
           canViewComanda={canViewComanda}
+          hidePhones={hidePhones}
           onClose={() => setSelected(null)}
         />
       ) : null}

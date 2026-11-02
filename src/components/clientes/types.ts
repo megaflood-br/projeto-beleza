@@ -29,4 +29,5 @@ export type ClientFormValue = {
   blockAccess: boolean;
   lastService: string | null;
   hasDebt: boolean;
+  hasPhone?: boolean;
 };

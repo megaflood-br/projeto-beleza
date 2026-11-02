@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Button, Field, Input, Textarea } from "@/components/ui";
 import { upsertClient } from "@/app/actions/clients";
-import { cn, formAction } from "@/lib/utils";
+import { cn, formAction, HIDDEN_PHONE_LABEL } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
 import { calendarDate, formatMediumDate, formatTime } from "@/lib/dates";
 import { STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
@@ -90,6 +90,7 @@ export function ClientPanel({
   cashbackCentsPerPoint,
   cashbackMoves,
   salonName,
+  hidePhones = false,
   canCreateAnamnesis = true,
   canEditAnamnesis = true,
 }: {
@@ -119,6 +120,7 @@ export function ClientPanel({
   cashbackCentsPerPoint: number;
   cashbackMoves: CashbackMoveRow[];
   salonName?: string;
+  hidePhones?: boolean;
   canCreateAnamnesis?: boolean;
   canEditAnamnesis?: boolean;
 }) {
@@ -170,7 +172,7 @@ export function ClientPanel({
           {tab === "painel" ? (
             <PainelTab metrics={metrics} appointments={appointments} />
           ) : tab === "cadastro" ? (
-            <CadastroTab client={client} />
+            <CadastroTab client={client} hidePhones={hidePhones} />
           ) : tab === "debitos" ? (
             <ComandasTab
               title="Débitos"
@@ -202,7 +204,7 @@ export function ClientPanel({
           ) : tab === "mensagens" ? (
             <MessagesTab messages={messages} />
           ) : tab === "anotacoes" ? (
-            <NotesTab client={client} />
+            <NotesTab client={client} hidePhones={hidePhones} />
           ) : tab === "arquivos" ? (
             <EmptyState text="Nenhuma imagem ou arquivo anexado." />
           ) : tab === "anamneses" ? (
@@ -212,6 +214,7 @@ export function ClientPanel({
               forms={forms}
               professionals={professionals}
               salonName={salonName}
+              hidePhones={hidePhones}
               canCreate={canCreateAnamnesis}
               canEdit={canEditAnamnesis}
             />
@@ -347,6 +350,7 @@ function StatCard({ icon, value, label }: { icon: ReactNode; value: string; labe
 
 function CadastroTab({
   client,
+  hidePhones = false,
 }: {
   client: {
     id: string;
@@ -359,6 +363,7 @@ function CadastroTab({
     source: string;
     birthDate: Date | null;
   };
+  hidePhones?: boolean;
 }) {
   return (
     <form action={formAction(upsertClient)} className="grid max-w-xl gap-3">
@@ -367,7 +372,11 @@ function CadastroTab({
         <Input name="name" defaultValue={client.name} required />
       </Field>
       <Field label="WhatsApp">
-        <Input name="phone" defaultValue={client.phone} required />
+        {hidePhones ? (
+          <Input value={HIDDEN_PHONE_LABEL} disabled />
+        ) : (
+          <Input name="phone" defaultValue={client.phone} required />
+        )}
       </Field>
       <Field label="E-mail">
         <Input name="email" type="email" defaultValue={client.email ?? ""} />
@@ -396,6 +405,7 @@ function CadastroTab({
 
 function NotesTab({
   client,
+  hidePhones = false,
 }: {
   client: {
     id: string;
@@ -407,12 +417,13 @@ function NotesTab({
     notes: string | null;
     birthDate: Date | null;
   };
+  hidePhones?: boolean;
 }) {
   return (
     <form action={formAction(upsertClient)} className="grid max-w-xl gap-3">
       <input type="hidden" name="id" value={client.id} />
       <input type="hidden" name="name" value={client.name} />
-      <input type="hidden" name="phone" value={client.phone} />
+      {hidePhones ? null : <input type="hidden" name="phone" value={client.phone} />}
       <input type="hidden" name="email" value={client.email ?? ""} />
       <input type="hidden" name="instagram" value={client.instagram ?? ""} />
       <input type="hidden" name="tags" value={client.tags} />

@@ -21,6 +21,7 @@ export function ClientAnamneses({
   forms,
   professionals,
   salonName,
+  hidePhones = false,
   canCreate = true,
   canEdit = true,
 }: {
@@ -29,6 +30,7 @@ export function ClientAnamneses({
   forms: AnamnesisFormRow[];
   professionals: { id: string; name: string }[];
   salonName?: string;
+  hidePhones?: boolean;
   canCreate?: boolean;
   canEdit?: boolean;
 }) {
@@ -123,6 +125,7 @@ export function ClientAnamneses({
           record={viewing}
           form={forms.find((form) => form.id === viewing.formId) ?? null}
           salonName={salonName}
+          hidePhones={hidePhones}
           onClose={() => setViewing(null)}
           onEdit={
             canCreate || canEdit
@@ -143,6 +146,7 @@ export function ClientAnamneses({
           clients={[client]}
           professionals={professionals}
           lockedClientId={client.id}
+          hidePhones={hidePhones}
           onView={
             editing
               ? () => {

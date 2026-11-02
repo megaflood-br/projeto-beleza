@@ -20,6 +20,7 @@ export function ComandaBoard({
   paymentMethods = [],
   canCreate = true,
   canEdit = true,
+  hidePhones = false,
 }: {
   comandas: ComandaFormValue[];
   nextNumber: number;
@@ -30,6 +31,7 @@ export function ComandaBoard({
   paymentMethods?: PaymentMethodOption[];
   canCreate?: boolean;
   canEdit?: boolean;
+  hidePhones?: boolean;
 }) {
   const [editing, setEditing] = useState<ComandaFormValue | null | undefined>(undefined);
   const [showOpen, setShowOpen] = useState(true);
@@ -152,6 +154,7 @@ export function ComandaBoard({
           services={services}
           products={products}
           paymentMethods={paymentMethods}
+          hidePhones={hidePhones}
           onClose={() => setEditing(undefined)}
         />
       ) : null}

@@ -5,7 +5,7 @@ import { saveInboxClient } from "@/app/actions/clients";
 import { STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
 import { formatMediumDate } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
-import { formAction, formatPhoneBR, initials } from "@/lib/utils";
+import { displayPhoneBR, formAction, HIDDEN_PHONE_LABEL, initials } from "@/lib/utils";
 
 export type InboxClientProfile = {
   conversationId: string;
@@ -30,7 +30,13 @@ function statusLabel(status: string) {
   return STATUS_LABEL[status as AppointmentStatus] ?? status;
 }
 
-export function InboxClientPanel({ profile }: { profile: InboxClientProfile | null }) {
+export function InboxClientPanel({
+  profile,
+  hidePhones = false,
+}: {
+  profile: InboxClientProfile | null;
+  hidePhones?: boolean;
+}) {
   if (!profile) {
     return (
       <div className="flex h-full min-h-48 flex-col items-center justify-center px-5 py-8 text-center text-sm text-ink-soft">
@@ -56,7 +62,7 @@ export function InboxClientPanel({ profile }: { profile: InboxClientProfile | nu
             )}
             <div className="min-w-0">
               <h2 className="truncate font-display text-xl">{client.name}</h2>
-              <p className="text-sm text-ink-soft">{formatPhoneBR(client.phone || profile.phone)}</p>
+              <p className="text-sm text-ink-soft">{displayPhoneBR(client.phone || profile.phone, hidePhones)}</p>
               {client.email ? <p className="truncate text-sm text-ink-soft">{client.email}</p> : null}
               {client.instagram ? <p className="truncate text-sm text-ink-soft">{client.instagram}</p> : null}
             </div>
@@ -136,7 +142,7 @@ export function InboxClientPanel({ profile }: { profile: InboxClientProfile | nu
             <p className="mt-1 text-sm text-ink-soft">
               Este número ainda não tem ficha. Salve o nome para atender com histórico.
             </p>
-            <p className="mt-2 text-sm font-medium">{formatPhoneBR(profile.phone)}</p>
+            <p className="mt-2 text-sm font-medium">{hidePhones ? HIDDEN_PHONE_LABEL : displayPhoneBR(profile.phone)}</p>
           </div>
           <input type="hidden" name="conversationId" value={profile.conversationId} />
           <Field label="Nome">

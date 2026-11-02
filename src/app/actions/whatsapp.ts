@@ -10,17 +10,21 @@ import { provisionWhatsAppInstance } from "@/lib/whatsapp-live";
 
 export async function sendWhatsApp(formData: FormData) {
   const { session, tenant } = await requireTenant();
-  const phone = String(formData.get("phone") ?? "").replace(/\D/g, "");
   const body = String(formData.get("body") ?? "").trim();
   const conversationId = String(formData.get("conversationId") ?? "");
-  if (!phone || !body) return { error: "Telefone e mensagem são obrigatórios." };
+  let phone = String(formData.get("phone") ?? "").replace(/\D/g, "");
+  if (!body) return { error: "Mensagem é obrigatória." };
+
+  const existingConversation = conversationId
+    ? await prisma.conversation.findFirst({
+        where: { id: conversationId, tenantId: session.tenantId },
+      })
+    : null;
+  if (existingConversation) phone = existingConversation.phone.replace(/\D/g, "") || existingConversation.phone;
+  if (!phone) return { error: "Telefone e mensagem são obrigatórios." };
 
   const conversation =
-    (conversationId
-      ? await prisma.conversation.findFirst({
-          where: { id: conversationId, tenantId: session.tenantId },
-        })
-      : null) ??
+    existingConversation ??
     (await prisma.conversation.upsert({
       where: { tenantId_phone: { tenantId: session.tenantId, phone } },
       update: { lastMessageAt: new Date() },

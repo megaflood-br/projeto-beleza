@@ -2,11 +2,13 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { AnamnesisBoard } from "@/components/anamneses/anamnesis-board";
 import { anamnesisAreasForAccess, ensureAnamnesisForms, formAllowedByAreas, mapAnamnesisRow, mapFormRow } from "@/lib/anamnesis";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, shouldHidePhones } from "@/lib/permissions";
+import { redactPhone } from "@/lib/utils";
 
 export default async function AnamnesesPage() {
   const { session, tenant, access } = await requireTenant();
   await ensureAnamnesisForms(session.tenantId);
+  const hidePhones = shouldHidePhones(access);
   const areas = await anamnesisAreasForAccess(session.tenantId, access);
   const ownOnly = Boolean(access.professionalId && !canAccess(access, "anamnesis", "viewAll"));
 
@@ -42,9 +44,13 @@ export default async function AnamnesesPage() {
 
   return (
     <AnamnesisBoard
-      records={records.map(mapAnamnesisRow).filter((row) => visibleIds.has(row.formId))}
+      records={records
+        .map(mapAnamnesisRow)
+        .filter((row) => visibleIds.has(row.formId))
+        .map((row) => ({ ...row, clientPhone: redactPhone(row.clientPhone, hidePhones) }))}
       forms={visibleForms}
-      clients={clients}
+      hidePhones={hidePhones}
+      clients={clients.map((client) => ({ ...client, phone: redactPhone(client.phone, hidePhones) }))}
       professionals={professionals}
       salonName={tenant.name}
       scoped={!canAccess(access, "anamnesis", "viewAll")}

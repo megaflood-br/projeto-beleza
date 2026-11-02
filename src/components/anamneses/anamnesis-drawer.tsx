@@ -27,6 +27,7 @@ export function AnamnesisDrawer({
   clients,
   professionals,
   lockedClientId,
+  hidePhones = false,
   onView,
   onClose,
 }: {
@@ -36,6 +37,7 @@ export function AnamnesisDrawer({
   clients: { id: string; name: string; phone?: string }[];
   professionals: { id: string; name: string }[];
   lockedClientId?: string;
+  hidePhones?: boolean;
   onView?: () => void;
   onClose: () => void;
 }) {
@@ -146,7 +148,7 @@ export function AnamnesisDrawer({
               </div>
             ) : (
               <SearchSelect
-                options={clients.map((c) => ({ value: c.id, label: c.name, hint: c.phone }))}
+                options={clients.map((c) => ({ value: c.id, label: c.name, hint: hidePhones ? undefined : c.phone }))}
                 value={clientId}
                 onChange={setClientId}
                 placeholder="Buscar cliente"

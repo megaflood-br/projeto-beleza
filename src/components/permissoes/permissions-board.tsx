@@ -8,6 +8,7 @@ import { PermissionMatrix } from "@/components/permissoes/permission-matrix";
 import { deletePermissionProfile, savePermissionProfile, saveUserAccess } from "@/app/actions/permissions";
 import {
   agendaScopeLabel,
+  phonesScopeLabel,
   allGrants,
   parseStoredAccess,
   profilePreset,
@@ -54,7 +55,7 @@ export function PermissionsBoard({
         <div>
           <h1 className="font-display text-3xl">Permissões</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            Defina o que cada profissional vê no painel. A agenda pode ser só a dela ou a de todo o salão.
+            Defina o que cada profissional vê no painel. A agenda pode ser só a dela ou a de todo o salão. Os telefones das clientes também podem ficar ocultos.
           </p>
         </div>
         <Button type="button" onClick={() => setEditingProfile(null)}>
@@ -78,6 +79,7 @@ export function PermissionsBoard({
               <tr>
                 <th className="px-4 py-3">Perfil</th>
                 <th>Agenda</th>
+                <th>Telefones</th>
                 <th>Usuários</th>
                 <th />
               </tr>
@@ -92,6 +94,7 @@ export function PermissionsBoard({
                   <tr key={profile.id} className="border-t border-line">
                     <td className="px-4 py-3 font-medium">{profile.name}</td>
                     <td>{access.isAdmin ? "Agenda de todos" : agendaScopeLabel(access)}</td>
+                    <td>{access.isAdmin ? "Telefones visíveis" : phonesScopeLabel(access)}</td>
                     <td>{profile.userCount}</td>
                     <td className="px-4 text-right">
                       <button type="button" className="text-sm font-medium text-wine" onClick={() => setEditingProfile(profile)}>
@@ -117,6 +120,7 @@ export function PermissionsBoard({
               <th>Cargo</th>
               <th>Perfil</th>
               <th>Agenda</th>
+              <th>Telefones</th>
               <th />
             </tr>
           </thead>
@@ -146,6 +150,7 @@ export function PermissionsBoard({
                     </Badge>
                   </td>
                   <td>{access.isAdmin ? "Agenda de todos" : agendaScopeLabel(access)}</td>
+                  <td>{access.isAdmin ? "Telefones visíveis" : phonesScopeLabel(access)}</td>
                   <td className="px-4 text-right">
                     <button type="button" className="text-sm font-medium text-wine" onClick={() => setEditingUser(user)}>
                       Definir acesso
@@ -391,7 +396,7 @@ function UserAccessDrawer({
           <p className="text-sm text-ink-soft">
             {current.isAdmin
               ? "Este cargo já tem acesso total."
-              : `Padrão: ${agendaScopeLabel(current)}. Crie um perfil ou personalize para mudar.`}
+              : `Padrão: ${agendaScopeLabel(current)}. ${phonesScopeLabel(current)}. Crie um perfil ou personalize para mudar.`}
           </p>
         )}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}

@@ -2,9 +2,12 @@ import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
 import { ClientBoard } from "@/components/clientes/client-board";
 import { calendarDate } from "@/lib/dates";
+import { shouldHidePhones } from "@/lib/permissions";
+import { redactPhone } from "@/lib/utils";
 
 export default async function ClientesPage() {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  const hidePhones = shouldHidePhones(access);
   const clients = await prisma.client.findMany({
     where: { tenantId: session.tenantId },
     include: {
@@ -28,12 +31,13 @@ export default async function ClientesPage() {
   return (
     <ClientBoard
       tags={tags}
+      hidePhones={hidePhones}
       clients={clients.map((c) => ({
         id: c.id,
         name: c.name,
         nickname: c.nickname,
-        phone: c.phone,
-        landline: c.landline,
+        phone: redactPhone(c.phone, hidePhones),
+        landline: hidePhones ? null : c.landline,
         email: c.email,
         birthDate: c.birthDate ? calendarDate(c.birthDate) : null,
         notes: c.notes,
@@ -59,6 +63,7 @@ export default async function ClientesPage() {
         blockAccess: c.blockAccess,
         lastService: c.appointments[0]?.items.map((i) => i.service.name).join(", ") || null,
         hasDebt: c.comandas.length > 0,
+        hasPhone: Boolean(c.phone),
       }))}
     />
   );

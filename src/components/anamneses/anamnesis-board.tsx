@@ -17,7 +17,7 @@ import {
   type AnamnesisStatus,
 } from "@/lib/anamnesis";
 import { formatMediumDate, zonedDateTime } from "@/lib/dates";
-import { cn, formatPhoneBR } from "@/lib/utils";
+import { cn, displayPhoneBR } from "@/lib/utils";
 import type { AnamnesisFormRow, AnamnesisRow } from "@/components/anamneses/types";
 
 type Tab = "registros" | "fichas";
@@ -29,6 +29,7 @@ export function AnamnesisBoard({
   professionals,
   salonName,
   scoped = false,
+  hidePhones = false,
   canCreate = true,
   canEdit = true,
   canManageForms = true,
@@ -39,6 +40,7 @@ export function AnamnesisBoard({
   professionals: { id: string; name: string }[];
   salonName?: string;
   scoped?: boolean;
+  hidePhones?: boolean;
   canCreate?: boolean;
   canEdit?: boolean;
   canManageForms?: boolean;
@@ -168,7 +170,7 @@ export function AnamnesisBoard({
                         <Link href={`/clientes/${row.clientId}?tab=anamneses`} className="font-medium text-wine">
                           {row.clientName}
                         </Link>
-                        <div className="text-xs text-ink-soft">{formatPhoneBR(row.clientPhone)}</div>
+                        <div className="text-xs text-ink-soft">{displayPhoneBR(row.clientPhone, hidePhones)}</div>
                       </td>
                       <td>
                         <button
@@ -250,6 +252,7 @@ export function AnamnesisBoard({
           record={viewing}
           form={forms.find((form) => form.id === viewing.formId) ?? null}
           salonName={salonName}
+          hidePhones={hidePhones}
           onClose={() => setViewing(null)}
           onEdit={
             canCreate || canEdit
@@ -268,6 +271,7 @@ export function AnamnesisBoard({
           forms={forms}
           clients={clients}
           professionals={professionals}
+          hidePhones={hidePhones}
           onView={
             editing
               ? () => {

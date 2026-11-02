@@ -7,13 +7,16 @@ import type { InboxClientProfile } from "@/components/whatsapp/inbox-client-pane
 import { comandaTotal } from "@/lib/comandas";
 import { settingsPath } from "@/lib/settings";
 import { whatsappPhoneCandidates } from "@/lib/whatsapp-campaigns";
+import { shouldHidePhones } from "@/lib/permissions";
+import { redactPhone } from "@/lib/utils";
 
 export default async function AtendimentoPage({
   searchParams,
 }: {
   searchParams: Promise<{ c?: string }>;
 }) {
-  const { session } = await requireTenant();
+  const { session, access } = await requireTenant();
+  const hidePhones = shouldHidePhones(access);
   const params = await searchParams;
   const selectedId = typeof params.c === "string" ? params.c : null;
   const [live, conversations] = await Promise.all([
@@ -45,10 +48,21 @@ export default async function AtendimentoPage({
       </div>
       <InboxBoard
         selectedId={selected?.id ?? null}
-        profile={profile}
+        hidePhones={hidePhones}
+        profile={
+          profile
+            ? {
+                ...profile,
+                phone: redactPhone(profile.phone, hidePhones),
+                client: profile.client
+                  ? { ...profile.client, phone: redactPhone(profile.client.phone, hidePhones) }
+                  : null,
+              }
+            : null
+        }
         conversations={conversations.map((conversation) => ({
           id: conversation.id,
-          phone: conversation.phone,
+          phone: redactPhone(conversation.phone, hidePhones),
           client: conversation.client ? { name: conversation.client.name } : profile?.client && conversation.id === selected?.id
             ? { name: profile.client.name }
             : null,

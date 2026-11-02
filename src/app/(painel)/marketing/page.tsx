@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireTenant } from "@/lib/tenant";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, shouldHidePhones } from "@/lib/permissions";
+import { redactPhone } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { readWhatsAppLive } from "@/lib/whatsapp-live";
 import { atendimentoPath, MARKETING_TABS, parseMarketingTab, syncMarketingReplies } from "@/lib/marketing";
@@ -18,6 +19,7 @@ export default async function MarketingPage({
   searchParams: Promise<{ c?: string; tab?: string }>;
 }) {
   const { session, access } = await requireTenant();
+  const hidePhones = shouldHidePhones(access);
   const params = await searchParams;
   if (params.tab === "inbox") redirect(atendimentoPath(params.c));
   if (params.tab === "conexao") redirect(settingsPath("whatsapp"));
@@ -55,7 +57,13 @@ export default async function MarketingPage({
       {tab === "campanhas" ? (
         <CampaignsPanel tenantId={session.tenantId} canManage={canAccess(access, "marketing", "edit")} connected={connected} />
       ) : (
-        <ListsPanel tenantId={session.tenantId} selectedId={selectedId} canManage={canAccess(access, "marketing", "edit")} connected={connected} />
+        <ListsPanel
+          tenantId={session.tenantId}
+          selectedId={selectedId}
+          canManage={canAccess(access, "marketing", "edit")}
+          hidePhones={hidePhones}
+          connected={connected}
+        />
       )}
     </div>
   );
@@ -65,11 +73,13 @@ async function ListsPanel({
   tenantId,
   selectedId,
   canManage,
+  hidePhones,
   connected,
 }: {
   tenantId: string;
   selectedId: string | null;
   canManage: boolean;
+  hidePhones: boolean;
   connected: boolean;
 }) {
   await syncMarketingReplies(tenantId, selectedId ?? undefined).catch(() => 0);
@@ -109,6 +119,7 @@ async function ListsPanel({
   return (
     <MarketingBoard
       canManage={canManage}
+      hidePhones={hidePhones}
       connected={connected}
       selectedId={selectedId}
       tags={tags}
@@ -128,7 +139,7 @@ async function ListsPanel({
           id: row.id,
           clientId: row.clientId,
           clientName: row.client.name,
-          phone: row.phone,
+          phone: redactPhone(row.phone, hidePhones),
           status: row.status,
           error: row.error,
           sentAt: row.sentAt?.toISOString() ?? null,

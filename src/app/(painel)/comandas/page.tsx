@@ -6,10 +6,12 @@ import { comandaTotal } from "@/lib/comandas";
 import { loadFinanceCatalog } from "@/lib/finance-catalog";
 import { decorateCatalogItem } from "@/lib/promotions";
 import { loadPromoRules } from "@/lib/promo-load";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, shouldHidePhones } from "@/lib/permissions";
+import { redactPhone } from "@/lib/utils";
 
 export default async function ComandasPage() {
   const { session, access } = await requireTenant();
+  const hidePhones = shouldHidePhones(access);
   const [comandas, clients, professionals, services, products, last, catalog, promos] = await Promise.all([
     prisma.comanda.findMany({
       where: { tenantId: session.tenantId },
@@ -55,7 +57,8 @@ export default async function ComandasPage() {
       nextNumber={(last?.number ?? 0) + 1}
       canCreate={canAccess(access, "comandas", "create")}
       canEdit={canAccess(access, "comandas", "edit")}
-      clients={clients}
+      hidePhones={hidePhones}
+      clients={clients.map((client) => ({ ...client, phone: redactPhone(client.phone, hidePhones) }))}
       professionals={professionals}
       services={pricedServices}
       products={pricedProducts}

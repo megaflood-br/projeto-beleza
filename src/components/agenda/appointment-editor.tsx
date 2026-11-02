@@ -11,7 +11,7 @@ import { SearchSelect } from "@/components/search-select";
 import { DURATION_OPTIONS, STATUS_COLOR, STATUS_LABEL, type AppointmentStatus } from "@/lib/constants";
 import { formatTime, minutesToLabel } from "@/lib/dates";
 import { formatBRL } from "@/lib/money";
-import { initials } from "@/lib/utils";
+import { displayPhoneBR, initials } from "@/lib/utils";
 import type { AgendaAppointment, AgendaClient, AgendaProfessional, AgendaService } from "@/components/agenda/types";
 
 type ItemRow = {
@@ -39,6 +39,7 @@ export function AppointmentEditor({
   canRemove = true,
   canCreateComanda = true,
   canViewComanda = true,
+  hidePhones = false,
   onClose,
 }: {
   mode: "create" | "edit";
@@ -53,6 +54,7 @@ export function AppointmentEditor({
   canRemove?: boolean;
   canCreateComanda?: boolean;
   canViewComanda?: boolean;
+  hidePhones?: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -137,8 +139,8 @@ export function AppointmentEditor({
               {initials(client?.name ?? "Cliente")}
             </div>
             <div className="mt-3 font-semibold">{client?.name ?? "Selecione o cliente"}</div>
-            <div className="text-sm text-ink-soft">{client?.phone}</div>
-            {client?.phone ? (
+            <div className="text-sm text-ink-soft">{displayPhoneBR(client?.phone, hidePhones)}</div>
+            {client?.phone && !hidePhones ? (
               <a
                 href={`https://wa.me/55${client.phone.replace(/\D/g, "")}`}
                 target="_blank"
@@ -189,7 +191,7 @@ export function AppointmentEditor({
                   placeholder="Buscar cliente..."
                   value={clientId}
                   onChange={setClientId}
-                  options={clients.map((c) => ({ value: c.id, label: c.name, hint: c.phone }))}
+                  options={clients.map((c) => ({ value: c.id, label: c.name, hint: hidePhones ? undefined : c.phone }))}
                 />
               </label>
               <label className="grid gap-1 text-sm">
